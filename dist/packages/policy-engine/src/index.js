@@ -104,6 +104,39 @@ function evaluatePolicy(input) {
     }
     return result;
 }
+function scenarioSummaryLabel(result) {
+    if (result.supported) {
+        return 'supported';
+    }
+    const missing = [];
+    if (!result.keywordsMatched) {
+        missing.push('keywords');
+    }
+    if (!result.failurePathKeywordsMatched) {
+        missing.push('failure-path');
+    }
+    return `missing ${missing.join(' + ')} evidence`;
+}
+function renderInvariantEvidenceSummary(claim, indent = '  - ') {
+    const summary = claim.evidenceSummary;
+    if (!summary) {
+        return [];
+    }
+    const changedFunctions = summary.changedFunctions.length > 0
+        ? summary.changedFunctions.map((item) => `${item.symbol} (${item.filePath}, coverage ${item.coveragePct}%, CRAP ${item.crap})`).join('; ')
+        : 'none';
+    const scenarioResults = summary.scenarioResults.length > 0
+        ? summary.scenarioResults.map((item) => `${item.scenarioId}=${scenarioSummaryLabel(item)}`).join('; ')
+        : 'none';
+    return [
+        `${indent}impacted files: ${summary.impactedFiles.join(', ') || 'none'}`,
+        `${indent}focused tests: ${summary.focusedTests.join(', ') || 'none'}`,
+        `${indent}changed functions: ${changedFunctions}`,
+        `${indent}changed functions under 80% coverage: ${summary.changedFunctionsUnder80Coverage}; max changed CRAP: ${summary.maxChangedCrap}`,
+        `${indent}mutation scope: ${summary.mutationSitesInScope} site(s), ${summary.killedMutantsInScope} killed, ${summary.survivingMutantsInScope} survived`,
+        `${indent}scenario results: ${scenarioResults}`
+    ];
+}
 function renderPrSummary(run) {
     const lines = [];
     const survivingMutants = run.mutations.filter((result) => result.status === 'survived').length;
@@ -148,6 +181,7 @@ function renderExplainText(run) {
         lines.push('Invariant impact:');
         for (const claim of run.behaviorClaims) {
             lines.push(`- ${claim.invariantId}: ${claim.status}`);
+            lines.push(...renderInvariantEvidenceSummary(claim));
             for (const evidence of claim.evidence) {
                 lines.push(`  - ${evidence}`);
             }
@@ -191,6 +225,7 @@ function renderMarkdownReport(run) {
     lines.push('## Invariants');
     for (const claim of run.behaviorClaims) {
         lines.push(`- ${claim.invariantId}: ${claim.status}`);
+        lines.push(...renderInvariantEvidenceSummary(claim));
         for (const obligation of claim.obligations) {
             lines.push(`  - obligation: ${obligation.description}`);
         }

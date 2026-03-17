@@ -8,6 +8,50 @@
         "3 surviving mutants in impacted invariant scope",
         "Missing deterministic test evidence for scenario 'exact expiry boundary denies access'"
       ],
+      "evidenceSummary": {
+        "changedFunctions": [
+          {
+            "coveragePct": 100,
+            "crap": 3,
+            "filePath": "src/auth/token.js",
+            "symbol": "function:canUseRefreshToken"
+          },
+          {
+            "coveragePct": 100,
+            "crap": 1,
+            "filePath": "src/auth/token.js",
+            "symbol": "function:isRefreshExpired"
+          },
+          {
+            "coveragePct": 100,
+            "crap": 3,
+            "filePath": "src/auth/token.js",
+            "symbol": "function:issueAccessDecision"
+          }
+        ],
+        "changedFunctionsUnder80Coverage": 0,
+        "focusedTests": [
+          "test/token.test.js"
+        ],
+        "impactedFiles": [
+          "src/auth/token.js"
+        ],
+        "invariantId": "auth.refresh.validity",
+        "killedMutantsInScope": 1,
+        "maxChangedCrap": 3,
+        "mutationSitesInScope": 4,
+        "scenarioResults": [
+          {
+            "description": "exact expiry boundary denies access",
+            "expected": "deny",
+            "failurePathKeywordsMatched": false,
+            "keywordsMatched": true,
+            "scenarioId": "expired-boundary",
+            "supported": false
+          }
+        ],
+        "survivingMutantsInScope": 3
+      },
       "id": "auth.refresh.validity:claim",
       "invariantId": "auth.refresh.validity",
       "obligations": [
@@ -163,7 +207,7 @@
       "totalLines": 8
     }
   ],
-  "createdAt": "2026-03-17T16:54:43.924Z",
+  "createdAt": "2026-03-17T19:04:10.178Z",
   "files": [
     {
       "digest": "sha256:426470c01cf4f5dc02bacfc1eccf57ec0a2be3c6cf2c7a998017c8c67f801206",
@@ -351,16 +395,16 @@
   "overrides": [],
   "repo": {
     "digest": "sha256:b591e261c25f12d08c4ab7d681a674d069dcd0fba2f6e02d1c0684357e43696b",
-    "name": "tsq-samples-governed-app-teCB8y",
+    "name": "tsq-samples-governed-app-mHIIle",
     "packages": [
       {
         "dir": "",
         "name": "governed-app"
       }
     ],
-    "rootDir": "tmp/tsq-samples-governed-app-teCB8y"
+    "rootDir": "tmp/tsq-samples-governed-app-mHIIle"
   },
-  "runId": "2026-03-17T16-54-43-924Z",
+  "runId": "2026-03-17T19-04-10-178Z",
   "symbols": [
     {
       "filePath": "src/payments/ledger.js",

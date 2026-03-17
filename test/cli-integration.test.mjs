@@ -26,7 +26,9 @@ test('check, report, and explain produce artifacts', () => {
   const report = spawnSync('node', [cli, 'report', '--root', target], { encoding: 'utf8' });
   const explain = spawnSync('node', [cli, 'explain', '--root', target], { encoding: 'utf8' });
   assert.match(report.stdout, /Merge confidence/);
+  assert.match(report.stdout, /mutation scope: [0-9]+ site\(s\), [0-9]+ killed, [0-9]+ survived/);
   assert.match(explain.stdout, /Reasons:/);
+  assert.match(explain.stdout, /focused tests: test\/token.test.js/);
 });
 
 test('check --help renders usage instead of executing analysis', () => {

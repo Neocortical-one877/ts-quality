@@ -110,9 +110,20 @@ function evaluateInvariants(options) {
         const fileMutations = options.mutationSites.filter((site) => files.includes(site.filePath));
         const mutationResults = options.mutations.filter((result) => files.includes(result.filePath));
         const survivingMutants = mutationResults.filter((result) => result.status === 'survived');
-        const lowCoverageChanged = options.complexity.filter((item) => files.includes(item.filePath) && item.changed && item.coveragePct < 80);
+        const killedMutants = mutationResults.filter((result) => result.status === 'killed');
+        const changedFunctions = options.complexity
+            .filter((item) => files.includes(item.filePath) && item.changed)
+            .map((item) => ({
+            filePath: item.filePath,
+            symbol: item.symbol,
+            coveragePct: item.coveragePct,
+            crap: item.crap
+        }))
+            .sort((left, right) => left.filePath.localeCompare(right.filePath) || left.symbol.localeCompare(right.symbol));
+        const lowCoverageChanged = changedFunctions.filter((item) => item.coveragePct < 80);
         const focusedTests = focusedTestDocuments(testDocuments, invariant, files);
         const focusedCorpus = focusedTests.map((document) => document.contents).join('\n');
+        const scenarioResults = [];
         if (survivingMutants.length > 0) {
             status = 'at-risk';
             evidence.push(`${survivingMutants.length} surviving mutants in impacted invariant scope`);
@@ -128,7 +139,16 @@ function evaluateInvariants(options) {
         for (const scenario of invariant.scenarios) {
             const hasKeywords = focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.keywords);
             const hasFailurePath = scenario.failurePathKeywords ? focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.failurePathKeywords) : true;
-            if (!hasKeywords || !hasFailurePath) {
+            const supported = hasKeywords && hasFailurePath;
+            scenarioResults.push({
+                scenarioId: scenario.id,
+                description: scenario.description,
+                expected: scenario.expected,
+                keywordsMatched: hasKeywords,
+                failurePathKeywordsMatched: hasFailurePath,
+                supported
+            });
+            if (!supported) {
                 obligations.push({
                     id: `${invariant.id}:${scenario.id}`,
                     invariantId: invariant.id,
@@ -157,13 +177,26 @@ function evaluateInvariants(options) {
                 evidence.push(`Changed region ${region.hunkId} in ${region.filePath} has no selected mutation sites; review test specificity manually.`);
             }
         }
+        const evidenceSummary = {
+            invariantId: invariant.id,
+            impactedFiles: files,
+            focusedTests: focusedTests.map((document) => document.filePath),
+            changedFunctions,
+            changedFunctionsUnder80Coverage: lowCoverageChanged.length,
+            maxChangedCrap: changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0),
+            mutationSitesInScope: fileMutations.length,
+            killedMutantsInScope: killedMutants.length,
+            survivingMutantsInScope: survivingMutants.length,
+            scenarioResults
+        };
         results.push({
             id: `${invariant.id}:claim`,
             invariantId: invariant.id,
             description: `${invariant.title} applies to ${files.join(', ')}`,
             status,
             evidence: evidence.length > 0 ? evidence : [`Focused tests: ${focusedTests.map((document) => document.filePath).join(', ')}`],
-            obligations
+            obligations,
+            evidenceSummary
         });
     }
     return results;

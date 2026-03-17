@@ -1,6 +1,6 @@
 # ts-quality report
 
-- Run: `2026-03-17T16-54-43-924Z`
+- Run: `2026-03-17T19-04-10-178Z`
 - Merge confidence: **6/100**
 - Outcome: **fail**
 - Changed files: src/auth/token.js
@@ -58,6 +58,12 @@ ok 2 - missing token denies access
 
 ## Invariants
 - auth.refresh.validity: at-risk
+  - impacted files: src/auth/token.js
+  - focused tests: test/token.test.js
+  - changed functions: function:canUseRefreshToken (src/auth/token.js, coverage 100%, CRAP 3); function:isRefreshExpired (src/auth/token.js, coverage 100%, CRAP 1); function:issueAccessDecision (src/auth/token.js, coverage 100%, CRAP 3)
+  - changed functions under 80% coverage: 0; max changed CRAP: 3
+  - mutation scope: 4 site(s), 1 killed, 3 survived
+  - scenario results: expired-boundary=missing failure-path evidence
   - obligation: Add or tighten a focused test for scenario 'exact expiry boundary denies access' to preserve invariant 'Refresh token validity'.
 
 ## Governance

@@ -46,3 +46,5 @@ Focused tests are selected by either:
 Unrelated tests elsewhere in the repo do not satisfy an invariant just because they contain the same words.
 
 When evidence is weak, it emits concrete `TestObligation` records.
+
+Each impacted invariant also records an additive `evidenceSummary` in the run artifact. The summary is deterministic and compact: it lists impacted files, focused tests, changed functions, low-coverage counts, mutation counts, and per-scenario support so reviewers can inspect invariant support without reverse-engineering free-form evidence strings.

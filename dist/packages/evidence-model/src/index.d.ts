@@ -86,6 +86,32 @@ export interface InvariantScenario {
     failurePathKeywords?: string[] | undefined;
     expected: string;
 }
+export interface InvariantChangedFunctionSummary {
+    filePath: string;
+    symbol: string;
+    coveragePct: number;
+    crap: number;
+}
+export interface InvariantScenarioResult {
+    scenarioId: string;
+    description: string;
+    expected: string;
+    keywordsMatched: boolean;
+    failurePathKeywordsMatched: boolean;
+    supported: boolean;
+}
+export interface InvariantEvidenceSummary {
+    invariantId: string;
+    impactedFiles: string[];
+    focusedTests: string[];
+    changedFunctions: InvariantChangedFunctionSummary[];
+    changedFunctionsUnder80Coverage: number;
+    maxChangedCrap: number;
+    mutationSitesInScope: number;
+    killedMutantsInScope: number;
+    survivingMutantsInScope: number;
+    scenarioResults: InvariantScenarioResult[];
+}
 export interface BehaviorClaim {
     id: string;
     invariantId: string;
@@ -93,6 +119,7 @@ export interface BehaviorClaim {
     status: 'supported' | 'unsupported' | 'at-risk';
     evidence: string[];
     obligations: TestObligation[];
+    evidenceSummary?: InvariantEvidenceSummary | undefined;
 }
 export interface TestObligation {
     id: string;

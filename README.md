@@ -56,6 +56,8 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `plan.txt` — governance plan
 - `govern.txt` — governance findings
 
+Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, and per-scenario support.
+
 ## Why it is explainable
 
 Every score, block, waiver, attestation, override, and amendment connects back to explicit evidence:

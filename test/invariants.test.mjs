@@ -35,8 +35,18 @@ test('evaluateInvariants produces obligations for missing failure-path tests', (
     testPatterns: ['test/**/*.js']
   });
   const authClaim = claims.find((claim) => claim.invariantId === 'auth.refresh.validity');
+  assert.ok(authClaim);
   assert.equal(authClaim.status, 'at-risk');
   assert.equal(authClaim.obligations.length > 0, true);
+  assert.deepEqual(authClaim.evidenceSummary.impactedFiles, ['src/auth/token.js']);
+  assert.deepEqual(authClaim.evidenceSummary.focusedTests, ['test/token.test.js']);
+  assert.equal(authClaim.evidenceSummary.changedFunctions.length > 0, true);
+  assert.equal(authClaim.evidenceSummary.changedFunctionsUnder80Coverage, 0);
+  assert.equal(authClaim.evidenceSummary.mutationSitesInScope, mutationRun.sites.length);
+  assert.equal(authClaim.evidenceSummary.killedMutantsInScope, mutationRun.results.filter((item) => item.status === 'killed').length);
+  assert.equal(authClaim.evidenceSummary.survivingMutantsInScope, mutationRun.results.filter((item) => item.status === 'survived').length);
+  assert.equal(authClaim.evidenceSummary.scenarioResults[0].supported, false);
+  assert.equal(authClaim.evidenceSummary.scenarioResults[0].failurePathKeywordsMatched, false);
 });
 test('evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-invariants-unrelated-'));
@@ -65,6 +75,9 @@ test('evaluateInvariants ignores unrelated mjs tests even if they contain the ri
 
   assert.equal(claims[0].status, 'unsupported');
   assert.match(claims[0].evidence.join('\n'), /No focused test files matched invariant scope/);
+  assert.deepEqual(claims[0].evidenceSummary.focusedTests, []);
+  assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, false);
+  assert.equal(claims[0].evidenceSummary.scenarioResults[0].keywordsMatched, false);
 });
 
 test('evaluateInvariants accepts focused mjs tests aligned to the impacted file', () => {
@@ -94,4 +107,8 @@ test('evaluateInvariants accepts focused mjs tests aligned to the impacted file'
 
   assert.equal(claims[0].status, 'supported');
   assert.match(claims[0].evidence.join('\n'), /Focused tests: tests\/trigger-editor.test.mjs/);
+  assert.deepEqual(claims[0].evidenceSummary.focusedTests, ['tests/trigger-editor.test.mjs']);
+  assert.equal(claims[0].evidenceSummary.changedFunctions.length, 1);
+  assert.equal(claims[0].evidenceSummary.maxChangedCrap, 1);
+  assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, true);
 });
