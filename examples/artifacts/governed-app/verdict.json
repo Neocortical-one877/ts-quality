@@ -1,0 +1,116 @@
+{
+  "bestNextAction": "Add or tighten an assertion covering src/auth/token.js around the surviving mutant.",
+  "blockedBy": [
+    "Merge confidence 6 below minimum 65",
+    "Mutation score 0.25 is below budget 0.75",
+    "Surviving mutant in src/auth/token.js",
+    "Surviving mutant in src/auth/token.js",
+    "Surviving mutant in src/auth/token.js",
+    "Invariant auth.refresh.validity is at-risk",
+    "Auth code requires stronger evidence because it decides authorization.",
+    "Auth code requires stronger evidence because it decides authorization."
+  ],
+  "findings": [
+    {
+      "code": "mutation-score-budget",
+      "evidence": [
+        "Killed 1, survived 3"
+      ],
+      "id": "policy:mutation-score",
+      "level": "error",
+      "message": "Mutation score 0.25 is below budget 0.75",
+      "scope": [
+        "src/auth/token.js",
+        "src/auth/token.js",
+        "src/auth/token.js",
+        "src/auth/token.js"
+      ]
+    },
+    {
+      "code": "surviving-mutant",
+      "evidence": [
+        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.666934\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.106878\n  type: 't"
+      ],
+      "id": "policy:surviving:sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15",
+      "level": "error",
+      "message": "Surviving mutant in src/auth/token.js",
+      "scope": [
+        "src/auth/token.js"
+      ]
+    },
+    {
+      "code": "surviving-mutant",
+      "evidence": [
+        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.652729\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.117485\n  type: 't"
+      ],
+      "id": "policy:surviving:sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20",
+      "level": "error",
+      "message": "Surviving mutant in src/auth/token.js",
+      "scope": [
+        "src/auth/token.js"
+      ]
+    },
+    {
+      "code": "surviving-mutant",
+      "evidence": [
+        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.642612\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.111725\n  type: 't"
+      ],
+      "id": "policy:surviving:sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8",
+      "level": "error",
+      "message": "Surviving mutant in src/auth/token.js",
+      "scope": [
+        "src/auth/token.js"
+      ]
+    },
+    {
+      "code": "invariant-risk",
+      "evidence": [
+        "3 surviving mutants in impacted invariant scope",
+        "Missing deterministic test evidence for scenario 'exact expiry boundary denies access'",
+        "Add or tighten a focused test for scenario 'exact expiry boundary denies access' to preserve invariant 'Refresh token validity'."
+      ],
+      "id": "policy:invariant:auth.refresh.validity",
+      "level": "error",
+      "message": "Invariant auth.refresh.validity is at-risk",
+      "scope": [
+        "auth.refresh.validity"
+      ]
+    },
+    {
+      "code": "governance",
+      "evidence": [
+        "Mutation score 0.25 below budget 0.75"
+      ],
+      "id": "policy:governance:auth-risk-budget:mutation",
+      "level": "error",
+      "message": "Auth code requires stronger evidence because it decides authorization.",
+      "ruleId": "auth-risk-budget",
+      "scope": [
+        "src/auth/token.js"
+      ]
+    },
+    {
+      "code": "governance",
+      "evidence": [
+        "Merge confidence 46 below minimum 65"
+      ],
+      "id": "policy:governance:auth-risk-budget:confidence",
+      "level": "error",
+      "message": "Auth code requires stronger evidence because it decides authorization.",
+      "ruleId": "auth-risk-budget",
+      "scope": [
+        "src/auth/token.js"
+      ]
+    }
+  ],
+  "mergeConfidence": 6,
+  "outcome": "fail",
+  "reasons": [
+    "Mutation score is 25/100 with 3 surviving mutants.",
+    "3 surviving mutant(s) remain in changed or covered logic.",
+    "1 invariant(s) need stronger test evidence or failure-path coverage.",
+    "Auth code requires stronger evidence because it decides authorization.",
+    "Auth code requires stronger evidence because it decides authorization."
+  ],
+  "warnings": []
+}

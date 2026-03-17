@@ -1,0 +1,7 @@
+{
+  "name": "@ts-quality/invariants",
+  "version": "5.0.0",
+  "license": "MIT",
+  "main": "dist/packages/invariants/src/index.js",
+  "types": "dist/packages/invariants/src/index.d.ts"
+}

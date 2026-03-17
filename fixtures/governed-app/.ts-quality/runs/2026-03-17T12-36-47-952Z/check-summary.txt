@@ -1,0 +1,3 @@
+Merge confidence: 6/100
+Outcome: fail
+Best next action: Add or tighten an assertion covering src/auth/token.js around the surviving mutant.

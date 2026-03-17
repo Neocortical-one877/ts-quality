@@ -1,0 +1,63 @@
+ontology:
+  system4d:
+    name: "<Repo Name>"
+    version: "0.1"
+    container:
+      boundary:
+        in_scope:
+          - "<what this repo implements>"
+        out_of_scope:
+          - "<explicitly not implemented here>"
+      constraints:
+        - "<runtime/tech constraints>"
+      edges:
+        - name: "<integration>"
+          direction: "bi"
+          protocol: "<http|kafka|file>"
+          system: "<external system>"
+          contract: "<link/spec>"
+      dependencies:
+        - name: "<dependency>"
+          type: "<runtime|build|infra>"
+          note: "<why>"
+      anti_goals:
+        - "<nice-to-have killed>"
+    compass:
+      drivers:
+        - "<why now>"
+      outcomes:
+        - "<value>"
+      tradeoffs:
+        - decision: "<tradeoff>"
+          chosen: "<choice>"
+          because: "<why>"
+    engine:
+      triggers:
+        - "<trigger>"
+      states:
+        - name: "<state>"
+          meaning: "<meaning>"
+      invariants:
+        - id: "<REPO-INV-001>"
+          statement: "<golden rule>"
+          enforcement: "<test|db|policy>"
+      lifecycle:
+        - "<lifecycle>"
+    fog:
+      assumptions:
+        - id: "<REPO-A-001>"
+          statement: "<assumption>"
+          how_to_validate: "<validation>"
+      risks:
+        - id: "<REPO-R-001>"
+          statement: "<risk>"
+          mitigation: "<mitigation>"
+      exceptions:
+        - id: "REPO-E-INCIDENT"
+          statement: "Incident hotfix allowed"
+          reason: "Record Exception immediately and Debt immediately"
+      debt:
+        - id: "<REPO-D-001>"
+          statement: "<debt>"
+          payoff_plan: "<plan>"
+

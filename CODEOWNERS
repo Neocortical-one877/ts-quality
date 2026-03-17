@@ -1,0 +1,16 @@
+# Location: owned
+# Language: python# Core + org context snapshots
+docs/_core/** @core-owner
+docs/org_context/** @org-owners
+
+# Project delivery + governance
+docs/project/** @softwareco-owners
+docs/system4d/** @softwareco-owners
+docs/decisions/** @softwareco-owners
+docs/dev/** @softwareco-owners
+policy/** @softwareco-owners
+
+# Code
+scripts/** @softwareco-owners
+src/** @softwareco-owners
+tests/** @softwareco-owners

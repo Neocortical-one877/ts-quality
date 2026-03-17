@@ -1,0 +1,408 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.loadVerifiedAttestations = loadVerifiedAttestations;
+exports.runCheck = runCheck;
+exports.initProject = initProject;
+exports.renderLatestReport = renderLatestReport;
+exports.renderLatestExplain = renderLatestExplain;
+exports.renderTrend = renderTrend;
+exports.renderGovernance = renderGovernance;
+exports.renderPlan = renderPlan;
+exports.runAuthorize = runAuthorize;
+exports.attestSign = attestSign;
+exports.attestVerify = attestVerify;
+exports.attestGenerateKey = attestGenerateKey;
+exports.runAmend = runAmend;
+const fs_1 = __importDefault(require("fs"));
+const path_1 = __importDefault(require("path"));
+const index_1 = require("../../evidence-model/src/index");
+const index_2 = require("../../crap4ts/src/index");
+const index_3 = require("../../ts-mutate/src/index");
+const index_4 = require("../../invariants/src/index");
+const index_5 = require("../../policy-engine/src/index");
+const index_6 = require("../../governance/src/index");
+const index_7 = require("../../legitimacy/src/index");
+const config_1 = require("./config");
+function fileEntities(rootDir, filePaths) {
+    const repo = (0, index_1.buildRepositoryEntity)(rootDir, filePaths);
+    return filePaths.map((filePath) => {
+        const result = {
+            filePath: (0, index_1.normalizePath)(filePath),
+            digest: (0, index_1.fileDigest)(path_1.default.join(rootDir, filePath))
+        };
+        const packageName = repo.packages.find((entry) => entry.dir === '' || (0, index_1.normalizePath)(filePath).startsWith(`${entry.dir}/`) || (0, index_1.normalizePath)(filePath) === entry.dir)?.name;
+        if (packageName) {
+            result.packageName = packageName;
+        }
+        return result;
+    });
+}
+function symbolEntities(complexity) {
+    return complexity.map((item) => ({
+        filePath: item.filePath,
+        symbol: item.symbol,
+        kind: item.symbol.split(':')[0] ?? 'function',
+        span: item.span
+    }));
+}
+function latestRunOrUndefined(rootDir) {
+    try {
+        return (0, index_1.readLatestRun)(rootDir);
+    }
+    catch {
+        return undefined;
+    }
+}
+function portablePath(value) {
+    return value.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
+}
+function resolveCliPath(rootDir, candidate, options) {
+    if (path_1.default.isAbsolute(candidate)) {
+        return candidate;
+    }
+    const cwdResolved = path_1.default.resolve(process.cwd(), candidate);
+    const rootResolved = path_1.default.resolve(rootDir, candidate);
+    const rootRelativeFromCwd = portablePath(path_1.default.relative(process.cwd(), rootDir));
+    const normalizedCandidate = portablePath(candidate);
+    if (fs_1.default.existsSync(rootResolved)) {
+        return rootResolved;
+    }
+    if (fs_1.default.existsSync(cwdResolved)) {
+        return cwdResolved;
+    }
+    if (rootRelativeFromCwd && (normalizedCandidate === rootRelativeFromCwd || normalizedCandidate.startsWith(`${rootRelativeFromCwd}/`))) {
+        return cwdResolved;
+    }
+    return options?.preferRoot === false ? cwdResolved : rootResolved;
+}
+function recordSubjectPath(rootDir, resolvedSubject, originalCandidate) {
+    const relative = portablePath(path_1.default.relative(rootDir, resolvedSubject));
+    if (relative && !relative.startsWith('..')) {
+        return relative;
+    }
+    if (path_1.default.isAbsolute(resolvedSubject)) {
+        return portablePath(resolvedSubject);
+    }
+    return (0, index_1.normalizePath)(originalCandidate);
+}
+function verifyAttestationAtRoot(rootDir, attestation, trustedKeys) {
+    const signature = (0, index_7.verifyAttestation)(attestation, trustedKeys);
+    if (!signature.ok) {
+        return signature;
+    }
+    const subjectFile = typeof attestation.payload?.subjectFile === 'string' ? attestation.payload.subjectFile : undefined;
+    if (!subjectFile) {
+        return signature;
+    }
+    const resolvedSubject = path_1.default.isAbsolute(subjectFile) ? subjectFile : path_1.default.resolve(rootDir, subjectFile);
+    if (!fs_1.default.existsSync(resolvedSubject)) {
+        return { ok: false, reason: `subject file missing: ${subjectFile}` };
+    }
+    const digest = (0, index_1.digestObject)(fs_1.default.readFileSync(resolvedSubject, 'utf8'));
+    if (digest !== attestation.subjectDigest) {
+        return { ok: false, reason: 'subject digest mismatch' };
+    }
+    return { ok: true, reason: 'verified' };
+}
+function attestationAppliesToRun(attestation, runId) {
+    const subjectFile = typeof attestation.payload?.subjectFile === 'string' ? portablePath(attestation.payload.subjectFile) : '';
+    return subjectFile.includes(`runs/${runId}/`);
+}
+function writeModuleExport(filePath, value) {
+    (0, index_1.ensureDir)(path_1.default.dirname(filePath));
+    fs_1.default.writeFileSync(filePath, `export default ${(0, index_1.stableStringify)(value)};\n`, 'utf8');
+}
+function attestationFiles(rootDir, dirRelative) {
+    const directory = path_1.default.join(rootDir, dirRelative);
+    if (!fs_1.default.existsSync(directory)) {
+        return [];
+    }
+    return fs_1.default.readdirSync(directory).filter((entry) => entry.endsWith('.json')).map((entry) => path_1.default.join(directory, entry)).sort();
+}
+function loadVerifiedAttestations(rootDir, attestationsDir, trustedKeysDir) {
+    const keys = (0, index_7.loadTrustedKeys)(resolveCliPath(rootDir, trustedKeysDir));
+    const verification = [];
+    const attestations = [];
+    for (const filePath of attestationFiles(rootDir, attestationsDir)) {
+        const attestation = JSON.parse(fs_1.default.readFileSync(filePath, 'utf8'));
+        const result = verifyAttestationAtRoot(rootDir, attestation, keys);
+        verification.push({ issuer: attestation.issuer, ok: result.ok, reason: result.reason });
+        if (result.ok) {
+            attestations.push(attestation);
+        }
+    }
+    return { attestations, verification };
+}
+function runCheck(rootDir, options) {
+    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
+    const sourceFiles = (0, index_1.collectSourceFiles)(rootDir, loaded.config.sourcePatterns);
+    const changedRegions = loaded.config.changeSet.diffFile ? (0, config_1.loadChangedRegions)(rootDir, loaded.config.changeSet.diffFile) : [];
+    const changedFiles = (options?.changedFiles ?? loaded.config.changeSet.files ?? sourceFiles).map((item) => (0, index_1.normalizePath)(item));
+    const lcovPath = path_1.default.join(rootDir, loaded.config.coverage.lcovPath);
+    const coverage = fs_1.default.existsSync(lcovPath) ? (0, index_2.parseLcov)(fs_1.default.readFileSync(lcovPath, 'utf8')) : [];
+    const waivers = (0, config_1.loadWaivers)(rootDir, loaded.config.waiversPath);
+    const approvals = (0, config_1.loadApprovals)(rootDir, loaded.config.approvalsPath);
+    const overrides = (0, config_1.loadOverrides)(rootDir, loaded.config.overridesPath);
+    const invariants = (0, config_1.loadInvariants)(rootDir, loaded.config.invariantsPath);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const previousRun = latestRunOrUndefined(rootDir);
+    const crapReport = (0, index_2.analyzeCrap)({
+        rootDir,
+        sourceFiles,
+        coverage,
+        changedFiles,
+        changedRegions
+    });
+    const mutationRun = (0, index_3.runMutations)({
+        repoRoot: rootDir,
+        sourceFiles,
+        changedFiles,
+        changedRegions,
+        coverage,
+        coveredOnly: loaded.config.mutations.coveredOnly ?? false,
+        testCommand: loaded.config.mutations.testCommand,
+        manifestPath: path_1.default.join(rootDir, '.ts-quality', 'mutation-manifest.json'),
+        timeoutMs: loaded.config.mutations.timeoutMs ?? 15_000,
+        maxSites: loaded.config.mutations.maxSites ?? 25
+    });
+    const claims = (0, index_4.evaluateInvariants)({
+        rootDir,
+        invariants,
+        changedFiles,
+        changedRegions,
+        complexity: crapReport.hotspots,
+        mutationSites: mutationRun.sites,
+        mutations: mutationRun.results,
+        testPatterns: loaded.config.testPatterns
+    });
+    const verifiedAttestations = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+    const preliminaryInput = {
+        nowIso: (0, index_1.nowIso)(),
+        policy: {
+            ...(0, index_5.defaultPolicy)(),
+            ...loaded.config.policy
+        },
+        changedComplexity: crapReport.hotspots.filter((item) => item.changed),
+        mutations: mutationRun.results,
+        behaviorClaims: claims,
+        governance: [],
+        waivers
+    };
+    if (previousRun) {
+        preliminaryInput.previousRun = previousRun;
+    }
+    const preliminary = (0, index_5.evaluatePolicy)(preliminaryInput);
+    const governance = (0, index_6.evaluateGovernance)({
+        rootDir,
+        constitution,
+        changedFiles,
+        changedRegions,
+        approvals,
+        attestationsClaims: verifiedAttestations.attestations.flatMap((item) => item.claims),
+        run: {
+            complexity: crapReport.hotspots,
+            mutations: mutationRun.results,
+            verdict: preliminary.verdict
+        }
+    });
+    const evaluatedInput = {
+        nowIso: (0, index_1.nowIso)(),
+        policy: {
+            ...(0, index_5.defaultPolicy)(),
+            ...loaded.config.policy
+        },
+        changedComplexity: crapReport.hotspots.filter((item) => item.changed),
+        mutations: mutationRun.results,
+        behaviorClaims: claims,
+        governance,
+        waivers
+    };
+    if (previousRun) {
+        evaluatedInput.previousRun = previousRun;
+    }
+    const evaluated = (0, index_5.evaluatePolicy)(evaluatedInput);
+    const runId = new Date().toISOString().replace(/[:.]/g, '-');
+    const repo = (0, index_1.buildRepositoryEntity)(rootDir, sourceFiles);
+    const run = {
+        version: '5.0.0',
+        runId,
+        createdAt: (0, index_1.nowIso)(),
+        repo,
+        changedFiles,
+        changedRegions,
+        files: fileEntities(rootDir, sourceFiles),
+        symbols: symbolEntities(crapReport.hotspots),
+        coverage,
+        complexity: crapReport.hotspots,
+        mutationSites: mutationRun.sites,
+        mutations: mutationRun.results,
+        invariants,
+        behaviorClaims: claims,
+        governance,
+        attestations: verifiedAttestations.attestations,
+        approvals,
+        overrides,
+        verdict: evaluated.verdict
+    };
+    if (evaluated.trend) {
+        run.trend = evaluated.trend;
+    }
+    const artifactDir = (0, index_1.writeRunArtifact)(rootDir, run);
+    (0, index_1.writeJson)(path_1.default.join(artifactDir, 'report.json'), run);
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'report.md'), `${(0, index_5.renderMarkdownReport)(run)}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'pr-summary.md'), `${(0, index_5.renderPrSummary)(run)}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'explain.txt'), `${(0, index_5.renderExplainText)(run)}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'attestation-verify.txt'), `${verifiedAttestations.verification.map((item) => `${item.issuer}: ${item.ok ? 'ok' : 'failed'} (${item.reason})`).join('\n')}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'check-summary.txt'), `Merge confidence: ${run.verdict.mergeConfidence}/100\nOutcome: ${run.verdict.outcome}\nBest next action: ${run.verdict.bestNextAction ?? 'none'}\n`, 'utf8');
+    const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'plan.txt'), `${plan.summary}\n\n${plan.steps.map((step, index) => `${index + 1}. [${step.type}] ${step.title}\n   rationale: ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`).join('\n')}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'govern.txt'), `${governance.map((item) => `${item.ruleId}: ${item.message}\n- ${item.evidence.join('\n- ')}`).join('\n')}\n`, 'utf8');
+    return { run, artifactDir };
+}
+function initProject(rootDir) {
+    (0, index_1.ensureDir)(path_1.default.join(rootDir, '.ts-quality', 'attestations'));
+    (0, index_1.ensureDir)(path_1.default.join(rootDir, '.ts-quality', 'keys'));
+    const configPath = path_1.default.join(rootDir, 'ts-quality.config.ts');
+    if (!fs_1.default.existsSync(configPath)) {
+        fs_1.default.writeFileSync(configPath, `export default {\n  sourcePatterns: ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx', 'src/**/*.mjs', 'src/**/*.cjs'],\n  testPatterns: ['test/**/*.js', 'test/**/*.mjs', 'test/**/*.cjs', 'test/**/*.ts', '**/*.test.js', '**/*.test.mjs', '**/*.test.cjs', '**/*.spec.ts'],\n  coverage: { lcovPath: 'coverage/lcov.info' },\n  mutations: { testCommand: ['node', '--test'], coveredOnly: true, timeoutMs: 15000, maxSites: 25 },\n  policy: { maxChangedCrap: 30, minMutationScore: 0.8, minMergeConfidence: 70 },\n  changeSet: { files: [] },\n  invariantsPath: '.ts-quality/invariants.ts',\n  constitutionPath: '.ts-quality/constitution.ts',\n  agentsPath: '.ts-quality/agents.ts'\n};\n`, 'utf8');
+    }
+    const invariantsPath = path_1.default.join(rootDir, '.ts-quality', 'invariants.ts');
+    if (!fs_1.default.existsSync(invariantsPath)) {
+        fs_1.default.writeFileSync(invariantsPath, `export default [\n  {\n    id: 'auth.refresh.validity',\n    title: 'Refresh token validity',\n    description: 'Expired refresh tokens must never authorize access.',\n    severity: 'high',\n    selectors: ['path:src/auth/**', 'symbol:isRefreshExpired'],\n    scenarios: [\n      { id: 'expired', description: 'expired token is denied', keywords: ['expired', 'deny'], failurePathKeywords: ['boundary', 'expiry'], expected: 'deny' }\n    ]\n  }\n];\n`, 'utf8');
+    }
+    const constitutionPath = path_1.default.join(rootDir, '.ts-quality', 'constitution.ts');
+    if (!fs_1.default.existsSync(constitutionPath)) {
+        fs_1.default.writeFileSync(constitutionPath, `export default [\n  { kind: 'risk', id: 'default-risk', paths: ['src/**'], message: 'Changed source must stay within risk budgets.', maxCrap: 30, minMutationScore: 0.8, minMergeConfidence: 70 },\n  { kind: 'approval', id: 'payments-review', paths: ['src/payments/**'], message: 'Payments changes require a maintainer approval.', minApprovals: 1, roles: ['maintainer'] }\n];\n`, 'utf8');
+    }
+    const agentsPath = path_1.default.join(rootDir, '.ts-quality', 'agents.ts');
+    if (!fs_1.default.existsSync(agentsPath)) {
+        fs_1.default.writeFileSync(agentsPath, `export default [\n  { id: 'maintainer', kind: 'human', roles: ['maintainer'], grants: [{ id: 'maintainer-merge', actions: ['merge', 'override', 'amend'], paths: ['src/**'], minMergeConfidence: 60 }] },\n  { id: 'release-bot', kind: 'automation', roles: ['ci'], grants: [{ id: 'release-bot-merge', actions: ['merge'], paths: ['src/**'], minMergeConfidence: 80, requireAttestations: ['ci.tests.passed'], requireHumanReview: true }] }\n];\n`, 'utf8');
+    }
+    for (const fileName of ['waivers.json', 'approvals.json', 'overrides.json']) {
+        const filePath = path_1.default.join(rootDir, '.ts-quality', fileName);
+        if (!fs_1.default.existsSync(filePath)) {
+            fs_1.default.writeFileSync(filePath, '[]\n', 'utf8');
+        }
+    }
+    const keyBase = path_1.default.join(rootDir, '.ts-quality', 'keys', 'sample');
+    if (!fs_1.default.existsSync(`${keyBase}.pem`) || !fs_1.default.existsSync(`${keyBase}.pub.pem`)) {
+        const pair = (0, index_7.generateKeyPair)();
+        fs_1.default.writeFileSync(`${keyBase}.pem`, pair.privateKeyPem, 'utf8');
+        fs_1.default.writeFileSync(`${keyBase}.pub.pem`, pair.publicKeyPem, 'utf8');
+    }
+}
+function renderLatestReport(rootDir, format) {
+    const run = (0, index_1.readLatestRun)(rootDir);
+    return format === 'json' ? `${(0, index_1.stableStringify)(run)}\n` : `${(0, index_5.renderMarkdownReport)(run)}\n`;
+}
+function renderLatestExplain(rootDir) {
+    return `${(0, index_5.renderExplainText)((0, index_1.readLatestRun)(rootDir))}\n`;
+}
+function renderTrend(rootDir) {
+    const runIds = (0, index_1.listRunIds)(rootDir);
+    if (runIds.length < 2) {
+        return 'Not enough runs for trend analysis.\n';
+    }
+    const currentId = runIds[runIds.length - 1];
+    const previousId = runIds[runIds.length - 2];
+    if (!currentId || !previousId) {
+        return 'Not enough runs for trend analysis.\n';
+    }
+    const current = (0, index_1.loadRun)(rootDir, currentId);
+    const previous = (0, index_1.loadRun)(rootDir, previousId);
+    const survivingCurrent = current.mutations.filter((item) => item.status === 'survived').length;
+    const survivingPrevious = previous.mutations.filter((item) => item.status === 'survived').length;
+    return [
+        `Current run: ${current.runId}`,
+        `Previous run: ${previous.runId}`,
+        `Merge confidence delta: ${current.verdict.mergeConfidence - previous.verdict.mergeConfidence}`,
+        `Surviving mutant delta: ${survivingCurrent - survivingPrevious}`,
+        `Outcome transition: ${previous.verdict.outcome} -> ${current.verdict.outcome}`
+    ].join('\n') + '\n';
+}
+function renderGovernance(rootDir) {
+    const loaded = (0, config_1.loadContext)(rootDir);
+    const run = (0, index_1.readLatestRun)(rootDir);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
+    return `${run.governance.map((item) => `${item.ruleId}: ${item.message}`).join('\n')}\n\n${plan.summary}\n`;
+}
+function renderPlan(rootDir) {
+    const loaded = (0, config_1.loadContext)(rootDir);
+    const run = (0, index_1.readLatestRun)(rootDir);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
+    return `${plan.summary}\n\n${plan.steps.map((step, index) => `${index + 1}. ${step.title}\n   ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`).join('\n')}\n`;
+}
+function runAuthorize(rootDir, agentId, action) {
+    const loaded = (0, config_1.loadContext)(rootDir);
+    const run = (0, index_1.readLatestRun)(rootDir);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const overrides = (0, config_1.loadOverrides)(rootDir, loaded.config.overridesPath);
+    const { attestations } = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+    const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
+    const bundle = (0, index_7.buildChangeBundle)(rootDir, run, agentId, action);
+    const decision = (0, index_7.authorizeChange)(agentId, action, bundle, run, agents, constitution, runAttestations, overrides);
+    const artifactDir = path_1.default.join(rootDir, '.ts-quality', 'runs', run.runId);
+    const bundlePath = path_1.default.join(artifactDir, `bundle.${agentId}.${action}.json`);
+    const decisionPath = path_1.default.join(artifactDir, `authorize.${agentId}.${action}.json`);
+    (0, index_1.writeJson)(bundlePath, bundle);
+    (0, index_1.writeJson)(decisionPath, decision);
+    return { decisionPath, output: `${(0, index_1.stableStringify)(decision)}\n` };
+}
+function attestSign(rootDir, issuer, keyId, privateKeyPath, subjectFile, claims, outputPath) {
+    const resolvedSubject = resolveCliPath(rootDir, subjectFile);
+    const resolvedKey = resolveCliPath(rootDir, privateKeyPath);
+    const subjectText = fs_1.default.readFileSync(resolvedSubject, 'utf8');
+    const attestation = (0, index_7.signAttestation)({
+        issuer,
+        keyId,
+        privateKeyPem: fs_1.default.readFileSync(resolvedKey, 'utf8'),
+        subjectType: path_1.default.extname(resolvedSubject) === '.json' ? 'json-artifact' : 'file',
+        subjectDigest: (0, index_1.digestObject)(subjectText),
+        claims,
+        payload: { subjectFile: recordSubjectPath(rootDir, resolvedSubject, subjectFile) }
+    });
+    const resolvedOutput = resolveCliPath(rootDir, outputPath);
+    (0, index_1.ensureDir)(path_1.default.dirname(resolvedOutput));
+    (0, index_7.saveAttestation)(resolvedOutput, attestation);
+    return resolvedOutput;
+}
+function attestVerify(rootDir, attestationFile, trustedKeysDir) {
+    const attestation = JSON.parse(fs_1.default.readFileSync(resolveCliPath(rootDir, attestationFile), 'utf8'));
+    const keys = (0, index_7.loadTrustedKeys)(resolveCliPath(rootDir, trustedKeysDir));
+    const result = verifyAttestationAtRoot(rootDir, attestation, keys);
+    return `${attestation.issuer}: ${result.ok ? 'verified' : 'failed'} (${result.reason})\n`;
+}
+function attestGenerateKey(outDir, keyId) {
+    (0, index_1.ensureDir)(outDir);
+    const pair = (0, index_7.generateKeyPair)();
+    const privatePath = path_1.default.join(outDir, `${keyId}.pem`);
+    const publicPath = path_1.default.join(outDir, `${keyId}.pub.pem`);
+    fs_1.default.writeFileSync(privatePath, pair.privateKeyPem, 'utf8');
+    fs_1.default.writeFileSync(publicPath, pair.publicKeyPem, 'utf8');
+    return `${privatePath}\n${publicPath}\n`;
+}
+function runAmend(rootDir, proposalFile, apply = false) {
+    const loaded = (0, config_1.loadContext)(rootDir);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const proposal = JSON.parse(fs_1.default.readFileSync(resolveCliPath(rootDir, proposalFile), 'utf8'));
+    const decision = (0, index_7.evaluateAmendment)(proposal, constitution, agents);
+    const resultPath = path_1.default.join(rootDir, '.ts-quality', 'amendments', `${proposal.id}.result.json`);
+    (0, index_1.ensureDir)(path_1.default.dirname(resultPath));
+    (0, index_1.writeJson)(resultPath, decision);
+    if (apply && decision.outcome === 'approved') {
+        const nextConstitution = (0, index_7.applyAmendment)(proposal, constitution);
+        writeModuleExport(path_1.default.join(rootDir, loaded.config.constitutionPath), nextConstitution);
+    }
+    return `${(0, index_1.stableStringify)(decision)}\n`;
+}
+//# sourceMappingURL=index.js.map

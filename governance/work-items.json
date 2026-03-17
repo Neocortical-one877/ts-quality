@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "updated_at": "2026-03-17T15:30:00Z",
+  "owner": "@tryinget",
+  "project_name": "ts-quality",
+  "milestones": [
+    {
+      "id": "M1",
+      "title": "Initial Setup",
+      "issues": []
+    },
+    {
+      "id": "M2",
+      "title": "Deterministic evidence hardening",
+      "issues": [
+        {
+          "id": "M2-I1",
+          "title": "Explore AST-aware assertion extraction for invariants",
+          "state": "queued",
+          "priority": "medium",
+          "tasks": [
+            {
+              "id": "M2-I1-T1",
+              "title": "Prototype stronger invariant evidence than lexical keyword matching",
+              "state": "queued"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "approvalsAccepted": [
+    "maintainer"
+  ],
+  "outcome": "needs-approvals",
+  "proposalId": "sample-amendment",
+  "reasons": [
+    "Need 2 maintainer approval(s) but only 1 unique targeted approval(s) were supplied."
+  ],
+  "requiredApprovals": 2
+}

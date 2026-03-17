@@ -1,0 +1,11 @@
+export default {
+  sourcePatterns: ['src/**/*.js'],
+  testPatterns: ['test/**/*.js'],
+  coverage: { lcovPath: 'coverage/lcov.info' },
+  mutations: { testCommand: ['node', '--test'], coveredOnly: true, timeoutMs: 10000, maxSites: 8 },
+  policy: { maxChangedCrap: 15, minMutationScore: 0.75, minMergeConfidence: 65 },
+  changeSet: { files: ['src/auth/token.js'] },
+  invariantsPath: '.ts-quality/invariants.ts',
+  constitutionPath: '.ts-quality/constitution.ts',
+  agentsPath: '.ts-quality/agents.ts'
+};

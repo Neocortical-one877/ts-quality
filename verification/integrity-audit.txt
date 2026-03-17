@@ -1,0 +1,20 @@
+# Integrity audit
+
+## Shortcut marker scan
+No banned shortcut markers found.
+
+## throw new Error scan
+scripts/verify.mjs:19:    throw new Error(`Verification step failed: ${command} ${args.join(' ')}`);
+scripts/smoke.mjs:19:    throw new Error(`Command failed: ${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
+packages/ts-quality/src/config.ts:72:    throw new Error(`Required file not found: ${filePath}`);
+packages/ts-quality/src/config.ts:80:  throw new Error(`Unsupported file type for ${filePath}`);
+packages/ts-quality/src/config.ts:88:    throw new Error(`${name} must be an array of strings`);
+packages/ts-quality/src/config.ts:138:  throw new Error(`No ts-quality config found in ${rootDir}`);
+scripts/generate-samples.mjs:19:    throw new Error(`Command failed: ${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
+packages/ts-quality/src/cli.ts:124:      throw new Error('authorize requires --agent <id>');
+packages/ts-quality/src/cli.ts:141:        throw new Error('attest sign requires --issuer --key-id --private-key --subject --out');
+packages/ts-quality/src/cli.ts:150:        throw new Error('attest verify requires --attestation <file>');
+packages/ts-quality/src/cli.ts:161:    throw new Error('attest requires subcommand sign|verify|keygen');
+packages/ts-quality/src/cli.ts:167:      throw new Error('amend requires --proposal <file>');
+packages/ts-quality/src/cli.ts:173:  throw new Error(`Unknown command ${command}`);
+packages/evidence-model/src/index.ts:556:    throw new Error(`No latest run pointer found at ${latestPointerPath}`);

@@ -1,0 +1,15 @@
+{
+  "action": "merge",
+  "agentId": "maintainer",
+  "consideredAttestations": [],
+  "id": "2026-03-17T12-36-47-952Z:maintainer:merge",
+  "missingProof": [],
+  "outcome": "deny",
+  "reasons": [
+    "Governance violations block authorization until resolved or explicitly overridden."
+  ],
+  "requiredApprovers": [],
+  "scope": [
+    "src/auth/token.js"
+  ]
+}

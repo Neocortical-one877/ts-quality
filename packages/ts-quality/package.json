@@ -1,0 +1,10 @@
+{
+  "name": "ts-quality",
+  "version": "5.0.0",
+  "license": "MIT",
+  "main": "dist/packages/ts-quality/src/index.js",
+  "types": "dist/packages/ts-quality/src/index.d.ts",
+  "bin": {
+    "ts-quality": "dist/packages/ts-quality/src/cli.js"
+  }
+}

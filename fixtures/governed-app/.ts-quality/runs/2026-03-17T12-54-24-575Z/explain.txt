@@ -1,0 +1,22 @@
+Run 2026-03-17T12-54-24-575Z
+Changed files: src/auth/token.js
+Merge confidence: 6/100 (fail)
+
+Reasons:
+- Mutation score is 25/100 with 3 surviving mutants.
+- 3 surviving mutant(s) remain in changed or covered logic.
+- 1 invariant(s) need stronger test evidence or failure-path coverage.
+- Auth code requires stronger evidence because it decides authorization.
+- Auth code requires stronger evidence because it decides authorization.
+
+Invariant impact:
+- auth.refresh.validity: at-risk
+  - 3 surviving mutants in impacted invariant scope
+  - Missing deterministic test evidence for scenario 'exact expiry boundary denies access'
+  - obligation: Add or tighten a test for scenario 'exact expiry boundary denies access' to preserve invariant 'Refresh token validity'.
+
+Governance findings:
+- auth-risk-budget: Auth code requires stronger evidence because it decides authorization.
+  - Mutation score 0.25 below budget 0.75
+- auth-risk-budget: Auth code requires stronger evidence because it decides authorization.
+  - Merge confidence 46 below minimum 65

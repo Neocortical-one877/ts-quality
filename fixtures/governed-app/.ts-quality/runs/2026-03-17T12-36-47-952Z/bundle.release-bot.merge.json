@@ -1,0 +1,15 @@
+{
+  "action": "merge",
+  "agentId": "release-bot",
+  "changedFiles": [
+    "src/auth/token.js"
+  ],
+  "createdAt": "2026-03-17T12:36:55.610Z",
+  "fileDigests": {
+    "src/auth/token.js": "sha256:cfc64cc8fda244df5a0ed3df0a0df8f40a9a44a9e74a0d7fcdc046903ae0f271"
+  },
+  "kind": "change-bundle",
+  "runDigest": "sha256:dd3b620a2a274c5a0866667ace7d4b72b597a1b2ae370d2251919144580a82bf",
+  "runId": "2026-03-17T12-36-47-952Z",
+  "version": "1"
+}

@@ -1,0 +1,85 @@
+$ npm install --ignore-scripts
+
+up to date, audited 2 packages in 590ms
+
+found 0 vulnerabilities
+
+
+exit=0
+$ npm run build --silent
+
+
+exit=0
+$ npm run typecheck --silent
+
+
+exit=0
+$ npm run lint --silent
+lint: ok
+
+
+exit=0
+$ npm test --silent
+✔ amend evaluates sensitive proposal with duplicate approvals as needing more approval (202.234061ms)
+✔ amend --apply writes a loadable constitution module (381.434168ms)
+✔ authorize denies automation without override and approves with a maintainer override (594.980512ms)
+✔ attest sign and verify produce a valid signed claim (523.293287ms)
+✔ authorize ignores attestations that target an older run (876.839409ms)
+✔ init creates starter files in an empty repo (168.784328ms)
+✔ check, report, and explain produce artifacts (512.78552ms)
+✔ check --help renders usage instead of executing analysis (144.123203ms)
+✔ attest sign accepts cwd-relative paths even when --root is also set (365.441267ms)
+✔ attest verify fails when the signed subject file changes (521.39762ms)
+✔ loadContext accepts ts-quality.config.mjs (30.90103ms)
+✔ parseLcov reads coverage entries (7.147737ms)
+✔ crapScore increases with lower coverage (0.197509ms)
+✔ analyzeCrap marks changed functions (7.398776ms)
+✔ normalizePath is idempotent and slash-stable (0.62825ms)
+✔ matchPattern supports path prefixes and globs (0.312052ms)
+✔ stableStringify sorts object keys deterministically (4.350167ms)
+✔ parseUnifiedDiff returns changed regions (0.659998ms)
+✔ collectSourceFiles includes mjs and cjs inputs (0.658025ms)
+✔ PR summary keeps stable user-facing framing (208.296437ms)
+✔ evaluateGovernance catches extensionless forbidden imports (29.53236ms)
+✔ approval rules count only unique targeted approvals (0.392904ms)
+✔ evaluateInvariants produces obligations for missing failure-path tests (163.387258ms)
+✔ evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords (0.515078ms)
+✔ evaluateInvariants accepts focused mjs tests aligned to the impacted file (0.377651ms)
+✔ signAttestation and verifyAttestation round-trip (6.921985ms)
+✔ evaluateAmendment enforces maintainer approvals and evidence (0.229507ms)
+✔ evaluateAmendment counts only unique approvers targeting the proposal id (0.531804ms)
+✔ evaluatePolicy reduces confidence for survivors and low mutation score (1.023357ms)
+✔ evaluatePolicy applies active waivers (0.287775ms)
+✔ normalizePath property seed 1 (0.680359ms)
+✔ normalizePath property seed 2 (0.089045ms)
+✔ normalizePath property seed 3 (0.068283ms)
+✔ normalizePath property seed 4 (0.060562ms)
+✔ normalizePath property seed 5 (0.069816ms)
+✔ normalizePath property seed 6 (0.062014ms)
+✔ normalizePath property seed 7 (0.054162ms)
+✔ normalizePath property seed 8 (0.05299ms)
+✔ stableStringify round-trips random objects (5.396139ms)
+✔ discoverMutationSites finds boolean and operator mutations (14.062581ms)
+✔ applyMutation replaces exact span instead of first matching line fragment (0.113992ms)
+✔ runMutations writes manifest and reuses cached results (3.707665ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2040.774534
+
+
+exit=0
+$ npm run sample-artifacts --silent
+sample-artifacts: ok -> /home/tryinget/ai-society/softwareco/owned/ts-quality/examples/artifacts/governed-app
+
+
+exit=0
+$ npm run smoke --silent
+smoke: ok
+
+
+exit=0

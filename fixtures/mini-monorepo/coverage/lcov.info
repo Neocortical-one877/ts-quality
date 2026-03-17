@@ -1,0 +1,13 @@
+TN:mini-monorepo
+SF:packages/api/src/consumer.js
+DA:1,1
+DA:3,1
+DA:4,1
+end_of_record
+TN:mini-monorepo
+SF:packages/identity/src/store.js
+DA:1,1
+DA:2,1
+DA:3,1
+DA:4,1
+end_of_record

@@ -1,0 +1,102 @@
+# ts-quality v5.0.0
+
+`ts-quality` is an offline-first TypeScript quality platform that turns static evidence into explainable trust for software change.
+
+It progresses through five layers:
+
+1. **Evidence** — `crap4ts` finds risky code and maps LCOV coverage to functions.
+2. **Judgment** — `ts-mutate` runs deterministic mutation tests and `ts-quality check` computes merge confidence for changed code.
+3. **Understanding** — invariants encode behavior in code and generate deterministic missing-test obligations.
+4. **Governance** — constitutions encode architectural boundaries, approvals, rollback evidence, and domain risk budgets.
+5. **Legitimacy** — agents, authority grants, attestations, overrides, and amendments determine who may change the system and under what evidence burden.
+
+## What makes a run meaningful
+
+A strong `ts-quality` result depends on explicit inputs, not hidden inference:
+
+- **Coverage evidence** — provide `coverage/lcov.info` so CRAP and covered-only mutation selection are grounded in executed code.
+- **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop.
+- **Focused test evidence** — invariant scenarios are matched against tests aligned to the impacted source by file naming/import hints or explicit `requiredTestPatterns`, not by unrelated repo-global keyword hits.
+
+## Deterministic depth, not semantic guesswork
+
+`ts-quality` is intentionally deterministic. It does **not** claim to prove semantics from natural language. Instead it combines:
+
+- structural evidence (coverage + CRAP)
+- behavioral pressure (mutation outcomes)
+- focused lexical test evidence for invariants
+- explicit governance and legitimacy rules
+
+That makes the system explainable and debuggable, but it also means shallow tests will produce shallow evidence.
+
+## Top-level commands
+
+```bash
+npx ts-quality init
+npx ts-quality check
+npx ts-quality explain
+npx ts-quality report
+npx ts-quality trend
+npx ts-quality plan
+npx ts-quality govern
+npx ts-quality authorize --agent release-bot
+npx ts-quality attest sign --issuer ci.verify --key-id sample --private-key .ts-quality/keys/sample.pem --subject .ts-quality/runs/<run-id>/verdict.json --claims ci.tests.passed --out .ts-quality/attestations/ci.tests.passed.json
+npx ts-quality amend --proposal proposal.json
+```
+
+## What a run produces
+
+A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<run-id>/`:
+
+- `run.json` — complete machine-readable bundle
+- `verdict.json` — merge-confidence verdict
+- `report.md` — human-readable report
+- `pr-summary.md` — PR-facing summary
+- `explain.txt` — explanation trail
+- `plan.txt` — governance plan
+- `govern.txt` — governance findings
+
+## Why it is explainable
+
+Every score, block, waiver, attestation, override, and amendment connects back to explicit evidence:
+
+- changed files and diff hunks
+- coverage and CRAP hotspots
+- mutation survivors and killed mutants
+- invariant impact and missing-test obligations
+- constitutional rules and governance findings
+- agent grants, attestation claims, approvals, and overrides
+
+## Workspace layout
+
+```text
+packages/
+  evidence-model/
+  crap4ts/
+  ts-mutate/
+  invariants/
+  policy-engine/
+  governance/
+  legitimacy/
+  ts-quality/
+fixtures/
+examples/
+docs/
+.github/workflows/
+```
+
+## Development
+
+```bash
+npm run build
+npm run typecheck
+npm run lint
+npm test
+npm run sample-artifacts
+npm run smoke
+npm run verify
+```
+
+## Sample artifacts
+
+Generated sample artifacts live under `examples/artifacts/governed-app/` after `npm run sample-artifacts`.

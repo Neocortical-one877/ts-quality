@@ -1,0 +1,26 @@
+{
+  "name": "ts-quality-workspace",
+  "version": "5.0.0",
+  "private": true,
+  "description": "ts-quality v5.0.0 - evidence, judgment, understanding, governance, legitimacy for TypeScript changes",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "ts-quality": "dist/packages/ts-quality/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint.mjs",
+    "test": "node scripts/run-tests.mjs",
+    "sample-artifacts": "node scripts/generate-samples.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "verify": "node scripts/verify.mjs",
+    "clean": "node scripts/clean.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}

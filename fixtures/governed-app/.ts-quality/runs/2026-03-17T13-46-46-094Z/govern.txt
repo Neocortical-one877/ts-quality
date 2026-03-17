@@ -1,0 +1,4 @@
+auth-risk-budget: Auth code requires stronger evidence because it decides authorization.
+- Mutation score 0.25 below budget 0.75
+auth-risk-budget: Auth code requires stronger evidence because it decides authorization.
+- Merge confidence 46 below minimum 65

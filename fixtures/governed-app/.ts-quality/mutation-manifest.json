@@ -1,0 +1,37 @@
+{
+  "entries": {
+    "sha256:01a5ce30ee62d4966df9c72aba4a5dc87ee3a056919b48262e165127d2033141": {
+      "details": "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.642612\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.111725\n  type: 't",
+      "durationMs": 146,
+      "filePath": "src/auth/token.js",
+      "kind": "mutation-result",
+      "siteId": "sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8",
+      "status": "survived"
+    },
+    "sha256:22ccd5ebdddeca0dd51f4bb31c5d2fe39ed64354cb74cd9e3364d2123e5d0374": {
+      "details": "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.652729\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.117485\n  type: 't",
+      "durationMs": 147,
+      "filePath": "src/auth/token.js",
+      "kind": "mutation-result",
+      "siteId": "sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20",
+      "status": "survived"
+    },
+    "sha256:5a8791e5b4d452e55753f7a05bd04e2b0c5d5171b4d4639d91476c6d3bdc5788": {
+      "details": "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.666934\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.106878\n  type: 't",
+      "durationMs": 153,
+      "filePath": "src/auth/token.js",
+      "kind": "mutation-result",
+      "siteId": "sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15",
+      "status": "survived"
+    },
+    "sha256:ce5441ed881c8cced6ba56ac85749ceac4a3d31810b725f8b1df46ebbbccdb62": {
+      "details": "TAP version 13\n# Subtest: active token before expiry allows access\nnot ok 1 - active token before expiry allows access\n  ---\n  duration_ms: 1.156819\n  type: 'test'\n  location: '/tmp/ts-quality-mutant-GV6vKS/test/token.test.js:5:1'\n  failureType: 'testCodeFailure'\n  error: |-\n    ",
+      "durationMs": 146,
+      "filePath": "src/auth/token.js",
+      "kind": "mutation-result",
+      "siteId": "sha256:487f38e332d7dba3ce182d5e19378721fe317f956ba1da67310040b207e1fd5d",
+      "status": "killed"
+    }
+  },
+  "version": "1"
+}

@@ -1,0 +1,38 @@
+{
+  "command_files": {
+    "validate": "authority-receipt.validate.json"
+  },
+  "commands": {
+    "validate": {
+      "authoritative": false,
+      "authority_mode": "error",
+      "ci_profile": "branch-ci",
+      "command": "validate",
+      "error": {
+        "details": {
+          "project_path": "core/ontology-kernel",
+          "requested_ref": "main"
+        },
+        "kind": "not_found",
+        "message": "local ref not available in workspace/cache: <repo:core/ontology-kernel@main> (set --workspace-root / ROCS_WORKSPACE_ROOT and checkout the dependency repo locally)"
+      },
+      "layer_sources": [],
+      "legacy_gitlab_fallback_used": false,
+      "locator_kinds_present": [],
+      "loose_workspace_ref_layers_used": 0,
+      "ok": false,
+      "profile": null,
+      "ref_layer_count": 0,
+      "ref_layers_present": false,
+      "repo": "/home/tryinget/ai-society/softwareco/copier/tpl-project-repo",
+      "resolve_refs_requested": true,
+      "schema_version": 2,
+      "version": "0.1.4",
+      "workspace_ref_mode": "strict"
+    }
+  },
+  "last_command": "validate",
+  "repo": "/home/tryinget/ai-society/softwareco/copier/tpl-project-repo",
+  "schema_version": 2,
+  "version": "0.1.4"
+}
