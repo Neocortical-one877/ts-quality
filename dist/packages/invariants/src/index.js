@@ -95,6 +95,102 @@ function scenarioHasCoverage(corpus, keywords) {
     const lowered = corpus.toLowerCase();
     return keywords.every((keyword) => lowered.includes(keyword.toLowerCase()));
 }
+function pluralize(count, singular, plural = `${singular}s`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+}
+function describeChangedFunction(item) {
+    return `${item.symbol} (${item.filePath}, coverage ${item.coveragePct}%, CRAP ${item.crap})`;
+}
+function summarizeScenarioSupport(result) {
+    if (result.supported) {
+        return `${result.scenarioId}: keywords + failure-path evidence matched`;
+    }
+    const missing = [];
+    if (!result.keywordsMatched) {
+        missing.push('keywords');
+    }
+    if (!result.failurePathKeywordsMatched) {
+        missing.push('failure-path');
+    }
+    return `${result.scenarioId}: missing ${missing.join(' + ')} evidence`;
+}
+function buildSubSignals(options) {
+    const focusedTestFiles = options.focusedTests.map((document) => document.filePath);
+    const scenarioSupportedCount = options.scenarioResults.filter((item) => item.supported).length;
+    const changedFunctionsSummary = options.changedFunctions.length > 0
+        ? options.changedFunctions.map((item) => describeChangedFunction(item))
+        : ['none'];
+    return [
+        {
+            signalId: 'focused-test-alignment',
+            label: 'Focused test alignment',
+            level: focusedTestFiles.length > 0 ? 'clear' : 'missing',
+            summary: focusedTestFiles.length > 0
+                ? `${pluralize(focusedTestFiles.length, 'focused test file')} aligned to invariant scope`
+                : 'No focused test files aligned to invariant scope',
+            facts: [
+                `impacted files: ${options.files.join(', ') || 'none'}`,
+                `focused tests: ${focusedTestFiles.join(', ') || 'none'}`
+            ]
+        },
+        {
+            signalId: 'scenario-support',
+            label: 'Scenario support',
+            level: options.scenarioResults.length === 0
+                ? 'info'
+                : scenarioSupportedCount === options.scenarioResults.length
+                    ? 'clear'
+                    : scenarioSupportedCount === 0
+                        ? 'missing'
+                        : 'warning',
+            summary: options.scenarioResults.length === 0
+                ? 'Invariant declares no scenarios'
+                : `${scenarioSupportedCount}/${options.scenarioResults.length} scenario(s) have deterministic support`,
+            facts: options.scenarioResults.length > 0
+                ? options.scenarioResults.map((item) => summarizeScenarioSupport(item))
+                : ['none']
+        },
+        {
+            signalId: 'coverage-pressure',
+            label: 'Coverage pressure',
+            level: options.lowCoverageChanged.length > 0 ? 'warning' : 'clear',
+            summary: options.lowCoverageChanged.length > 0
+                ? `${pluralize(options.lowCoverageChanged.length, 'changed function')} under 80% coverage`
+                : 'All changed functions in invariant scope are at or above 80% coverage',
+            facts: options.lowCoverageChanged.length > 0
+                ? options.lowCoverageChanged.map((item) => describeChangedFunction(item))
+                : ['changed functions under 80% coverage: 0']
+        },
+        {
+            signalId: 'mutation-pressure',
+            label: 'Mutation pressure',
+            level: options.mutationSitesInScope === 0
+                ? 'info'
+                : options.survivingMutantsInScope > 0
+                    ? 'warning'
+                    : 'clear',
+            summary: options.mutationSitesInScope === 0
+                ? 'No mutation sites were selected in invariant scope'
+                : options.survivingMutantsInScope > 0
+                    ? `${pluralize(options.survivingMutantsInScope, 'surviving mutant')} across ${pluralize(options.mutationSitesInScope, 'mutation site')}`
+                    : `${pluralize(options.killedMutantsInScope, 'killed mutant')} across ${pluralize(options.mutationSitesInScope, 'mutation site')} with no survivors`,
+            facts: [
+                `mutation sites in scope: ${options.mutationSitesInScope}`,
+                `killed mutants in scope: ${options.killedMutantsInScope}`,
+                `surviving mutants in scope: ${options.survivingMutantsInScope}`
+            ]
+        },
+        {
+            signalId: 'changed-function-pressure',
+            label: 'Changed function pressure',
+            level: options.changedFunctions.length > 0 ? 'info' : 'missing',
+            summary: options.changedFunctions.length > 0
+                ? `${pluralize(options.changedFunctions.length, 'changed function')} in invariant scope; max changed CRAP ${options.changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0)}`
+                : 'No changed functions were mapped into invariant scope',
+            facts: changedFunctionsSummary
+        }
+    ];
+}
 function evaluateInvariants(options) {
     const testDocuments = loadTestDocuments(options.rootDir, options.testPatterns ?? ['test/**/*.js', 'test/**/*.mjs', 'test/**/*.cjs', 'test/**/*.ts', '**/*.test.js', '**/*.test.mjs', '**/*.test.cjs', '**/*.spec.ts']);
     const results = [];
@@ -121,6 +217,7 @@ function evaluateInvariants(options) {
         }))
             .sort((left, right) => left.filePath.localeCompare(right.filePath) || left.symbol.localeCompare(right.symbol));
         const lowCoverageChanged = changedFunctions.filter((item) => item.coveragePct < 80);
+        const maxChangedCrap = changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0);
         const focusedTests = focusedTestDocuments(testDocuments, invariant, files);
         const focusedCorpus = focusedTests.map((document) => document.contents).join('\n');
         const scenarioResults = [];
@@ -183,11 +280,21 @@ function evaluateInvariants(options) {
             focusedTests: focusedTests.map((document) => document.filePath),
             changedFunctions,
             changedFunctionsUnder80Coverage: lowCoverageChanged.length,
-            maxChangedCrap: changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0),
+            maxChangedCrap,
             mutationSitesInScope: fileMutations.length,
             killedMutantsInScope: killedMutants.length,
             survivingMutantsInScope: survivingMutants.length,
-            scenarioResults
+            scenarioResults,
+            subSignals: buildSubSignals({
+                files,
+                focusedTests,
+                changedFunctions,
+                lowCoverageChanged,
+                mutationSitesInScope: fileMutations.length,
+                killedMutantsInScope: killedMutants.length,
+                survivingMutantsInScope: survivingMutants.length,
+                scenarioResults
+            })
         };
         results.push({
             id: `${invariant.id}:claim`,

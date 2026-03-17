@@ -1,3 +1,11 @@
+---
+summary: "Product overview for ts-quality v5: deterministic evidence, explainable trust, and CLI entrypoints."
+read_when:
+  - "When onboarding to this repo"
+  - "When validating the shipped CLI surface or artifact contract"
+type: "reference"
+---
+
 # ts-quality v5.0.0
 
 `ts-quality` is an offline-first TypeScript quality platform that turns static evidence into explainable trust for software change.
@@ -56,7 +64,7 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `plan.txt` — governance plan
 - `govern.txt` — governance findings
 
-Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, and per-scenario support.
+Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, per-scenario support, and named deterministic sub-signals such as `focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, and `changed-function-pressure`.
 
 ## Why it is explainable
 

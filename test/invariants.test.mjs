@@ -47,6 +47,14 @@ test('evaluateInvariants produces obligations for missing failure-path tests', (
   assert.equal(authClaim.evidenceSummary.survivingMutantsInScope, mutationRun.results.filter((item) => item.status === 'survived').length);
   assert.equal(authClaim.evidenceSummary.scenarioResults[0].supported, false);
   assert.equal(authClaim.evidenceSummary.scenarioResults[0].failurePathKeywordsMatched, false);
+  const mutationPressure = authClaim.evidenceSummary.subSignals.find((item) => item.signalId === 'mutation-pressure');
+  assert.ok(mutationPressure);
+  assert.equal(mutationPressure.level, 'warning');
+  assert.match(mutationPressure.summary, /surviving mutant/);
+  const scenarioSupport = authClaim.evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
+  assert.ok(scenarioSupport);
+  assert.equal(scenarioSupport.level, 'missing');
+  assert.match(scenarioSupport.facts.join('\n'), /expired-boundary: missing failure-path evidence/);
 });
 test('evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-invariants-unrelated-'));
@@ -78,6 +86,10 @@ test('evaluateInvariants ignores unrelated mjs tests even if they contain the ri
   assert.deepEqual(claims[0].evidenceSummary.focusedTests, []);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, false);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].keywordsMatched, false);
+  const focusedAlignment = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
+  assert.ok(focusedAlignment);
+  assert.equal(focusedAlignment.level, 'missing');
+  assert.match(focusedAlignment.summary, /No focused test files aligned/);
 });
 
 test('evaluateInvariants accepts focused mjs tests aligned to the impacted file', () => {
@@ -111,4 +123,10 @@ test('evaluateInvariants accepts focused mjs tests aligned to the impacted file'
   assert.equal(claims[0].evidenceSummary.changedFunctions.length, 1);
   assert.equal(claims[0].evidenceSummary.maxChangedCrap, 1);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, true);
+  const focusedAlignment = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
+  assert.ok(focusedAlignment);
+  assert.equal(focusedAlignment.level, 'clear');
+  const scenarioSupport = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
+  assert.ok(scenarioSupport);
+  assert.equal(scenarioSupport.level, 'clear');
 });

@@ -117,6 +117,20 @@ function scenarioSummaryLabel(result) {
     }
     return `missing ${missing.join(' + ')} evidence`;
 }
+function renderInvariantSubSignals(claim) {
+    const summary = claim.evidenceSummary;
+    if (!summary || summary.subSignals.length === 0) {
+        return [];
+    }
+    const lines = ['  - sub-signals:'];
+    for (const subSignal of summary.subSignals) {
+        lines.push(`    - ${subSignal.signalId} [${subSignal.level}]: ${subSignal.summary}`);
+        for (const fact of subSignal.facts) {
+            lines.push(`      - ${fact}`);
+        }
+    }
+    return lines;
+}
 function renderInvariantEvidenceSummary(claim, indent = '  - ') {
     const summary = claim.evidenceSummary;
     if (!summary) {
@@ -134,7 +148,8 @@ function renderInvariantEvidenceSummary(claim, indent = '  - ') {
         `${indent}changed functions: ${changedFunctions}`,
         `${indent}changed functions under 80% coverage: ${summary.changedFunctionsUnder80Coverage}; max changed CRAP: ${summary.maxChangedCrap}`,
         `${indent}mutation scope: ${summary.mutationSitesInScope} site(s), ${summary.killedMutantsInScope} killed, ${summary.survivingMutantsInScope} survived`,
-        `${indent}scenario results: ${scenarioResults}`
+        `${indent}scenario results: ${scenarioResults}`,
+        ...renderInvariantSubSignals(claim)
     ];
 }
 function renderPrSummary(run) {

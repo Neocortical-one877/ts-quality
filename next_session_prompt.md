@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff after landing #179 invariant evidence summaries; the next repo-local queue continues at #180 over explicit invariant evidence sub-signals."
+summary: "Active handoff after landing #180 invariant evidence sub-signals; the next repo-local queue continues at #181 over explicit vs inferred evidence modes."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -37,7 +37,7 @@ Otherwise continue through research, implementation, validation, and handoff in 
 - Invariant contract: `docs/invariant-dsl.md`
 - CI/operator integration: `docs/ci-integration.md`
 - Latest durable learning: `docs/learnings/2026-03-17-deterministic-evidence-depth.md`
-- Latest session capture: `diary/2026-03-17--feat-invariant-evidence-summaries.md`
+- Latest session capture: `diary/2026-03-17--feat-invariant-evidence-sub-signals.md`
 - Active/deferred work authority: Agent Kernel
 - Checked-in work-items projection: `governance/work-items.json`
 - Raw session capture: `diary/`
@@ -49,9 +49,8 @@ Prefer explicit evidence/report improvements over vague semantic-expansion work.
 
 ## ACTIVE HANDOFF
 - Repo registration in AK remains verified.
-- **`#179`** — add invariant-scoped evidence summaries — is complete.
+- **`#180`** — split invariant evaluation into explicit evidence sub-signals — is complete.
 - The next reviewed repo-local queue now continues in the same invariant-evidence wave:
-  - **`#180`** — split invariant evaluation into explicit evidence sub-signals
   - **`#181`** — introduce explicit vs inferred invariant evidence modes
 - Keep scope bounded to this repo's invariant evaluation, evidence-model, report/explain/run artifact surfaces, docs, examples, and regression tests.
 - Keep `behaviorClaims[].evidenceSummary` additive; extend it rather than replacing it with a new top-level authority unless the repo explicitly adopts that change.
@@ -69,9 +68,8 @@ This repo now ships the same repo-local AK launcher pattern used in `ts-quality-
 ```bash
 ./scripts/ak.sh --doctor
 ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'
-./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 180)'
 ./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 181)'
-./scripts/ak.sh task claim 180 --agent pi
+./scripts/ak.sh task claim 181 --agent pi
 git status --short
 ```
 
@@ -86,7 +84,7 @@ git status --short
 8. `docs/config-reference.md`
 9. `docs/invariant-dsl.md`
 10. `docs/learnings/2026-03-17-deterministic-evidence-depth.md`
-11. `diary/2026-03-17--feat-invariant-evidence-summaries.md`
+11. `diary/2026-03-17--feat-invariant-evidence-sub-signals.md`
 12. relevant package source + regression tests for the claimed task
 
 ## EXECUTION MODE (MANDATORY ORDER)
@@ -101,11 +99,11 @@ git status --short
 9. **Commit** — leave the repo ready for a clean next context window unless the operator explicitly says otherwise.
 
 ## SESSION CHECKPOINT
-- Slice executed: **`#179`** — add invariant-scoped evidence summaries
-- Outcome: additive `behaviorClaims[].evidenceSummary` support now flows through the evidence model, invariant evaluation, run/report/explain output, docs, tests, and generated example artifacts
-- Refactoring status: no structural refactor was required; the existing behavior-claim surface carried the additive summary cleanly
-- Validation from the completed slice: `npm test` (pass), `npm run verify` (pass)
-- Next-session starting point: inspect AK task **`#180`**, read the invariant/evidence-model/report code paths it touches, and keep any follow-on signal split additive to the current artifact/report surface
+- Slice executed: **`#180`** — split invariant evaluation into explicit evidence sub-signals
+- Outcome: additive `behaviorClaims[].evidenceSummary.subSignals` support now flows through the evidence model, invariant evaluation, run/report/explain output, docs, tests, and generated example artifacts
+- Refactoring status: no structural refactor was required; the existing behavior-claim summary surface absorbed the new sub-signals cleanly
+- Validation from the completed slice: `node --test test/invariants.test.mjs test/cli-integration.test.mjs` (pass), `npm test` (pass), `npm run verify` (pass)
+- Next-session starting point: inspect AK task **`#181`**, read the invariant/evidence-model/report code paths it touches, and keep the provenance-mode addition additive to the current sub-signal surface
 
 ## END-OF-SESSION
 - keep this file aligned with the real next starting point

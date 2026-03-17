@@ -1,3 +1,11 @@
+---
+summary: "Runtime architecture for ts-quality's deterministic evidence, policy, governance, and legitimacy layers."
+read_when:
+  - "When changing core package boundaries or data flow"
+  - "When aligning docs with shipped runtime behavior"
+type: "reference"
+---
+
 # Architecture
 
 ## Overview
@@ -18,7 +26,7 @@ Deterministic mutation testing. It discovers mutation sites from the TypeScript 
 
 ### `packages/invariants`
 
-Behavioral understanding layer. Invariants bind expected behavior to paths, symbols, and domains. The engine maps changed code, mutation survivors, and test corpus evidence back to invariants, emits missing-test obligations, and records compact invariant-scoped evidence summaries for reports and run artifacts.
+Behavioral understanding layer. Invariants bind expected behavior to paths, symbols, and domains. The engine maps changed code, mutation survivors, and test corpus evidence back to invariants, emits missing-test obligations, and records compact invariant-scoped evidence summaries plus named deterministic sub-signals for reports and run artifacts.
 
 ### `packages/policy-engine`
 
@@ -42,7 +50,7 @@ Product surface. It loads configuration, orchestrates the engines, writes artifa
 2. Changed files and optional diff hunks define the scope.
 3. `crap4ts` computes structural risk.
 4. `ts-mutate` computes behavioral pressure.
-5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries (focused tests, changed functions, mutation pressure, and scenario support).
+5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries with named sub-signals (focused-test alignment, changed-function pressure, coverage pressure, mutation pressure, and scenario support).
 6. `policy-engine` emits an explainable merge-confidence verdict.
 7. `governance` evaluates constitutional constraints and produces a plan.
 8. `legitimacy` consumes the evidence bundle for authorization, attestation, override, and amendment flows.

@@ -2,16 +2,16 @@
   "claims": [
     "ci.tests.passed"
   ],
-  "issuedAt": "2026-03-17T19:04:10.679Z",
+  "issuedAt": "2026-03-17T19:58:21.683Z",
   "issuer": "ci.verify",
   "kind": "attestation",
   "payload": {
-    "subjectFile": ".ts-quality/runs/2026-03-17T19-04-10-178Z/verdict.json"
+    "subjectFile": ".ts-quality/runs/2026-03-17T19-58-21-181Z/verdict.json"
   },
   "signature": {
     "algorithm": "ed25519",
     "keyId": "sample",
-    "value": "HbJstFMc6J6hyhzGDhE0Ssq4r0+NApljnXdAav/vwqQzbuXjnu+UAtPdfk55Dts8gMpjzNz3ZHXfx4s4reNYAw=="
+    "value": "GETvCf+CeWWy4M4GPix/6TqB8yT2NdRyRIxGhmQTjWYYji8EBGo9r+GZCQC0AyWVTkdYtqId7SPal1EJ4AYBBA=="
   },
   "subjectDigest": "sha256:7bdbed140831d9f468ad9b7af348d3918f9d2a643ea25f2bba28364547e2a57e",
   "subjectType": "json-artifact",

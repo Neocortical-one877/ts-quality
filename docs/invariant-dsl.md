@@ -1,3 +1,11 @@
+---
+summary: "Invariant declaration contract for ts-quality, including deterministic evidence expectations."
+read_when:
+  - "When editing invariants or their supporting evidence semantics"
+  - "When documenting how invariant support is evaluated"
+type: "reference"
+---
+
 # Invariant DSL
 
 Invariants are executable intent. They are written as TypeScript or JavaScript arrays.
@@ -47,4 +55,4 @@ Unrelated tests elsewhere in the repo do not satisfy an invariant just because t
 
 When evidence is weak, it emits concrete `TestObligation` records.
 
-Each impacted invariant also records an additive `evidenceSummary` in the run artifact. The summary is deterministic and compact: it lists impacted files, focused tests, changed functions, low-coverage counts, mutation counts, and per-scenario support so reviewers can inspect invariant support without reverse-engineering free-form evidence strings.
+Each impacted invariant also records an additive `evidenceSummary` in the run artifact. The summary is deterministic and compact: it lists impacted files, focused tests, changed functions, low-coverage counts, mutation counts, per-scenario support, and named sub-signals (`focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, `changed-function-pressure`) so reviewers can inspect invariant support without reverse-engineering free-form evidence strings.

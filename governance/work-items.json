@@ -1,30 +1,50 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-17T15:30:00Z",
+  "updated_at": "2026-03-17",
   "owner": "@tryinget",
   "project_name": "ts-quality",
   "milestones": [
     {
       "id": "M1",
-      "title": "Initial Setup",
-      "issues": []
-    },
-    {
-      "id": "M2",
-      "title": "Deterministic evidence hardening",
+      "title": "DB Task Projection",
       "issues": [
         {
-          "id": "M2-I1",
-          "title": "Explore AST-aware assertion extraction for invariants",
-          "state": "queued",
-          "priority": "medium",
+          "id": "AK-TASK-0179",
+          "title": "ts-quality: add invariant-scoped evidence summaries",
+          "state": "done",
           "tasks": [
             {
-              "id": "M2-I1-T1",
-              "title": "Prototype stronger invariant evidence than lexical keyword matching",
-              "state": "queued"
+              "text": "ts-quality: add invariant-scoped evidence summaries (task #179)",
+              "done": true
             }
-          ]
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-17"
+        },
+        {
+          "id": "AK-TASK-0180",
+          "title": "ts-quality: split invariant evaluation into explicit evidence sub-signals",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: split invariant evaluation into explicit evidence sub-signals (task #180)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-17"
+        },
+        {
+          "id": "AK-TASK-0181",
+          "title": "ts-quality: introduce explicit vs inferred invariant evidence modes",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: introduce explicit vs inferred invariant evidence modes (task #181)",
+              "done": false
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded."
         }
       ]
     }

@@ -1,5 +1,5 @@
 ---
-summary: "Operating plan for ts-quality's current invariant-evidence wave after #179; the live queue continues at #180 and #181."
+summary: "Operating plan for ts-quality's current invariant-evidence wave after #180; the live queue now continues at #181."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
   - "When translating the active tactical goal into the current repo-local queue"
@@ -10,11 +10,10 @@ type: "reference"
 
 ## Why this plan exists now
 `#179` established additive invariant-scoped evidence summaries.
-That completed the first proof point for the current invariant-evidence direction, but it did not yet make invariant support fully decomposed or mode-aware.
+`#180` then made that summary decomposed by adding named deterministic sub-signals.
 
-Per `docs/project/tactical_goals.md`, the **active tactical goal right now is TG1 — expose explicit invariant evidence sub-signals**.
-That means this operating plan should stay focused on the current repo-local slice behind AK task `#180`.
-The next tactical goal (`#181` explicit vs inferred evidence modes) is real, but it is **next**, not part of the active operating plan yet.
+Per `docs/project/tactical_goals.md`, the **active tactical goal right now is TG2 — surface explicit versus inferred invariant evidence modes**.
+That means this operating plan should now stay focused on the current repo-local slice behind AK task `#181`.
 
 This plan stays intentionally narrow and does **not** invent extra operating slices or new AK tasks that the authoritative queue does not yet justify.
 
@@ -37,35 +36,33 @@ It may clarify or extend their evidence contract, but it must not invent a secon
 
 ## Ordered queue
 Agent Kernel is authoritative for live task state.
-This file is the reviewed narrative contract for the active operating slices under TG1.
+This file is the reviewed narrative contract for the active operating slice under TG2.
 
-Completed predecessor slice:
+Completed predecessor slices:
 - `#179` — add invariant-scoped evidence summaries
+- `#180` — split invariant evaluation into explicit evidence sub-signals
 
 Active operating slice:
 
 | AK task | Priority | Slice | Deliverable | Validation anchor |
 |---|---:|---|---|---|
-| `#180` | P2 | Explicit evidence sub-signals | expose deterministic invariant evidence components as named sub-signals under the additive evidence-summary/report surface | targeted invariant + CLI tests, then repo validation |
-
-Queued next tactical follow-on (not part of the active operating plan yet):
-- `#181` — explicit vs inferred invariant evidence modes
+| `#181` | P2 | Explicit vs inferred evidence modes | label the provenance of invariant evidence sub-signals without replacing the additive evidence-summary/report surface | targeted invariant + CLI tests, then repo validation |
 
 Next queue action:
 - start with `./scripts/ak.sh --doctor`
 - inspect repo-local candidates with `./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'`
-- inspect task detail with `./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 180)'`
-- claim **`#180`** if it is still the top repo-local ready task
+- inspect task detail with `./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 181)'`
+- claim **`#181`** if it is still the top repo-local ready task
 - keep `behaviorClaims[].evidenceSummary` as the additive authority while extending it
 - keep scope bounded to invariant evaluation, evidence model, report/explain/run artifacts, docs, tests, and generated sample artifacts
 
 ## HTN for the active wave
 
 ```text
-G0: Make invariant evidence more legible without replacing the current artifact authority
-  TG1: Explicit evidence sub-signals (#180)
-    A1: define the minimum named sub-signals that explain invariant support truthfully
-    A2: carry those sub-signals through evidence model, invariant evaluation, and rendered outputs
+G0: Make invariant evidence mode-aware without replacing the current artifact authority
+  TG2: Explicit vs inferred evidence modes (#181)
+    A1: define the minimum provenance contract for invariant evidence sub-signals
+    A2: carry those modes through evidence model, invariant evaluation, and rendered outputs
     A3: pin the additive contract with targeted docs/tests/example-artifact updates
 ```
 

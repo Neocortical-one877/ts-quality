@@ -100,6 +100,15 @@ export interface InvariantScenarioResult {
     failurePathKeywordsMatched: boolean;
     supported: boolean;
 }
+export type InvariantEvidenceSignalId = 'focused-test-alignment' | 'scenario-support' | 'coverage-pressure' | 'mutation-pressure' | 'changed-function-pressure';
+export type InvariantEvidenceSignalLevel = 'clear' | 'warning' | 'missing' | 'info';
+export interface InvariantEvidenceSubSignal {
+    signalId: InvariantEvidenceSignalId;
+    label: string;
+    level: InvariantEvidenceSignalLevel;
+    summary: string;
+    facts: string[];
+}
 export interface InvariantEvidenceSummary {
     invariantId: string;
     impactedFiles: string[];
@@ -111,6 +120,7 @@ export interface InvariantEvidenceSummary {
     killedMutantsInScope: number;
     survivingMutantsInScope: number;
     scenarioResults: InvariantScenarioResult[];
+    subSignals: InvariantEvidenceSubSignal[];
 }
 export interface BehaviorClaim {
     id: string;

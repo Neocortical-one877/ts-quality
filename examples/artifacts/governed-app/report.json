@@ -50,6 +50,58 @@
             "supported": false
           }
         ],
+        "subSignals": [
+          {
+            "facts": [
+              "impacted files: src/auth/token.js",
+              "focused tests: test/token.test.js"
+            ],
+            "label": "Focused test alignment",
+            "level": "clear",
+            "signalId": "focused-test-alignment",
+            "summary": "1 focused test file aligned to invariant scope"
+          },
+          {
+            "facts": [
+              "expired-boundary: missing failure-path evidence"
+            ],
+            "label": "Scenario support",
+            "level": "missing",
+            "signalId": "scenario-support",
+            "summary": "0/1 scenario(s) have deterministic support"
+          },
+          {
+            "facts": [
+              "changed functions under 80% coverage: 0"
+            ],
+            "label": "Coverage pressure",
+            "level": "clear",
+            "signalId": "coverage-pressure",
+            "summary": "All changed functions in invariant scope are at or above 80% coverage"
+          },
+          {
+            "facts": [
+              "mutation sites in scope: 4",
+              "killed mutants in scope: 1",
+              "surviving mutants in scope: 3"
+            ],
+            "label": "Mutation pressure",
+            "level": "warning",
+            "signalId": "mutation-pressure",
+            "summary": "3 surviving mutants across 4 mutation sites"
+          },
+          {
+            "facts": [
+              "function:canUseRefreshToken (src/auth/token.js, coverage 100%, CRAP 3)",
+              "function:isRefreshExpired (src/auth/token.js, coverage 100%, CRAP 1)",
+              "function:issueAccessDecision (src/auth/token.js, coverage 100%, CRAP 3)"
+            ],
+            "label": "Changed function pressure",
+            "level": "info",
+            "signalId": "changed-function-pressure",
+            "summary": "3 changed functions in invariant scope; max changed CRAP 3"
+          }
+        ],
         "survivingMutantsInScope": 3
       },
       "id": "auth.refresh.validity:claim",
@@ -207,7 +259,7 @@
       "totalLines": 8
     }
   ],
-  "createdAt": "2026-03-17T19:04:10.178Z",
+  "createdAt": "2026-03-17T19:58:21.182Z",
   "files": [
     {
       "digest": "sha256:426470c01cf4f5dc02bacfc1eccf57ec0a2be3c6cf2c7a998017c8c67f801206",
@@ -395,16 +447,16 @@
   "overrides": [],
   "repo": {
     "digest": "sha256:b591e261c25f12d08c4ab7d681a674d069dcd0fba2f6e02d1c0684357e43696b",
-    "name": "tsq-samples-governed-app-mHIIle",
+    "name": "tsq-samples-governed-app-mj2SKu",
     "packages": [
       {
         "dir": "",
         "name": "governed-app"
       }
     ],
-    "rootDir": "tmp/tsq-samples-governed-app-mHIIle"
+    "rootDir": "tmp/tsq-samples-governed-app-mj2SKu"
   },
-  "runId": "2026-03-17T19-04-10-178Z",
+  "runId": "2026-03-17T19-58-21-181Z",
   "symbols": [
     {
       "filePath": "src/payments/ledger.js",
