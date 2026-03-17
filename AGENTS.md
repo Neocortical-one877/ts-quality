@@ -1,52 +1,98 @@
 ---
-summary: "Repo operating contract for ts-quality."
+summary: "Repo operating contract for ts-quality (deterministic evidence, explainable trust, and additive-first artifact/report contracts)."
 read_when:
   - "You start work in this repo"
-  - "You need repo-wide guardrails, validation commands, or project/runtime boundary rules"
+  - "You need repo-wide guardrails, validation commands, or root/package boundary rules"
 type: "reference"
 ---
 
 # AGENTS.md — ts-quality
 
 ## TRUE INTENT
-Build a delivery repo where the repository root owns project-wide docs, validation, release policy, and governance, while implementation details live in the actual code, scripts, and language-specific docs.
+Build a deterministic TypeScript quality platform that turns explicit software-change evidence into explainable trust.
+The monorepo root is the control plane; package-specific runtime behavior belongs in package source, tests, and docs.
 
-## Project/runtime boundary
-- Keep this file concise, stable, and policy-oriented.
-- Put implementation details in source files, scripts, `README.md`, and project docs rather than duplicating them here.
-- Treat `docs/_core/**` as immutable when present.
-- Track deferred work in `governance/work-items.json` when the repo uses that projection.
+## Root/package boundary
+- Root owns shared docs, examples, sample-artifact generation, repo-wide verification, and the unified `ts-quality` CLI surface.
+- `packages/*` are monorepo members, not standalone repos.
+- Put package-specific execution details in package source/tests/docs rather than duplicating them here.
+- Treat `docs/_core/**` as immutable snapshot context.
+
+## Core axioms (non-negotiable)
+1. **Deterministic evidence axiom**: identical inputs produce identical artifacts and verdicts.
+2. **Focused-evidence axiom**: invariant support must come from aligned or explicitly-scoped tests, not repo-global keyword coincidence.
+3. **Additive-schema axiom**: run artifact and config changes should be additive-first whenever possible.
+4. **Explainability axiom**: every score, block, waiver, attestation, override, or amendment must trace back to explicit evidence in artifacts and reports.
+5. **Architecture-boundary axiom**: external workflow doctrine does not become core semantics unless this repo explicitly adopts it as native design.
 
 ## Repo-wide rules
 - No secrets in git.
-- Keep checked-in docs aligned with shipped behavior.
-- Prefer deterministic repo-local scripts over ad-hoc commands when both exist.
-- Keep the stack contract explicit when this repo ships a language/software pack:
-  - `policy/stack-lane.json` pins the upstream lane
-  - `docs/tech-stack.local.md` records repo-local overrides
+- Keep docs aligned with shipped behavior and CLI/report surfaces.
+- When runtime behavior changes, rebuild `dist/` and keep generated sample artifacts under `examples/artifacts/` intentional and reviewable.
+- Keep invariant reasoning deterministic and inspectable; do **not** broaden evidence search just to make outputs greener.
+- Treat coverage, mutation, invariant, governance, and legitimacy as separate evidence layers even when they roll up into one verdict.
+- Do **not** market semantic depth beyond what deterministic evidence actually supports.
+
+## AK workflow
+- Agent Kernel is authoritative for live repo task state.
+- `governance/work-items.json` is a checked-in projection/planning artifact, not the live queue.
+- This repo now ships a repo-local AK launcher copied from the working `ts-quality-tools` pattern:
+  - canonical entrypoint: `./scripts/ak.sh`
+  - compatibility alias: `./scripts/ak-v2.sh`
+  - doctor / runner resolution: `./scripts/ak.sh --doctor`
+  - ready tasks: `./scripts/ak.sh task ready --format json`
+  - inspect repo task detail: `./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == <TASK_ID>)'`
+  - claim a repo-scoped task: `./scripts/ak.sh task claim <TASK_ID> --agent pi`
+
+## Product/runtime source of truth
+For exact shipped behavior, read and keep aligned:
+- `README.md`
+- `ARCHITECTURE.md`
+- `docs/config-reference.md`
+- `docs/invariant-dsl.md`
+- `docs/ci-integration.md`
+- relevant package source under `packages/**/src/*.ts`
+- relevant regression tests under `test/*.mjs`
+- latest relevant `docs/learnings/` and `diary/` entry for the slice you are touching
+
+`docs/project/*` exists for durable direction. Use `purpose.md`, `mission.md`, `vision.md`, `strategic_goals.md`, `tactical_goals.md`, and `operating_plan.md` as the current direction layer, but do **not** treat project prose as richer authority than the README, architecture, runtime code, or current durable learnings when they diverge.
 
 ## Validation contract
+- Root gate: `npm run verify`
+- Build: `npm run build`
+- Typecheck: `npm run typecheck`
+- Lint: `npm run lint`
+- Tests: `npm test`
+- Smoke: `npm run smoke`
+- Sample artifacts: `npm run sample-artifacts`
+- Docs strictness when docs/handoff change: `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict`
 
-- Keep one canonical repo-root validation command and document it in `README.md`
-- Prefer deterministic repo scripts for build, test, and release entrypoints
-
-- Keep CI wrappers deterministic and repo-root relative.
-
-## Deterministic tooling policy
-- Prefer `./scripts/rocs.sh <args...>` before ad-hoc inline scripting when ROCS is present.
-- Use inline Python only as an explicit escape hatch when no deterministic command exists.
-- Prefer project-local wrappers over copied command snippets.
-
-## Knowledge flow
-Session output -> `diary/` -> `docs/learnings/` -> checks/docs propagation.
-A review is not complete until the same class of issue is harder to reintroduce.
+## Operator workflows
+- Initialize config: `npx ts-quality init`
+- Run the main evaluation: `npx ts-quality check`
+- Explain the latest run: `npx ts-quality explain`
+- Render report/trend output: `npx ts-quality report`, `npx ts-quality trend`
+- Produce planning/governance output: `npx ts-quality plan`, `npx ts-quality govern`
+- Authorization and attestations: `npx ts-quality authorize --agent <agent>`, `npx ts-quality attest sign ...`
+- Amendment flow: `npx ts-quality amend --proposal <proposal.json>`
 
 ## Read order
 1. `README.md`
-2. `docs/_core/` (if present)
-3. `docs/project/`
-4. `docs/decisions/` (if present)
-5. `docs/learnings/`
-6. `docs/tech-stack.local.md` (if present)
-7. `diary/`
-8. relevant scripts and source entrypoints
+2. `ARCHITECTURE.md`
+3. `next_session_prompt.md`
+4. `docs/config-reference.md`
+5. `docs/invariant-dsl.md`
+6. `docs/ci-integration.md`
+7. latest relevant `docs/learnings/` or `diary/` entry
+8. relevant package source under `packages/`
+9. relevant regression tests under `test/`
+
+## Architecture-native direction
+- Prefer smaller truthful evidence improvements over broader but noisier inference.
+- Keep artifact/report evolution additive-first so old consumers do not break silently.
+- Improve explainability by making evidence more explicit, not by inventing opaque confidence theater.
+- Keep core semantics native to `ts-quality` rather than importing unrelated workflow doctrine.
+
+## Knowledge flow
+Session output -> `diary/` -> `docs/learnings/` -> docs/runtime contracts/tests/report surfaces.
+A review is not complete until the same class of evidence ambiguity is harder to reintroduce.
