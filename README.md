@@ -99,6 +99,18 @@ npm run smoke
 npm run verify
 ```
 
+## Repo task workflow (AK)
+
+This repo now includes the same repo-local Agent Kernel launcher pattern used in related quality repos.
+Use `./scripts/ak.sh` as the canonical entrypoint and `./scripts/ak-v2.sh` as the compatibility alias.
+
+```bash
+./scripts/ak.sh --doctor
+./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == env.PWD)'
+./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == env.PWD and (.id == 180 or .id == 181))'
+./scripts/ak.sh task claim 180 --agent pi
+```
+
 ## Sample artifacts
 
 Generated sample artifacts live under `examples/artifacts/governed-app/` after `npm run sample-artifacts`.
