@@ -25,6 +25,7 @@ A strong `ts-quality` result depends on explicit inputs, not hidden inference:
 - **Coverage evidence** — provide `coverage/lcov.info` so CRAP and covered-only mutation selection are grounded in executed code.
 - **Green mutation baseline** — `mutations.testCommand` must pass before mutation results are trusted. A broken baseline now blocks mutation scoring instead of pretending every failing run killed a mutant.
 - **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop.
+- **Hermetic mutation execution** — mutation subprocesses drop inherited nested test-runner recursion context (for example `NODE_TEST_CONTEXT`) so the same repo does not score differently just because `check` was launched from inside `node --test`.
 - **Focused test evidence** — invariant scenarios are matched against tests aligned to the impacted source by file naming/import hints or explicit `requiredTestPatterns`, not by unrelated repo-global keyword hits.
 
 ## Deterministic depth, not semantic guesswork
@@ -66,7 +67,7 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `plan.txt` — governance plan with related invariant evidence provenance for the at-risk claim
 - `govern.txt` — governance findings with related invariant evidence provenance for the at-risk claim
 
-`run.json` now also carries additive execution receipts that make the run boundary explicit instead of implicit: `analysis` records the preallocated run id, exact changed scope, source file set, and mutation execution fingerprint; `mutationBaseline` records whether the baseline test command was green before mutants were interpreted. Caller-supplied run ids are treated as artifact ids and must use only letters, numbers, dots, underscores, and hyphens.
+`run.json` now also carries additive execution receipts that make the run boundary explicit instead of implicit: `analysis` records the preallocated run id, exact changed scope, source file set, and mutation execution fingerprint; `mutationBaseline` records whether the baseline test command was green before mutants were interpreted. The mutation execution fingerprint now includes the effective execution environment after nested test-runner recursion context is stripped, so stale cache entries from runner leakage are not silently reused. Caller-supplied run ids are treated as artifact ids and must use only letters, numbers, dots, underscores, and hyphens.
 
 Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, per-scenario support, and named deterministic sub-signals such as `focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, and `changed-function-pressure`. Every sub-signal is also labeled as `explicit`, `inferred`, or `missing` so reviewers can tell whether support came from direct configured/artifact evidence or deterministic alignment heuristics.
 

@@ -29,8 +29,9 @@ They now have targeted regression coverage for the remaining `check-summary.txt`
 
 ### Completion signals now true
 - targeted tests fail if concise provenance disappears from `check-summary.txt`
-- golden-output coverage now includes the concise run-status surface the repo treats as contract-bearing
+- golden-output coverage now includes the concise run-status surface the repo treats as contract-bearing with exact deterministic parity restored under `node --test`
 - the checked-in reviewed `examples/artifacts/governed-app/check-summary.txt` sample is now part of the regression-hardening path
+- mutation subprocesses now ignore inherited nested test-runner recursion context so cacheable evidence stays stable across launcher contexts
 
 ## TG4 — Re-audit remaining decision-side outputs after run-status parity lands
 

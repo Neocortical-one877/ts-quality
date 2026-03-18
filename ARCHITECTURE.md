@@ -22,7 +22,7 @@ AST-backed CRAP analysis for TS/JS. It parses LCOV, discovers function-like node
 
 ### `packages/ts-mutate`
 
-Deterministic mutation testing. It discovers mutation sites from the TypeScript AST, applies exact-span mutations, validates that the baseline test command passes before trusting mutant outcomes, runs tests in isolated temporary copies, and caches results in a manifest keyed by a deterministic execution fingerprint so test-corpus drift cannot silently reuse stale answers.
+Deterministic mutation testing. It discovers mutation sites from the TypeScript AST, applies exact-span mutations, validates that the baseline test command passes before trusting mutant outcomes, runs tests in isolated temporary copies, strips inherited nested test-runner recursion context before launching mutation subprocesses, and caches results in a manifest keyed by a deterministic execution fingerprint that includes the effective execution environment so test-corpus drift or runner-context leakage cannot silently reuse stale answers.
 
 ### `packages/invariants`
 
@@ -49,7 +49,7 @@ Product surface. It loads configuration, orchestrates the engines, writes artifa
 1. `ts-quality check` loads `ts-quality.config.ts`.
 2. A preallocated analysis context establishes the run id, exact changed-file list, optional diff hunks, source file set, and mutation execution fingerprint.
 3. `crap4ts` computes structural risk, with diff hunks narrowing changed scope inside files when present.
-4. `ts-mutate` validates the baseline test command, computes behavioral pressure, and records a baseline execution receipt.
+4. `ts-mutate` validates the baseline test command, computes behavioral pressure in a hermetic subprocess context, fingerprints the effective execution environment, and records a baseline execution receipt.
 5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries with named sub-signals (focused-test alignment, changed-function pressure, coverage pressure, mutation pressure, and scenario support) plus additive provenance modes (`explicit`, `inferred`, `missing`).
 6. `policy-engine` emits an explainable merge-confidence verdict and explicitly blocks on invalid mutation baselines or mutation execution errors.
 7. `governance` evaluates constitutional constraints, including exact run-targeted approvals and ownership reservations, and produces a plan.

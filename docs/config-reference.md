@@ -46,6 +46,6 @@ export default {
 - `changeSet.files` scopes merge confidence to changed code.
 - `changeSet.diffFile` adds diff-hunk precision and now narrows scope within a changed file instead of widening back to whole-file analysis.
 - `mutations.testCommand` must pass on the unmutated baseline before mutation pressure is trusted.
-- Mutation cache reuse is keyed by a deterministic execution fingerprint, so test-corpus drift invalidates stale manifest entries.
+- Mutation cache reuse is keyed by a deterministic execution fingerprint that includes the effective execution environment after inherited nested test-runner recursion context is stripped, so test-corpus drift or runner-context leakage invalidates stale manifest entries.
 - `mutations.coveredOnly` focuses on covered lines.
 - `policy` defines default merge gates before constitutional rules add domain-specific constraints.

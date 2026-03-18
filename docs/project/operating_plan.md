@@ -1,5 +1,5 @@
 ---
-summary: "Operating-plan transition after AK #186; TG3 is complete and no follow-on repo-local AK slice is materialized yet."
+summary: "Operating-plan transition after corrective task AK #188; no follow-on repo-local SG2 slice is materialized yet."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
   - "When translating the current tactical state into the repo-local queue"
@@ -22,30 +22,35 @@ Repo truth now shows the concise operator contract hardened end to end:
 
 ## Completed this session
 
-### O1 — **AK `#186`** — add regression coverage for `check-summary` provenance output
+### M1 — **AK `#188`** — hermeticize mutation subprocess context and fingerprint runner env
 State:
 - completed 2026-03-18
 
 Deliverable now true:
-- targeted regression coverage proves `check-summary.txt` keeps the intended provenance projection
-- concise-output parity is harder to regress silently
-- no second evidence/report authority was introduced
+- mutation subprocesses ignore inherited nested `node:test` recursion context
+- mutation execution fingerprints now include the effective execution environment plus a cache-version bump so stale poisoned results are not silently reused
+- `check-summary.txt` golden coverage is back to exact deterministic parity instead of normalized score drift
 
 Primary files touched:
+- `packages/ts-mutate/src/index.ts`
+- `test/ts-mutate.test.mjs`
 - `test/golden-output.test.mjs`
+- `README.md`
+- `ARCHITECTURE.md`
+- `docs/config-reference.md`
 - `docs/project/strategic_goals.md`
 - `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
 - `next_session_prompt.md`
 - `governance/work-items.json`
-- `diary/2026-03-18--test-check-summary-provenance-coverage.md`
+- `diary/2026-03-18--fix-hermetic-mutation-execution.md`
 
 ## Current ready queue
 Ready now:
 - none repo-local
 
 Completed this session:
-- `#186` — add regression coverage for `check-summary` provenance output
+- `#188` — hermeticize mutation subprocess context and fingerprint runner env
 
 ## Next materialization target
 Before more implementation work, decompose **SG2** into the first real repo-local AK slice.

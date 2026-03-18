@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff: AK #186 is complete; no ready repo-local AK slice is materialized yet, so the next session should decompose SG2 first."
+summary: "Active handoff: corrective AK #188 is complete; no ready repo-local AK slice is materialized yet, so the next session should decompose SG2 first."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -30,7 +30,7 @@ Ready now:
 - none repo-local
 
 Completed this session:
-- `#186` — add regression coverage for `check-summary` provenance output
+- `#188` — hermeticize mutation subprocess context and fingerprint runner env
 
 ## READ-FIRST ORDER
 1. `AGENTS.md`

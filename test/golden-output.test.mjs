@@ -7,12 +7,6 @@ import { latestRunId, repoRoot, tempCopyOfFixture } from './helpers.mjs';
 
 const cli = path.join(repoRoot, 'dist', 'packages', 'ts-quality', 'src', 'cli.js');
 
-function normalizeCheckSummary(text) {
-  return text
-    .replace(/Merge confidence: \d+\/100/, 'Merge confidence: <score>/100')
-    .replace(/mutation-pressure \[warning; mode=explicit\]: \d+ surviving mutants? across \d+ mutation sites?/, 'mutation-pressure [warning; mode=explicit]: <survivors> surviving mutants across <sites> mutation sites');
-}
-
 test('concise operator outputs keep stable provenance framing', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
@@ -37,7 +31,7 @@ test('concise operator outputs keep stable provenance framing', () => {
   assert.match(checkSummary, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
   assert.match(checkSummary, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
   assert.doesNotMatch(checkSummary, /^Obligation:/m);
-  assert.equal(normalizeCheckSummary(checkSummary), normalizeCheckSummary(expectedCheckSummary));
+  assert.equal(checkSummary, expectedCheckSummary);
   assert.match(plan, /Invariant evidence at risk: auth\.refresh\.validity/);
   assert.match(plan, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
   assert.match(plan, /mutation-pressure \[warning; mode=explicit\]: [0-9]+ surviving mutants across [0-9]+ mutation sites/);

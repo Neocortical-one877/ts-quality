@@ -124,6 +124,19 @@
           ],
           "dod": "Task reaches done in society.db with evidence recorded.",
           "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0188",
+          "title": "ts-quality: hermeticize mutation subprocess context and fingerprint runner env",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: hermeticize mutation subprocess context and fingerprint runner env (task #188)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         }
       ]
     }

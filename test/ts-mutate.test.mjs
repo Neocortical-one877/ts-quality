@@ -138,3 +138,54 @@ test('runMutations invalidates manifest entries when the test corpus changes', (
   assert.equal(second.executionFingerprint === first.executionFingerprint, false);
   assert.equal(second.results.every((result) => result.status === 'error'), true);
 });
+
+
+test('runMutations ignores inherited NODE_TEST_CONTEXT and keeps mutation outcomes deterministic', () => {
+  const cleanRoot = tempCopyOfFixture('governed-app');
+  const contaminatedRoot = tempCopyOfFixture('governed-app');
+  const cleanCoverage = crap.parseLcov(fs.readFileSync(path.join(cleanRoot, 'coverage', 'lcov.info'), 'utf8'));
+  const contaminatedCoverage = crap.parseLcov(fs.readFileSync(path.join(contaminatedRoot, 'coverage', 'lcov.info'), 'utf8'));
+
+  const clean = mutate.runMutations({
+    repoRoot: cleanRoot,
+    sourceFiles: ['src/auth/token.js'],
+    changedFiles: ['src/auth/token.js'],
+    coverage: cleanCoverage,
+    testCommand: ['node', '--test'],
+    coveredOnly: true,
+    manifestPath: path.join(cleanRoot, '.ts-quality', 'mutation-manifest.json'),
+    maxSites: 4,
+    timeoutMs: 10_000
+  });
+
+  const previous = process.env.NODE_TEST_CONTEXT;
+  process.env.NODE_TEST_CONTEXT = 'child-v8';
+  try {
+    const contaminated = mutate.runMutations({
+      repoRoot: contaminatedRoot,
+      sourceFiles: ['src/auth/token.js'],
+      changedFiles: ['src/auth/token.js'],
+      coverage: contaminatedCoverage,
+      testCommand: ['node', '--test'],
+      coveredOnly: true,
+      manifestPath: path.join(contaminatedRoot, '.ts-quality', 'mutation-manifest.json'),
+      maxSites: 4,
+      timeoutMs: 10_000
+    });
+
+    assert.equal(clean.executionFingerprint, contaminated.executionFingerprint);
+    assert.deepEqual(
+      contaminated.results.map((result) => result.status),
+      clean.results.map((result) => result.status)
+    );
+    assert.equal(contaminated.survived, clean.survived);
+    assert.equal(contaminated.killed, clean.killed);
+    assert.equal(contaminated.results.some((result) => (result.details ?? '').includes('run() is being called recursively')), false);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.NODE_TEST_CONTEXT;
+    } else {
+      process.env.NODE_TEST_CONTEXT = previous;
+    }
+  }
+});
