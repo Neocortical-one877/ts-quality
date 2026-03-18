@@ -24,9 +24,10 @@ It does **not** yet decompose SG2.
 ## TG1 — Finish concise run-status outputs so they still show risky-invariant context
 
 ### Why TG1 is active now
-Two currently shipped concise run-status surfaces still compress the evidence basis too far:
-- `check-summary.txt` reports outcome and best next action, but not the risky invariant provenance that explains them
+One currently shipped concise run-status surface still compresses the evidence basis too far:
 - `trend` reports deltas, but not whether the latest run's at-risk invariant evidence is explicit, inferred, or missing
+
+`check-summary.txt` now projects the first at-risk invariant and concise provenance from the same additive authority, so TG1 can focus on finishing `trend` without inventing a second reasoning path.
 
 ### Success signals
 - terse run-status outputs stay readable while exposing the first at-risk invariant when present

@@ -76,14 +76,15 @@
         {
           "id": "AK-TASK-0184",
           "title": "ts-quality: project risky invariant provenance into check-summary.txt",
-          "state": "queued",
+          "state": "done",
           "tasks": [
             {
               "text": "ts-quality: project risky invariant provenance into check-summary.txt (task #184)",
-              "done": false
+              "done": true
             }
           ],
-          "dod": "Task reaches done in society.db with evidence recorded."
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         },
         {
           "id": "AK-TASK-0185",

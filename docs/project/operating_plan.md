@@ -13,26 +13,28 @@ This file decomposes **TG1 — finish concise run-status outputs so they still s
 It does **not** queue TG2-TG4 yet.
 
 ## Why TG1 is the active tactical goal
-Repo truth still shows two concise run-status gaps:
-- `check-summary.txt` is emitted during `check`, but it does not yet project risky-invariant provenance
+Repo truth still shows one remaining concise run-status gap:
 - `trend` is a concise CLI surface, but it currently reports only deltas and no risky-invariant context
 
-Because those are live shipped surfaces, TG1 is the next truthful execution wave.
+`check-summary.txt` now projects the first at-risk invariant plus concise provenance from `behaviorClaims[].evidenceSummary`, so TG1 can finish with the remaining trend slice.
 
 ## Ordered operating slices (authoritative AK references)
 
 ### O1 — **AK `#184`** — project risky invariant provenance into `check-summary.txt`
+State:
+- completed 2026-03-18
+
 Deliverable:
 - `check-summary.txt` stays terse but includes the first at-risk invariant plus concise provenance when a risky claim exists
 - rendering remains downstream of `behaviorClaims[].evidenceSummary`
 
-Primary files likely involved:
+Primary files involved:
 - `packages/ts-quality/src/index.ts`
-- `packages/policy-engine/src/index.ts`
+- `test/cli-integration.test.mjs`
 
 ### O2 — **AK `#187`** — surface risky invariant context in `trend` output
 State:
-- depends on `#184`
+- ready now
 
 Deliverable:
 - `trend` keeps numeric deltas, but also shows the latest run's first at-risk invariant and concise provenance when relevant
@@ -44,7 +46,7 @@ Primary files likely involved:
 
 ### O3 — **AK `#185`** — include `check-summary.txt` in generated sample artifacts and README
 State:
-- depends on `#184`
+- ready now
 
 Deliverable:
 - `scripts/generate-samples.mjs` exports `check-summary.txt`
@@ -58,7 +60,7 @@ Primary files likely involved:
 
 ### O4 — **AK `#186`** — add regression coverage for `check-summary` provenance output
 State:
-- depends on `#184`
+- ready now
 
 Deliverable:
 - targeted tests fail if `check-summary.txt` drops the intended provenance projection
@@ -70,12 +72,12 @@ Primary files likely involved:
 
 ## Current ready queue
 Ready now:
-- `#184` — project risky invariant provenance into `check-summary.txt`
-
-Blocked until `#184` completes:
 - `#187` — surface risky invariant context in `trend` output
 - `#185` — include `check-summary.txt` in generated sample artifacts and README
 - `#186` — add regression coverage for `check-summary` provenance output
+
+Completed this session:
+- `#184` — project risky invariant provenance into `check-summary.txt`
 
 ## HTN
 
@@ -90,6 +92,6 @@ G0: Make concise operator surfaces stay honest about invariant evidence provenan
 ```
 
 ## Queue discipline
-- start with `#184` unless the operator explicitly reprioritizes `#187`
+- start with `#187` unless the operator explicitly reprioritizes `#185` or `#186`
 - do not create TG2-TG4 tasks yet
 - after TG1 is materially complete, refresh `tactical_goals.md` and promote TG2

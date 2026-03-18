@@ -59,10 +59,22 @@ function renderInvariantProvenanceBlock(run, options) {
         `${linePrefix}Invariant evidence at risk: ${riskyInvariant.invariantId}`,
         ...(0, index_5.renderConciseInvariantProvenance)(riskyInvariant, { linePrefix })
     ];
-    if (riskyInvariant.obligations.length > 0) {
+    if (options?.includeObligation !== false && riskyInvariant.obligations.length > 0) {
         lines.push(`${linePrefix}Obligation: ${riskyInvariant.obligations[0]?.description}`);
     }
     return lines;
+}
+function renderCheckSummaryText(run) {
+    const lines = [
+        `Merge confidence: ${run.verdict.mergeConfidence}/100`,
+        `Outcome: ${run.verdict.outcome}`,
+        `Best next action: ${run.verdict.bestNextAction ?? 'none'}`
+    ];
+    const provenance = renderInvariantProvenanceBlock(run, { includeObligation: false });
+    if (provenance.length > 0) {
+        lines.push('', ...provenance);
+    }
+    return `${lines.join('\n')}\n`;
 }
 function renderPlanText(run, plan) {
     const lines = [plan.summary];
@@ -336,7 +348,7 @@ function runCheck(rootDir, options) {
     fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'pr-summary.md'), `${(0, index_5.renderPrSummary)(run)}\n`, 'utf8');
     fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'explain.txt'), `${(0, index_5.renderExplainText)(run)}\n`, 'utf8');
     fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'attestation-verify.txt'), `${verifiedAttestations.verification.map((item) => `${item.issuer}: ${item.ok ? 'ok' : 'failed'} (${item.reason})`).join('\n')}\n`, 'utf8');
-    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'check-summary.txt'), `Merge confidence: ${run.verdict.mergeConfidence}/100\nOutcome: ${run.verdict.outcome}\nBest next action: ${run.verdict.bestNextAction ?? 'none'}\n`, 'utf8');
+    fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'check-summary.txt'), renderCheckSummaryText(run), 'utf8');
     const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
     fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'plan.txt'), renderPlanArtifactText(run, plan), 'utf8');
     fs_1.default.writeFileSync(path_1.default.join(artifactDir, 'govern.txt'), renderGovernanceArtifactText(run, plan), 'utf8');

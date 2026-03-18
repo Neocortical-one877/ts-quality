@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff: SG1/TG1 are now decomposed into AK tasks #184-#187; start with #184 unless the operator reprioritizes #187."
+summary: "Active handoff: AK #184 is complete; start with #187 unless the operator reprioritizes #185 or #186."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -15,7 +15,7 @@ Do not ask for permission to start.
 ## ACTIVE GOAL STACK
 - **Strategic goal:** SG1 — close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`
 - **Tactical goal:** TG1 — finish concise run-status outputs so they still show risky-invariant context
-- **Operating slices:** AK `#184`, `#187`, `#185`, `#186`
+- **Operating slices:** AK `#187`, `#185`, `#186`
 
 ## START HERE
 1. Run `./scripts/ak.sh --doctor`
@@ -23,16 +23,16 @@ Do not ask for permission to start.
    ```bash
    ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'
    ```
-3. Unless the operator reprioritizes, start with **AK `#184`** — `ts-quality: project risky invariant provenance into check-summary.txt`
+3. Unless the operator reprioritizes, start with **AK `#187`** — `ts-quality: surface risky invariant context in trend output`
 
 ## CURRENT QUEUE TRUTH
 Ready now:
-- `#184` — project risky invariant provenance into `check-summary.txt`
-
-Blocked on `#184`:
 - `#187` — surface risky invariant context in trend output
 - `#185` — include `check-summary.txt` in generated sample artifacts and README
 - `#186` — add regression coverage for check-summary provenance output
+
+Completed this session:
+- `#184` — project risky invariant provenance into `check-summary.txt`
 
 ## READ-FIRST ORDER
 1. `AGENTS.md`

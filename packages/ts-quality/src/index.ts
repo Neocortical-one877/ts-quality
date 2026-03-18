@@ -72,7 +72,10 @@ function symbolEntities(complexity: RunArtifact['complexity']): SymbolEntity[] {
   }));
 }
 
-function renderInvariantProvenanceBlock(run: Pick<RunArtifact, 'behaviorClaims'>, options?: { linePrefix?: string }): string[] {
+function renderInvariantProvenanceBlock(
+  run: Pick<RunArtifact, 'behaviorClaims'>,
+  options?: { linePrefix?: string; includeObligation?: boolean }
+): string[] {
   const riskyInvariant = findFirstRiskyInvariantClaim(run);
   if (!riskyInvariant) {
     return [];
@@ -82,10 +85,23 @@ function renderInvariantProvenanceBlock(run: Pick<RunArtifact, 'behaviorClaims'>
     `${linePrefix}Invariant evidence at risk: ${riskyInvariant.invariantId}`,
     ...renderConciseInvariantProvenance(riskyInvariant, { linePrefix })
   ];
-  if (riskyInvariant.obligations.length > 0) {
+  if (options?.includeObligation !== false && riskyInvariant.obligations.length > 0) {
     lines.push(`${linePrefix}Obligation: ${riskyInvariant.obligations[0]?.description}`);
   }
   return lines;
+}
+
+function renderCheckSummaryText(run: Pick<RunArtifact, 'behaviorClaims' | 'verdict'>): string {
+  const lines = [
+    `Merge confidence: ${run.verdict.mergeConfidence}/100`,
+    `Outcome: ${run.verdict.outcome}`,
+    `Best next action: ${run.verdict.bestNextAction ?? 'none'}`
+  ];
+  const provenance = renderInvariantProvenanceBlock(run, { includeObligation: false });
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  return `${lines.join('\n')}\n`;
 }
 
 function renderPlanText(run: RunArtifact, plan: ReturnType<typeof generateGovernancePlan>): string {
@@ -390,7 +406,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   fs.writeFileSync(path.join(artifactDir, 'pr-summary.md'), `${renderPrSummary(run)}\n`, 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'explain.txt'), `${renderExplainText(run)}\n`, 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'attestation-verify.txt'), `${verifiedAttestations.verification.map((item) => `${item.issuer}: ${item.ok ? 'ok' : 'failed'} (${item.reason})`).join('\n')}\n`, 'utf8');
-  fs.writeFileSync(path.join(artifactDir, 'check-summary.txt'), `Merge confidence: ${run.verdict.mergeConfidence}/100\nOutcome: ${run.verdict.outcome}\nBest next action: ${run.verdict.bestNextAction ?? 'none'}\n`, 'utf8');
+  fs.writeFileSync(path.join(artifactDir, 'check-summary.txt'), renderCheckSummaryText(run), 'utf8');
   const plan = generateGovernancePlan(run, constitution, agents);
   fs.writeFileSync(path.join(artifactDir, 'plan.txt'), renderPlanArtifactText(run, plan), 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'govern.txt'), renderGovernanceArtifactText(run, plan), 'utf8');

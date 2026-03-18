@@ -24,7 +24,7 @@ That foundation narrows the real strategic choice to what still remains unfinish
 
 | Rank | Goal | Importance | Urgency | Difficulty | Why it made the cut |
 |---|---|---:|---:|---:|---|
-| 1 | **SG1 — Close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`** | 5 | 5 | 3 | `check-summary.txt` still omits risky-invariant provenance, `renderTrend()` still reports only deltas, and `scripts/generate-samples.mjs` does not yet carry `check-summary.txt` into the reviewed sample bundle. |
+| 1 | **SG1 — Close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`** | 5 | 5 | 3 | `renderTrend()` still reports only deltas, and `scripts/generate-samples.mjs` does not yet carry the now-provenanced `check-summary.txt` into the reviewed sample bundle. |
 | 2 | **SG2 — Carry the same evidence truth into governance/legitimacy decision surfaces that still compress authority too far** | 4 | 3 | 4 | The vision explicitly calls for governance and legitimacy to consume the same explainable evidence basis, but the repo has not yet decomposed that later wave into executable repo-local work. |
 
 ## Active now vs next
@@ -38,9 +38,9 @@ The vision says reviewers should be able to tell what evidence is explicit, infe
 The repo now does that in the canonical artifact and several downstream projections, but not yet across every concise operator-facing surface.
 
 Current repo-local evidence for SG1:
-- `packages/ts-quality/src/index.ts` writes `check-summary.txt` with merge confidence, outcome, and best-next-action only
-- `packages/ts-quality/src/index.ts` renders `trend` with deltas only and no invariant-risk context
-- `scripts/generate-samples.mjs` exports `pr-summary.md`, `plan.txt`, and `govern.txt`, but not `check-summary.txt`
+- `packages/ts-quality/src/index.ts` now writes `check-summary.txt` with merge confidence, outcome, best-next-action, and the first at-risk invariant provenance when present
+- `packages/ts-quality/src/index.ts` still renders `trend` with deltas only and no invariant-risk context
+- `scripts/generate-samples.mjs` still exports `pr-summary.md`, `plan.txt`, and `govern.txt`, but not `check-summary.txt`
 
 ### Success signals
 - every concise run-status surface stays visibly downstream of the additive invariant evidence authority
