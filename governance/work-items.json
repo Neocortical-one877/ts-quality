@@ -50,14 +50,15 @@
         {
           "id": "AK-TASK-0182",
           "title": "ts-quality: surface invariant evidence provenance in pr-summary.md",
-          "state": "queued",
+          "state": "done",
           "tasks": [
             {
               "text": "ts-quality: surface invariant evidence provenance in pr-summary.md (task #182)",
-              "done": false
+              "done": true
             }
           ],
-          "dod": "Task reaches done in society.db with evidence recorded."
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         }
       ]
     }

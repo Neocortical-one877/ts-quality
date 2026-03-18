@@ -27,8 +27,11 @@ test('check, report, and explain produce artifacts', () => {
   assert.equal(fs.existsSync(reportPath), true);
   const report = spawnSync('node', [cli, 'report', '--root', target], { encoding: 'utf8' });
   const explain = spawnSync('node', [cli, 'explain', '--root', target], { encoding: 'utf8' });
+  const prSummary = fs.readFileSync(prSummaryPath, 'utf8');
   assert.match(fs.readFileSync(reportPath, 'utf8'), /^---\nsummary:/);
-  assert.match(fs.readFileSync(prSummaryPath, 'utf8'), /^---\nsummary:/);
+  assert.match(prSummary, /^---\nsummary:/);
+  assert.match(prSummary, /Evidence provenance: explicit 3, inferred 1, missing 1/);
+  assert.match(prSummary, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
   assert.match(report.stdout, /Merge confidence/);
   assert.match(report.stdout, /mutation scope: [0-9]+ site\(s\), [0-9]+ killed, [0-9]+ survived/);
   assert.match(report.stdout, /focused-test-alignment \[clear; mode=inferred\]: 1 focused test file aligned to invariant scope/);

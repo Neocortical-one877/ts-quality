@@ -17,4 +17,7 @@ test('PR summary keeps stable user-facing framing', () => {
   assert.match(summary, /Merge confidence: \*\*[0-9]+\/100\*\*/);
   assert.match(summary, /Best next action:/);
   assert.match(summary, /Surviving mutants:/);
+  assert.match(summary, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
+  assert.match(summary, /focused-test-alignment \[clear; mode=inferred\]: 1 focused test file aligned to invariant scope/);
+  assert.match(summary, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
 });

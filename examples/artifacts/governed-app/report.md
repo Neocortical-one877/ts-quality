@@ -8,7 +8,7 @@ type: "reference"
 
 # ts-quality report
 
-- Run: `2026-03-18T01-39-39-748Z`
+- Run: `2026-03-18T03-53-15-531Z`
 - Merge confidence: **6/100**
 - Outcome: **fail**
 - Changed files: src/auth/token.js
@@ -17,8 +17,8 @@ type: "reference"
 - [error] Mutation score 0.25 is below budget 0.75
   - Killed 1, survived 3
 - [error] Surviving mutant in src/auth/token.js
-  - ✔ active token before expiry allows access (0.543502ms)
-✔ missing token denies access (0.101273ms)
+  - ✔ active token before expiry allows access (0.464182ms)
+✔ missing token denies access (0.087723ms)
 ℹ tests 2
 ℹ suites 0
 ℹ pass 2
@@ -26,10 +26,10 @@ type: "reference"
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 48.085789
+ℹ duration_ms 50.105358
 - [error] Surviving mutant in src/auth/token.js
-  - ✔ active token before expiry allows access (0.480036ms)
-✔ missing token denies access (0.091509ms)
+  - ✔ active token before expiry allows access (0.459495ms)
+✔ missing token denies access (0.089536ms)
 ℹ tests 2
 ℹ suites 0
 ℹ pass 2
@@ -37,10 +37,10 @@ type: "reference"
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 49.617465
+ℹ duration_ms 47.978441
 - [error] Surviving mutant in src/auth/token.js
-  - ✔ active token before expiry allows access (0.459826ms)
-✔ missing token denies access (0.090647ms)
+  - ✔ active token before expiry allows access (0.468789ms)
+✔ missing token denies access (0.088023ms)
 ℹ tests 2
 ℹ suites 0
 ℹ pass 2
@@ -48,7 +48,7 @@ type: "reference"
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 47.7956
+ℹ duration_ms 47.070959
 - [error] Invariant auth.refresh.validity is at-risk
   - 3 surviving mutants in impacted invariant scope
   - Missing deterministic test evidence for scenario 'exact expiry boundary denies access'

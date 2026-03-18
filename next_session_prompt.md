@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff after analysis-context hardening; the next repo-local queue continues at #182 for PR-facing provenance projection."
+summary: "Active handoff after #182 closed the PR-summary provenance slice; exact-path repo-local AK truth now needs a fresh non-speculative SG2 audit before any new task is created."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -37,27 +37,25 @@ Otherwise continue through research, implementation, validation, and handoff in 
 - Invariant contract: `docs/invariant-dsl.md`
 - CI/operator integration: `docs/ci-integration.md`
 - Latest durable learning: `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-- Latest session capture: `diary/2026-03-18--feat-analysis-context-hardening.md`
+- Latest session capture: `diary/2026-03-18--feat-pr-summary-evidence-provenance.md`
 - Active/deferred work authority: Agent Kernel
 - Checked-in work-items projection: `governance/work-items.json`
 - Raw session capture: `diary/`
 - Long-term project docs: `docs/project/purpose.md`, `docs/project/mission.md`, `docs/project/vision.md`, `docs/project/strategic_goals.md`, `docs/project/tactical_goals.md`, `docs/project/operating_plan.md`
 
 ## DIRECTION-TO-EXECUTION RULE (HARD)
-If a repo-local AK rescore finds no ready task and there is no better active handoff, decompose the next architecture-native improvement wave into one bounded repo-local slice instead of refreshing wording only.
+If a repo-local AK rescore finds no exact-path ready task and there is no better active handoff, decompose the next architecture-native improvement wave into one bounded repo-local slice instead of refreshing wording only.
 Prefer explicit evidence/report improvements over vague semantic-expansion work.
+Do **not** create a follow-on SG2 task unless current repo truth shows a remaining operator surface that still hides provenance.
 
 ## ACTIVE HANDOFF
 - Repo registration in AK remains verified.
-- **`#181`** — introduce explicit vs inferred invariant evidence modes — is complete.
-- Operator-driven analysis-context hardening is now also complete: run artifacts carry additive `analysis` / `mutationBaseline` receipts, diff hunks narrow scope inside changed files, mutation cache keys fingerprint execution context, approvals can bind to exact run ids, ownership rules are enforced, and overrides are revalidated against real `override` grants.
-- The next reviewed repo-local queue now continues in the next SG2 operator-surface wave:
-  - **`#182`** — surface invariant evidence provenance in `pr-summary.md`
-- Keep scope bounded to PR-facing output, evidence-summary projections, docs, regression tests, and generated sample artifacts.
-- Keep `pr-summary.md` downstream of `behaviorClaims[].evidenceSummary`; do **not** invent a second authority or a second reasoning system.
+- **`#182`** — surface invariant evidence provenance in `pr-summary.md` — is complete.
+- `pr-summary.md` now projects concise evidence-mode counts plus notable sub-signals directly from `behaviorClaims[].evidenceSummary.subSignals[]`.
+- The exact-path repo-local AK queue has no next materialized slice yet.
+- Start the next session by re-running AK readiness with the **exact-path repo filter** and only create the next SG2 task if another current operator surface demonstrably diverges from the canonical evidence summary.
 - Keep concise output honest about whether invariant support is explicit, inferred, or missing.
-- Do **not** let a headline merge-confidence score outrank the underlying evidence basis.
-- Do **not** let docs promise semantic depth beyond what deterministic evidence actually supports.
+- Keep `pr-summary.md` and any future concise surface downstream of the canonical artifact contract; do **not** invent a second authority or let a headline score outrank the evidence basis.
 
 ## AK COMMANDS
 This repo now ships the same repo-local AK launcher pattern used in `ts-quality-tools`:
@@ -65,8 +63,7 @@ This repo now ships the same repo-local AK launcher pattern used in `ts-quality-
 ```bash
 ./scripts/ak.sh --doctor
 ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'
-./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 182)'
-./scripts/ak.sh task claim 182 --agent pi
+./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality") | {id, title, status, priority}'
 git status --short
 ```
 
@@ -81,8 +78,8 @@ git status --short
 8. `docs/config-reference.md`
 9. `docs/invariant-dsl.md`
 10. `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-11. `diary/2026-03-18--feat-analysis-context-hardening.md`
-12. relevant package source + regression tests for the claimed task
+11. `diary/2026-03-18--feat-pr-summary-evidence-provenance.md`
+12. relevant package source + regression tests for the chosen slice
 
 ## EXECUTION MODE (MANDATORY ORDER)
 1. **Task** — select or confirm the exact repo-scoped AK task before coding.
@@ -96,11 +93,11 @@ git status --short
 9. **Commit** — leave the repo ready for a clean next context window unless the operator explicitly says otherwise.
 
 ## SESSION CHECKPOINT
-- Slice executed: operator-driven analysis-context hardening across evidence-model / crap4ts / ts-mutate / governance / legitimacy / ts-quality
-- Outcome: additive `run.analysis` / `run.mutationBaseline` receipts now ship; diff hunks narrow scope within changed files; mutation scoring refuses red baselines and fingerprints execution context; exact run-id approval binding, ownership enforcement, override-scope checks, and deep package attribution are covered by regression tests/docs/sample artifacts
-- Refactoring status: structural hardening stayed additive-first; existing report/invariant surfaces were preserved while the hidden execution context became explicit
-- Validation from the completed slice: `npm test` (pass), `npm run sample-artifacts` (pass), `npm run verify` (pass), `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` (pass)
-- Next-session starting point: inspect AK task **`#182`**, read the PR-summary/report rendering code paths it touches, and keep the concise provenance projection downstream of the current evidence-summary authority plus the new run-level analysis receipts
+- Slice executed: PR-facing provenance projection in `pr-summary.md`
+- Outcome: concise PR summaries now show whether the riskiest invariant support is explicit, inferred, or missing without competing with `run.json`
+- Refactoring status: no new evidence authority was introduced; the change stayed as a projection from the existing additive sub-signal contract
+- Validation from the completed slice: `node --test test/policy-engine.test.mjs test/golden-output.test.mjs test/cli-integration.test.mjs` (pass), `npm run sample-artifacts` (pass), `npm test` (pass), `npm run verify` (pass), `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` (pass)
+- Next-session starting point: inspect exact-path AK readiness; if the queue is empty, perform a fresh SG2 operator-surface audit and materialize only one non-speculative follow-on slice if current repo truth justifies it
 
 ## END-OF-SESSION
 - keep this file aligned with the real next starting point

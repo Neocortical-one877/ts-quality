@@ -60,7 +60,7 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `run.json` — complete machine-readable bundle
 - `verdict.json` — merge-confidence verdict
 - `report.md` — human-readable report
-- `pr-summary.md` — PR-facing summary
+- `pr-summary.md` — PR-facing summary with concise invariant evidence provenance
 - `explain.txt` — explanation trail
 - `plan.txt` — governance plan
 - `govern.txt` — governance findings

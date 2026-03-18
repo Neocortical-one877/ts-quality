@@ -148,6 +148,27 @@ function invariantModeSummary(claim) {
     }
     return `Invariant evidence modes: ${summary.subSignals.map((item) => `${item.signalId}=${item.mode}`).join('; ')}`;
 }
+function formatInvariantSubSignal(subSignal) {
+    return `${subSignal.signalId} [${subSignal.level}; mode=${subSignal.mode}]: ${subSignal.summary}`;
+}
+function renderPrSummaryInvariantProvenance(claim) {
+    const summary = claim.evidenceSummary;
+    if (!summary || summary.subSignals.length === 0) {
+        return [];
+    }
+    const modeCounts = summary.subSignals.reduce((counts, item) => {
+        counts[item.mode] += 1;
+        return counts;
+    }, { explicit: 0, inferred: 0, missing: 0 });
+    const projectedSignals = summary.subSignals
+        .filter((item) => item.mode !== 'explicit' || item.level !== 'clear')
+        .slice(0, 3);
+    const signalsToRender = projectedSignals.length > 0 ? projectedSignals : summary.subSignals.slice(0, 2);
+    return [
+        `  - Evidence provenance: explicit ${modeCounts.explicit}, inferred ${modeCounts.inferred}, missing ${modeCounts.missing}`,
+        ...signalsToRender.map((item) => `  - ${formatInvariantSubSignal(item)}`)
+    ];
+}
 function renderInvariantSubSignals(claim) {
     const summary = claim.evidenceSummary;
     if (!summary || summary.subSignals.length === 0) {
@@ -155,7 +176,7 @@ function renderInvariantSubSignals(claim) {
     }
     const lines = ['  - sub-signals:'];
     for (const subSignal of summary.subSignals) {
-        lines.push(`    - ${subSignal.signalId} [${subSignal.level}; mode=${subSignal.mode}]: ${subSignal.summary}`);
+        lines.push(`    - ${formatInvariantSubSignal(subSignal)}`);
         for (const fact of subSignal.facts) {
             lines.push(`      - ${fact}`);
         }
@@ -214,6 +235,7 @@ function renderPrSummary(run) {
     const riskyInvariant = run.behaviorClaims.find((claim) => claim.status !== 'supported');
     if (riskyInvariant) {
         lines.push(`- Invariant at risk: **${riskyInvariant.invariantId}**`);
+        lines.push(...renderPrSummaryInvariantProvenance(riskyInvariant));
     }
     if (run.verdict.bestNextAction) {
         lines.push(`- Best next action: ${run.verdict.bestNextAction}`);
@@ -226,7 +248,7 @@ function renderPrSummary(run) {
         }
     }
     return withMarkdownMetadata(lines, {
-        summary: 'PR-facing summary for a ts-quality run.',
+        summary: 'PR-facing summary for a ts-quality run with concise invariant evidence provenance.',
         readWhen: [
             'When pasting a concise ts-quality result into a PR or review surface',
             'When inspecting the generated summary artifact format'
