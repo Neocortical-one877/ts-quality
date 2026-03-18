@@ -469,13 +469,18 @@ export function renderTrend(rootDir: string): string {
   const previous = loadRun(rootDir, previousId);
   const survivingCurrent = current.mutations.filter((item) => item.status === 'survived').length;
   const survivingPrevious = previous.mutations.filter((item) => item.status === 'survived').length;
-  return [
+  const lines = [
     `Current run: ${current.runId}`,
     `Previous run: ${previous.runId}`,
     `Merge confidence delta: ${current.verdict.mergeConfidence - previous.verdict.mergeConfidence}`,
     `Surviving mutant delta: ${survivingCurrent - survivingPrevious}`,
     `Outcome transition: ${previous.verdict.outcome} -> ${current.verdict.outcome}`
-  ].join('\n') + '\n';
+  ];
+  const provenance = renderInvariantProvenanceBlock(current, { includeObligation: false });
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  return `${lines.join('\n')}\n`;
 }
 
 export function renderGovernance(rootDir: string): string {

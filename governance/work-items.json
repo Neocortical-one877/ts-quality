@@ -113,14 +113,15 @@
         {
           "id": "AK-TASK-0187",
           "title": "ts-quality: surface risky invariant context in trend output",
-          "state": "queued",
+          "state": "done",
           "tasks": [
             {
               "text": "ts-quality: surface risky invariant context in trend output (task #187)",
-              "done": false
+              "done": true
             }
           ],
-          "dod": "Task reaches done in society.db with evidence recorded."
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         }
       ]
     }

@@ -1,5 +1,5 @@
 ---
-summary: "Tactical goals for the active strategic goal (SG1) in ts-quality, ranked by Eisenhower-3D and grounded in current concise output gaps."
+summary: "Tactical goals for the active strategic goal (SG1) in ts-quality, with TG2 now active after concise run-status parity landed."
 read_when:
   - "When planning the next sprint/week for ts-quality"
   - "When turning the active strategic goal into bounded delivery waves"
@@ -16,32 +16,32 @@ It does **not** yet decompose SG2.
 
 | Rank | Tactical goal | Importance | Urgency | Difficulty | Status |
 |---|---|---:|---:|---:|---|
-| 1 | **TG1 — Finish concise run-status outputs so they still show risky-invariant context** | 5 | 5 | 2 | **active now** |
-| 2 | **TG2 — Align generated sample artifacts and README with the concise output contract** | 4 | 4 | 2 | next under SG1 |
+| 1 | **TG1 — Finish concise run-status outputs so they still show risky-invariant context** | 5 | 5 | 2 | **completed 2026-03-18** |
+| 2 | **TG2 — Align generated sample artifacts and README with the concise output contract** | 4 | 4 | 2 | **active now** |
 | 3 | **TG3 — Lock concise output parity with targeted regression coverage** | 4 | 4 | 3 | next under SG1 |
 | 4 | **TG4 — Re-audit remaining decision-side outputs after run-status parity lands** | 3 | 3 | 3 | later under SG1 |
 
 ## TG1 — Finish concise run-status outputs so they still show risky-invariant context
 
-### Why TG1 is active now
-One currently shipped concise run-status surface still compresses the evidence basis too far:
-- `trend` reports deltas, but not whether the latest run's at-risk invariant evidence is explicit, inferred, or missing
+### Why TG1 is now complete
+The remaining concise run-status gap was `trend`.
+That gap is now closed:
+- `check-summary.txt` projects the first at-risk invariant plus concise provenance from `behaviorClaims[].evidenceSummary`
+- `trend` now keeps its delta role while also surfacing the latest run's first at-risk invariant and concise provenance when relevant
 
-`check-summary.txt` now projects the first at-risk invariant and concise provenance from the same additive authority, so TG1 can focus on finishing `trend` without inventing a second reasoning path.
-
-### Success signals
+### Completion signals now true
 - terse run-status outputs stay readable while exposing the first at-risk invariant when present
 - provenance remains a projection from `behaviorClaims[].evidenceSummary`, not a parallel reasoning tree
-- trend output keeps its delta role while adding just enough invariant context to stay honest
+- `trend` output no longer compresses the evidence basis into deltas alone
 
 ### Operating-plan handoff
-`operating_plan.md` now decomposes **TG1 only** into exact AK slices.
+`operating_plan.md` now decomposes **TG2 only**.
 
 ## TG2 — Align generated sample artifacts and README with the concise output contract
 
-### Why this matters next
-Once TG1 lands, the reviewed example bundle and README must show the same concise surfaces the runtime emits.
-That keeps docs and examples from lagging behind the product surface.
+### Why this is active now
+The runtime concise surfaces are now aligned, but the reviewed example bundle and README still lag behind the shipped contract.
+The next work should make the reviewed artifacts show the same concise surfaces operators are expected to trust.
 
 ### Success signals
 - `scripts/generate-samples.mjs` exports the concise surfaces the repo intends reviewers to trust
@@ -52,7 +52,7 @@ That keeps docs and examples from lagging behind the product surface.
 
 ### Why this matters next
 Concise outputs drift easily because they look secondary.
-They need explicit regression coverage once the remaining projections are in place.
+They need explicit regression coverage once the sample-artifact / README alignment pass lands.
 
 ### Success signals
 - targeted tests fail if concise provenance disappears from the intended surfaces
@@ -62,8 +62,8 @@ They need explicit regression coverage once the remaining projections are in pla
 ## TG4 — Re-audit remaining decision-side outputs after run-status parity lands
 
 ### Why this stays later
-This tactical goal belongs to the same strategic theme, but it should wait until the run-status surfaces are complete.
-After TG1-TG3, the repo can re-check whether any remaining decision-side outputs still summarize evidence too aggressively.
+This tactical goal belongs to the same strategic theme, but it should wait until TG2-TG3 are complete.
+After the sample/README contract and parity hardening land, the repo can re-check whether any remaining decision-side outputs still summarize evidence too aggressively.
 
 ### Likely evidence to inspect when promoted
 - authorization / attestation review text
@@ -74,4 +74,4 @@ After TG1-TG3, the repo can re-check whether any remaining decision-side outputs
 - keep `behaviorClaims[].evidenceSummary` as the additive root
 - do not let concise outputs outrank `run.json`
 - prefer small end-to-end slices over broad redesign
-- do not decompose TG2-TG4 into operating slices until TG1 is materially complete
+- do not decompose TG3-TG4 into operating slices until TG2 is materially complete

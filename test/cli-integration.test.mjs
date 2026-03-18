@@ -75,6 +75,23 @@ test('check persists analysis context and mutation baseline receipts', () => {
   assert.equal(run.mutationBaseline?.status, 'pass');
 });
 
+test('trend keeps deltas visible while surfacing the latest risky invariant provenance', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const trend = spawnSync('node', [cli, 'trend', '--root', target], { encoding: 'utf8' });
+  assert.equal(trend.status, 0, trend.stderr);
+  assert.match(trend.stdout, /Current run: /);
+  assert.match(trend.stdout, /Previous run: /);
+  assert.match(trend.stdout, /Merge confidence delta: -?\d+/);
+  assert.match(trend.stdout, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(trend.stdout, /Evidence provenance: explicit 3, inferred 1, missing 1/);
+  assert.match(trend.stdout, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
+  assert.doesNotMatch(trend.stdout, /^Obligation:/m);
+});
 
 test('check accepts a caller-supplied run id for exact approval binding', () => {
   const target = tempCopyOfFixture('governed-app');
