@@ -1,3 +1,11 @@
+---
+summary: "Planning-model contract for the repo-local governance work-items projection."
+read_when:
+  - "When validating governance/work-items.json"
+  - "When deciding whether work belongs in the repo-local planning model"
+type: "reference"
+---
+
 # Project Work Items
 
 `governance/work-items.json` is the project-local planning model for this repository.

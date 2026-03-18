@@ -13,6 +13,7 @@ test('PR summary keeps stable user-facing framing', () => {
   assert.equal(check.status, 0);
   const runId = latestRunId(target);
   const summary = fs.readFileSync(path.join(target, '.ts-quality', 'runs', runId, 'pr-summary.md'), 'utf8');
+  assert.match(summary, /^---\nsummary:/);
   assert.match(summary, /Merge confidence: \*\*[0-9]+\/100\*\*/);
   assert.match(summary, /Best next action:/);
   assert.match(summary, /Surviving mutants:/);

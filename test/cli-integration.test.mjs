@@ -22,9 +22,13 @@ test('check, report, and explain produce artifacts', () => {
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
   assert.equal(check.status, 0);
   const runId = latestRunId(target);
-  assert.equal(fs.existsSync(path.join(target, '.ts-quality', 'runs', runId, 'report.md')), true);
+  const reportPath = path.join(target, '.ts-quality', 'runs', runId, 'report.md');
+  const prSummaryPath = path.join(target, '.ts-quality', 'runs', runId, 'pr-summary.md');
+  assert.equal(fs.existsSync(reportPath), true);
   const report = spawnSync('node', [cli, 'report', '--root', target], { encoding: 'utf8' });
   const explain = spawnSync('node', [cli, 'explain', '--root', target], { encoding: 'utf8' });
+  assert.match(fs.readFileSync(reportPath, 'utf8'), /^---\nsummary:/);
+  assert.match(fs.readFileSync(prSummaryPath, 'utf8'), /^---\nsummary:/);
   assert.match(report.stdout, /Merge confidence/);
   assert.match(report.stdout, /mutation scope: [0-9]+ site\(s\), [0-9]+ killed, [0-9]+ survived/);
   assert.match(report.stdout, /focused-test-alignment \[clear\]: 1 focused test file aligned to invariant scope/);

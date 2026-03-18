@@ -1,3 +1,11 @@
+---
+summary: "How to run the autonomous-change example through check, attest, and authorize flows."
+read_when:
+  - "When exploring the autonomous-change example"
+  - "When rehearsing an end-to-end legitimacy flow"
+type: "how-to"
+---
+
 # Autonomous change example
 
 1. Run `ts-quality check` to create a signed evidence bundle.

@@ -1,3 +1,11 @@
+---
+summary: "Session capture for landing additive invariant evidence summaries in task #179."
+read_when:
+  - "When resuming the invariant-evidence wave after #179"
+  - "When reviewing how evidenceSummary was introduced"
+type: "explanation"
+---
+
 # 2026-03-17 — Invariant evidence summaries
 
 ## What I Did

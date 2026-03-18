@@ -1,6 +1,14 @@
+---
+summary: "Generated ts-quality report artifact with findings, invariants, and governance outcomes."
+read_when:
+  - "When reviewing the full markdown report emitted by ts-quality"
+  - "When checking the generated report artifact contract"
+type: "reference"
+---
+
 # ts-quality report
 
-- Run: `2026-03-17T19-58-21-181Z`
+- Run: `2026-03-18T00-35-25-575Z`
 - Merge confidence: **6/100**
 - Outcome: **fail**
 - Changed files: src/auth/token.js

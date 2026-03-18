@@ -1,3 +1,11 @@
+---
+summary: "PR-facing summary for a ts-quality run."
+read_when:
+  - "When pasting a concise ts-quality result into a PR or review surface"
+  - "When inspecting the generated summary artifact format"
+type: "reference"
+---
+
 # ts-quality summary
 
 - Merge confidence: **6/100**

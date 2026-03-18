@@ -1,3 +1,11 @@
+---
+summary: "Learning note on preserving deterministic evidence depth through correct glob and focused-test semantics."
+read_when:
+  - "When changing evidence discovery or test alignment"
+  - "When explaining why focused evidence beats repo-global keyword matching"
+type: "explanation"
+---
+
 # Deterministic Evidence Depth
 
 ## Context

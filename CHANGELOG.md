@@ -1,3 +1,11 @@
+---
+summary: "Release history and notable shipped changes for ts-quality."
+read_when:
+  - "When reviewing what changed between releases"
+  - "When preparing release notes or upgrade communication"
+type: "reference"
+---
+
 # Changelog
 
 ## Unreleased

@@ -1,3 +1,11 @@
+---
+summary: "Recommended CI sequence for building evidence and running ts-quality checks."
+read_when:
+  - "When wiring ts-quality into CI"
+  - "When checking prerequisites for meaningful automated runs"
+type: "how-to"
+---
+
 # CI integration
 
 Typical CI steps:

@@ -1,3 +1,11 @@
+---
+summary: "Latest repo verification record produced by scripts/verify.mjs."
+read_when:
+  - "When checking which repo validation commands most recently passed"
+  - "When reviewing the generated verification artifact format"
+type: "reference"
+---
+
 # Verification
 
 The following commands were executed successfully:

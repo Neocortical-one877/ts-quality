@@ -1,3 +1,11 @@
+---
+summary: "How to capture repo-local session notes in the ts-quality diary."
+read_when:
+  - "When creating or naming a new diary entry"
+  - "When deciding how session notes should flow into learnings"
+type: "how-to"
+---
+
 # Diary
 
 Repo-local session capture for KES (Knowledge Evolution System).

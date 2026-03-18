@@ -1,3 +1,11 @@
+---
+summary: "How ts-quality captures durable learnings and promotes them beyond session notes."
+read_when:
+  - "When writing a new learning entry"
+  - "When deciding whether a pattern belongs in docs/learnings or diary"
+type: "how-to"
+---
+
 # Learnings
 
 Capture what works, what doesn't, and what to try next.

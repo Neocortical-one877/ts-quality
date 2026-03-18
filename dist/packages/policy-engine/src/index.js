@@ -152,6 +152,21 @@ function renderInvariantEvidenceSummary(claim, indent = '  - ') {
         ...renderInvariantSubSignals(claim)
     ];
 }
+function yamlDoubleQuoted(value) {
+    return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+function withMarkdownMetadata(lines, options) {
+    return [
+        '---',
+        `summary: ${yamlDoubleQuoted(options.summary)}`,
+        'read_when:',
+        ...options.readWhen.map((item) => `  - ${yamlDoubleQuoted(item)}`),
+        `type: ${yamlDoubleQuoted(options.type ?? 'reference')}`,
+        '---',
+        '',
+        ...lines
+    ].join('\n');
+}
 function renderPrSummary(run) {
     const lines = [];
     const survivingMutants = run.mutations.filter((result) => result.status === 'survived').length;
@@ -179,7 +194,13 @@ function renderPrSummary(run) {
             lines.push(`- ${reason}`);
         }
     }
-    return lines.join('\n');
+    return withMarkdownMetadata(lines, {
+        summary: 'PR-facing summary for a ts-quality run.',
+        readWhen: [
+            'When pasting a concise ts-quality result into a PR or review surface',
+            'When inspecting the generated summary artifact format'
+        ]
+    });
 }
 function renderExplainText(run) {
     const lines = [];
@@ -250,6 +271,12 @@ function renderMarkdownReport(run) {
     for (const item of run.governance) {
         lines.push(`- [${item.level}] ${item.ruleId}: ${item.message}`);
     }
-    return lines.join('\n');
+    return withMarkdownMetadata(lines, {
+        summary: 'Generated ts-quality report artifact with findings, invariants, and governance outcomes.',
+        readWhen: [
+            'When reviewing the full markdown report emitted by ts-quality',
+            'When checking the generated report artifact contract'
+        ]
+    });
 }
 //# sourceMappingURL=index.js.map

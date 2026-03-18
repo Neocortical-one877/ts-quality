@@ -1,3 +1,11 @@
+---
+summary: "Signed attestation JSON contract for ts-quality legitimacy flows."
+read_when:
+  - "When generating or verifying attestation artifacts"
+  - "When checking the expected attestation payload format"
+type: "reference"
+---
+
 # Attestation format
 
 Attestations are signed JSON claims.

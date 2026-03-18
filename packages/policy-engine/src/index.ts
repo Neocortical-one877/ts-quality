@@ -193,6 +193,23 @@ function renderInvariantEvidenceSummary(claim: BehaviorClaim, indent = '  - '): 
   ];
 }
 
+function yamlDoubleQuoted(value: string): string {
+  return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+function withMarkdownMetadata(lines: string[], options: { summary: string; readWhen: string[]; type?: string }): string {
+  return [
+    '---',
+    `summary: ${yamlDoubleQuoted(options.summary)}`,
+    'read_when:',
+    ...options.readWhen.map((item) => `  - ${yamlDoubleQuoted(item)}`),
+    `type: ${yamlDoubleQuoted(options.type ?? 'reference')}`,
+    '---',
+    '',
+    ...lines
+  ].join('\n');
+}
+
 export function renderPrSummary(run: Pick<RunArtifact, 'changedFiles' | 'behaviorClaims' | 'mutations' | 'complexity' | 'verdict'>): string {
   const lines: string[] = [];
   const survivingMutants = run.mutations.filter((result) => result.status === 'survived').length;
@@ -220,7 +237,13 @@ export function renderPrSummary(run: Pick<RunArtifact, 'changedFiles' | 'behavio
       lines.push(`- ${reason}`);
     }
   }
-  return lines.join('\n');
+  return withMarkdownMetadata(lines, {
+    summary: 'PR-facing summary for a ts-quality run.',
+    readWhen: [
+      'When pasting a concise ts-quality result into a PR or review surface',
+      'When inspecting the generated summary artifact format'
+    ]
+  });
 }
 
 export function renderExplainText(run: Pick<RunArtifact, 'runId' | 'changedFiles' | 'behaviorClaims' | 'governance' | 'verdict'>): string {
@@ -293,5 +316,11 @@ export function renderMarkdownReport(run: RunArtifact): string {
   for (const item of run.governance) {
     lines.push(`- [${item.level}] ${item.ruleId}: ${item.message}`);
   }
-  return lines.join('\n');
+  return withMarkdownMetadata(lines, {
+    summary: 'Generated ts-quality report artifact with findings, invariants, and governance outcomes.',
+    readWhen: [
+      'When reviewing the full markdown report emitted by ts-quality',
+      'When checking the generated report artifact contract'
+    ]
+  });
 }

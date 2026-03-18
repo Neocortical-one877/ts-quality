@@ -1,3 +1,11 @@
+---
+summary: "Entry point for browsing the repo-local ontology and bridge artifacts."
+read_when:
+  - "When orienting within the ontology folder"
+  - "When deciding which ontology artifact to open first"
+type: "reference"
+---
+
 # Ontology Index (repo)
 
 Start here when browsing manually.

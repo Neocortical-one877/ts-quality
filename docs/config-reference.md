@@ -1,3 +1,11 @@
+---
+summary: "Configuration reference for ts-quality.config.* inputs and defaults."
+read_when:
+  - "When editing ts-quality configuration"
+  - "When checking supported config keys and defaults"
+type: "reference"
+---
+
 # Config reference
 
 `ts-quality.config.*` may be `.ts`, `.js`, `.mjs`, `.cjs`, or `.json` and exports a plain object.

@@ -1,3 +1,11 @@
+---
+summary: "Agent legitimacy, grant scope, and authorization decision model for ts-quality."
+read_when:
+  - "When editing agent grants or legitimacy rules"
+  - "When interpreting authorization outcomes"
+type: "reference"
+---
+
 # Legitimacy and agent licensing
 
 Agents define who or what may act.

@@ -1,3 +1,11 @@
+---
+summary: "Constitution rule types and governance model for ts-quality."
+read_when:
+  - "When defining constitutional rules"
+  - "When interpreting governance findings or plans"
+type: "reference"
+---
+
 # Governance and constitution
 
 A constitution defines what the system must remain true to while it evolves.
