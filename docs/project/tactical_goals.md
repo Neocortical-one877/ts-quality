@@ -1,5 +1,5 @@
 ---
-summary: "Tactical goals for ts-quality after #182 landed; SG2 stays active but no new tactical slice is materialized until a real remaining operator-surface gap is confirmed."
+summary: "Tactical goals for ts-quality after #183 landed; SG2 stays active but no new tactical slice is materialized until a real remaining operator-surface gap is confirmed."
 read_when:
   - "When planning the next sprint/week for ts-quality"
   - "When turning the strategic direction into the next bounded implementation slice"
@@ -13,6 +13,7 @@ type: "reference"
 `#180` extended that same `behaviorClaims[].evidenceSummary` surface with named deterministic sub-signals.
 `#181` then labeled those sub-signals as `explicit`, `inferred`, or `missing` without introducing a second authority.
 `#182` carried that same evidence truth into `pr-summary.md`, so the fastest PR-facing surface now tells a reviewer whether the riskiest invariant support is explicit, inferred, or missing.
+`#183` carried the same concise provenance projection into `plan.txt` and `govern.txt`, so governance-facing operator surfaces no longer hide the invariant evidence basis behind plan/finding summaries alone.
 
 That closes the current bounded tactical wave under **SG2 — keep every operator surface downstream of the same evidence truth**.
 SG2 remains the active strategic goal, but the repo does **not** have a truthful next SG2 tactical slice materialized yet.
@@ -21,15 +22,20 @@ SG2 remains the active strategic goal, but the repo does **not** have a truthful
 There is no newly materialized tactical goal right now.
 
 Why that is truthful:
-- TG3 closed the only exact-path repo-local AK slice currently justified by repo truth
-- `run.json`, `report.md`, `explain.txt`, and `pr-summary.md` now project the same additive invariant evidence authority
-- creating another SG2 task before a fresh operator-surface audit would be speculative backlog bloat
+- TG4 closed the only exact-path repo-local AK slice currently justified by the fresh operator-surface audit
+- `run.json`, `report.md`, `explain.txt`, `pr-summary.md`, `plan.txt`, and `govern.txt` now project the same additive invariant evidence authority
+- creating another SG2 task before a fresh audit would be speculative backlog bloat
 
 The next tactical refresh should happen only when one of these is true:
 - exact-path repo-local AK truth gains a concrete follow-on slice, or
 - a fresh audit shows another current operator surface still hides or diverges from `behaviorClaims[].evidenceSummary`
 
 ## Recently completed tactical goals
+
+### TG4 — Surface invariant evidence provenance in governance-facing outputs
+Backlog coverage:
+- **AK `#183`** — surface invariant evidence provenance in plan/govern outputs
+  - Status: complete via concise provenance projections in `plan.txt`, `govern.txt`, and the `plan` / `govern` CLI surfaces rendered directly from `behaviorClaims[].evidenceSummary.subSignals[]`, with tests, README text, and generated sample artifacts refreshed to match
 
 ### TG3 — Surface invariant evidence provenance in PR-facing outputs
 Backlog coverage:
@@ -53,7 +59,7 @@ Backlog coverage:
 
 ## Tactical guardrails
 - keep `behaviorClaims[].evidenceSummary` as the additive authority unless the repo explicitly adopts a breaking redesign
-- do not let `pr-summary.md` or other concise operator surfaces outrank `run.json`
+- do not let `pr-summary.md`, `plan.txt`, `govern.txt`, or other concise operator surfaces outrank `run.json`
 - do not reintroduce repo-global keyword matching as fake support
 - do not let explicit/inferred wording inflate trust beyond what the evidence justifies
 - keep report and run-artifact changes additive-first and regression-tested

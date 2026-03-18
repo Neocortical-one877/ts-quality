@@ -29,7 +29,15 @@ import {
 import { analyzeCrap, parseLcov } from '../../crap4ts/src/index';
 import { runMutations } from '../../ts-mutate/src/index';
 import { evaluateInvariants } from '../../invariants/src/index';
-import { defaultPolicy, evaluatePolicy, renderExplainText, renderMarkdownReport, renderPrSummary } from '../../policy-engine/src/index';
+import {
+  defaultPolicy,
+  evaluatePolicy,
+  findFirstRiskyInvariantClaim,
+  renderConciseInvariantProvenance,
+  renderExplainText,
+  renderMarkdownReport,
+  renderPrSummary
+} from '../../policy-engine/src/index';
 import { evaluateGovernance, generateGovernancePlan } from '../../governance/src/index';
 import { applyAmendment, authorizeChange, buildChangeBundle, evaluateAmendment, generateKeyPair, loadTrustedKeys, saveAttestation, signAttestation, verifyAttestation } from '../../legitimacy/src/index';
 import { loadAgents, loadApprovals, loadChangedRegions, loadConstitution, loadContext, loadInvariants, loadOverrides, loadWaivers } from './config';
@@ -62,6 +70,65 @@ function symbolEntities(complexity: RunArtifact['complexity']): SymbolEntity[] {
     kind: item.symbol.split(':')[0] ?? 'function',
     span: item.span
   }));
+}
+
+function renderInvariantProvenanceBlock(run: Pick<RunArtifact, 'behaviorClaims'>, options?: { linePrefix?: string }): string[] {
+  const riskyInvariant = findFirstRiskyInvariantClaim(run);
+  if (!riskyInvariant) {
+    return [];
+  }
+  const linePrefix = options?.linePrefix ?? '';
+  const lines = [
+    `${linePrefix}Invariant evidence at risk: ${riskyInvariant.invariantId}`,
+    ...renderConciseInvariantProvenance(riskyInvariant, { linePrefix })
+  ];
+  if (riskyInvariant.obligations.length > 0) {
+    lines.push(`${linePrefix}Obligation: ${riskyInvariant.obligations[0]?.description}`);
+  }
+  return lines;
+}
+
+function renderPlanText(run: RunArtifact, plan: ReturnType<typeof generateGovernancePlan>): string {
+  const lines = [plan.summary];
+  const provenance = renderInvariantProvenanceBlock(run);
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  if (plan.steps.length > 0) {
+    lines.push('', ...plan.steps.map((step, index) => `${index + 1}. ${step.title}\n   ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`));
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function renderPlanArtifactText(run: RunArtifact, plan: ReturnType<typeof generateGovernancePlan>): string {
+  const lines = [plan.summary];
+  const provenance = renderInvariantProvenanceBlock(run, { linePrefix: '- ' });
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  if (plan.steps.length > 0) {
+    lines.push('', ...plan.steps.map((step, index) => `${index + 1}. [${step.type}] ${step.title}\n   rationale: ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`));
+  }
+  return `${lines.join('\n')}\n`;
+}
+
+function renderGovernanceText(run: RunArtifact, plan: ReturnType<typeof generateGovernancePlan>): string {
+  const lines = run.governance.map((item) => `${item.ruleId}: ${item.message}`);
+  const provenance = renderInvariantProvenanceBlock(run, { linePrefix: '- ' });
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  lines.push('', plan.summary);
+  return `${lines.join('\n')}\n`;
+}
+
+function renderGovernanceArtifactText(run: RunArtifact, plan: ReturnType<typeof generateGovernancePlan>): string {
+  const lines = run.governance.flatMap((item) => [`${item.ruleId}: ${item.message}`, ...item.evidence.map((evidence) => `- ${evidence}`)]);
+  const provenance = renderInvariantProvenanceBlock(run, { linePrefix: '- ' });
+  if (provenance.length > 0) {
+    lines.push('', ...provenance);
+  }
+  return `${lines.join('\n')}\n`;
 }
 
 function latestRunOrUndefined(rootDir: string): RunArtifact | undefined {
@@ -325,8 +392,8 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   fs.writeFileSync(path.join(artifactDir, 'attestation-verify.txt'), `${verifiedAttestations.verification.map((item) => `${item.issuer}: ${item.ok ? 'ok' : 'failed'} (${item.reason})`).join('\n')}\n`, 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'check-summary.txt'), `Merge confidence: ${run.verdict.mergeConfidence}/100\nOutcome: ${run.verdict.outcome}\nBest next action: ${run.verdict.bestNextAction ?? 'none'}\n`, 'utf8');
   const plan = generateGovernancePlan(run, constitution, agents);
-  fs.writeFileSync(path.join(artifactDir, 'plan.txt'), `${plan.summary}\n\n${plan.steps.map((step, index) => `${index + 1}. [${step.type}] ${step.title}\n   rationale: ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`).join('\n')}\n`, 'utf8');
-  fs.writeFileSync(path.join(artifactDir, 'govern.txt'), `${governance.map((item) => `${item.ruleId}: ${item.message}\n- ${item.evidence.join('\n- ')}`).join('\n')}\n`, 'utf8');
+  fs.writeFileSync(path.join(artifactDir, 'plan.txt'), renderPlanArtifactText(run, plan), 'utf8');
+  fs.writeFileSync(path.join(artifactDir, 'govern.txt'), renderGovernanceArtifactText(run, plan), 'utf8');
   return { run, artifactDir };
 }
 
@@ -401,7 +468,7 @@ export function renderGovernance(rootDir: string): string {
   const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
   const agents = loadAgents(rootDir, loaded.config.agentsPath);
   const plan = generateGovernancePlan(run, constitution, agents);
-  return `${run.governance.map((item) => `${item.ruleId}: ${item.message}`).join('\n')}\n\n${plan.summary}\n`;
+  return renderGovernanceText(run, plan);
 }
 
 export function renderPlan(rootDir: string): string {
@@ -410,7 +477,7 @@ export function renderPlan(rootDir: string): string {
   const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
   const agents = loadAgents(rootDir, loaded.config.agentsPath);
   const plan = generateGovernancePlan(run, constitution, agents);
-  return `${plan.summary}\n\n${plan.steps.map((step, index) => `${index + 1}. ${step.title}\n   ${step.rationale}\n   evidence: ${step.evidence.join('; ')}\n   tradeoffs: ${step.tradeoffs.join('; ')}`).join('\n')}\n`;
+  return renderPlanText(run, plan);
 }
 
 export function runAuthorize(rootDir: string, agentId: string, action: string): { decisionPath: string; output: string } {

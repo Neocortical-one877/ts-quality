@@ -17,17 +17,25 @@ test('init creates starter files in an empty repo', () => {
   assert.equal(fs.existsSync(path.join(target, '.ts-quality', 'invariants.ts')), true);
 });
 
-test('check, report, and explain produce artifacts', () => {
+test('check, report, explain, plan, and govern produce aligned artifacts', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
   assert.equal(check.status, 0);
   const runId = latestRunId(target);
   const reportPath = path.join(target, '.ts-quality', 'runs', runId, 'report.md');
   const prSummaryPath = path.join(target, '.ts-quality', 'runs', runId, 'pr-summary.md');
+  const planPath = path.join(target, '.ts-quality', 'runs', runId, 'plan.txt');
+  const governPath = path.join(target, '.ts-quality', 'runs', runId, 'govern.txt');
   assert.equal(fs.existsSync(reportPath), true);
+  assert.equal(fs.existsSync(planPath), true);
+  assert.equal(fs.existsSync(governPath), true);
   const report = spawnSync('node', [cli, 'report', '--root', target], { encoding: 'utf8' });
   const explain = spawnSync('node', [cli, 'explain', '--root', target], { encoding: 'utf8' });
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
   const prSummary = fs.readFileSync(prSummaryPath, 'utf8');
+  const planText = fs.readFileSync(planPath, 'utf8');
+  const governText = fs.readFileSync(governPath, 'utf8');
   assert.match(fs.readFileSync(reportPath, 'utf8'), /^---\nsummary:/);
   assert.match(prSummary, /^---\nsummary:/);
   assert.match(prSummary, /Evidence provenance: explicit 3, inferred 1, missing 1/);
@@ -39,6 +47,14 @@ test('check, report, and explain produce artifacts', () => {
   assert.match(explain.stdout, /Reasons:/);
   assert.match(explain.stdout, /focused tests: test\/token.test.js/);
   assert.match(explain.stdout, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
+  assert.match(plan.stdout, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(plan.stdout, /Evidence provenance: explicit 3, inferred 1, missing 1/);
+  assert.match(planText, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(planText, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
+  assert.match(govern.stdout, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(govern.stdout, /mutation-pressure \[warning; mode=explicit\]: [0-9]+ surviving mutants across [0-9]+ mutation sites/);
+  assert.match(governText, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(governText, /Evidence provenance: explicit 3, inferred 1, missing 1/);
 });
 
 test('check persists analysis context and mutation baseline receipts', () => {

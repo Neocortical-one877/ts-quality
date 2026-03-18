@@ -59,6 +59,19 @@
           ],
           "dod": "Task reaches done in society.db with evidence recorded.",
           "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0183",
+          "title": "ts-quality: surface invariant evidence provenance in plan/govern outputs",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: surface invariant evidence provenance in plan/govern outputs (task #183)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         }
       ]
     }

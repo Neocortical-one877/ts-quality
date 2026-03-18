@@ -2,6 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.defaultPolicy = defaultPolicy;
 exports.evaluatePolicy = evaluatePolicy;
+exports.findFirstRiskyInvariantClaim = findFirstRiskyInvariantClaim;
+exports.renderConciseInvariantProvenance = renderConciseInvariantProvenance;
 exports.renderPrSummary = renderPrSummary;
 exports.renderExplainText = renderExplainText;
 exports.renderMarkdownReport = renderMarkdownReport;
@@ -151,22 +153,27 @@ function invariantModeSummary(claim) {
 function formatInvariantSubSignal(subSignal) {
     return `${subSignal.signalId} [${subSignal.level}; mode=${subSignal.mode}]: ${subSignal.summary}`;
 }
-function renderPrSummaryInvariantProvenance(claim) {
+function findFirstRiskyInvariantClaim(run) {
+    return run.behaviorClaims.find((claim) => claim.status !== 'supported');
+}
+function renderConciseInvariantProvenance(claim, options) {
     const summary = claim.evidenceSummary;
     if (!summary || summary.subSignals.length === 0) {
         return [];
     }
+    const linePrefix = options?.linePrefix ?? '';
+    const maxSignals = options?.maxSignals ?? 3;
     const modeCounts = summary.subSignals.reduce((counts, item) => {
         counts[item.mode] += 1;
         return counts;
     }, { explicit: 0, inferred: 0, missing: 0 });
     const projectedSignals = summary.subSignals
         .filter((item) => item.mode !== 'explicit' || item.level !== 'clear')
-        .slice(0, 3);
-    const signalsToRender = projectedSignals.length > 0 ? projectedSignals : summary.subSignals.slice(0, 2);
+        .slice(0, maxSignals);
+    const signalsToRender = projectedSignals.length > 0 ? projectedSignals : summary.subSignals.slice(0, Math.min(2, maxSignals));
     return [
-        `  - Evidence provenance: explicit ${modeCounts.explicit}, inferred ${modeCounts.inferred}, missing ${modeCounts.missing}`,
-        ...signalsToRender.map((item) => `  - ${formatInvariantSubSignal(item)}`)
+        `${linePrefix}Evidence provenance: explicit ${modeCounts.explicit}, inferred ${modeCounts.inferred}, missing ${modeCounts.missing}`,
+        ...signalsToRender.map((item) => `${linePrefix}${formatInvariantSubSignal(item)}`)
     ];
 }
 function renderInvariantSubSignals(claim) {
@@ -232,10 +239,10 @@ function renderPrSummary(run) {
 \`${changedHotspot.filePath}\` ${changedHotspot.symbol} with CRAP ${changedHotspot.crap}`);
     }
     lines.push(`- Surviving mutants: **${survivingMutants}**`);
-    const riskyInvariant = run.behaviorClaims.find((claim) => claim.status !== 'supported');
+    const riskyInvariant = findFirstRiskyInvariantClaim(run);
     if (riskyInvariant) {
         lines.push(`- Invariant at risk: **${riskyInvariant.invariantId}**`);
-        lines.push(...renderPrSummaryInvariantProvenance(riskyInvariant));
+        lines.push(...renderConciseInvariantProvenance(riskyInvariant, { linePrefix: '  - ' }));
     }
     if (run.verdict.bestNextAction) {
         lines.push(`- Best next action: ${run.verdict.bestNextAction}`);

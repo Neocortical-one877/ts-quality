@@ -62,8 +62,8 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `report.md` — human-readable report
 - `pr-summary.md` — PR-facing summary with concise invariant evidence provenance
 - `explain.txt` — explanation trail
-- `plan.txt` — governance plan
-- `govern.txt` — governance findings
+- `plan.txt` — governance plan with related invariant evidence provenance for the at-risk claim
+- `govern.txt` — governance findings with related invariant evidence provenance for the at-risk claim
 
 `run.json` now also carries additive execution receipts that make the run boundary explicit instead of implicit: `analysis` records the preallocated run id, exact changed scope, source file set, and mutation execution fingerprint; `mutationBaseline` records whether the baseline test command was green before mutants were interpreted. Caller-supplied run ids are treated as artifact ids and must use only letters, numbers, dots, underscores, and hyphens.
 

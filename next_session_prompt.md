@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff after #182 closed the PR-summary provenance slice; exact-path repo-local AK truth now needs a fresh non-speculative SG2 audit before any new task is created."
+summary: "Active handoff after #183 closed the governance-facing provenance slice; exact-path repo-local AK truth now needs a fresh non-speculative SG2 audit before any new task is created."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -37,7 +37,7 @@ Otherwise continue through research, implementation, validation, and handoff in 
 - Invariant contract: `docs/invariant-dsl.md`
 - CI/operator integration: `docs/ci-integration.md`
 - Latest durable learning: `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-- Latest session capture: `diary/2026-03-18--feat-pr-summary-evidence-provenance.md`
+- Latest session capture: `diary/2026-03-18--feat-plan-govern-evidence-provenance.md`
 - Active/deferred work authority: Agent Kernel
 - Checked-in work-items projection: `governance/work-items.json`
 - Raw session capture: `diary/`
@@ -50,12 +50,12 @@ Do **not** create a follow-on SG2 task unless current repo truth shows a remaini
 
 ## ACTIVE HANDOFF
 - Repo registration in AK remains verified.
-- **`#182`** — surface invariant evidence provenance in `pr-summary.md` — is complete.
-- `pr-summary.md` now projects concise evidence-mode counts plus notable sub-signals directly from `behaviorClaims[].evidenceSummary.subSignals[]`.
+- **`#183`** — surface invariant evidence provenance in plan/govern outputs — is complete.
+- `plan.txt` and `govern.txt` now project concise provenance for the riskiest invariant directly from `behaviorClaims[].evidenceSummary.subSignals[]`, and the `plan` / `govern` CLI outputs stay aligned with those artifact files.
 - The exact-path repo-local AK queue has no next materialized slice yet.
 - Start the next session by re-running AK readiness with the **exact-path repo filter** and only create the next SG2 task if another current operator surface demonstrably diverges from the canonical evidence summary.
 - Keep concise output honest about whether invariant support is explicit, inferred, or missing.
-- Keep `pr-summary.md` and any future concise surface downstream of the canonical artifact contract; do **not** invent a second authority or let a headline score outrank the evidence basis.
+- Keep `pr-summary.md`, `plan.txt`, and `govern.txt` downstream of the canonical artifact contract; do **not** invent a second authority or let a headline score outrank the evidence basis.
 
 ## AK COMMANDS
 This repo now ships the same repo-local AK launcher pattern used in `ts-quality-tools`:
@@ -78,7 +78,7 @@ git status --short
 8. `docs/config-reference.md`
 9. `docs/invariant-dsl.md`
 10. `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-11. `diary/2026-03-18--feat-pr-summary-evidence-provenance.md`
+11. `diary/2026-03-18--feat-plan-govern-evidence-provenance.md`
 12. relevant package source + regression tests for the chosen slice
 
 ## EXECUTION MODE (MANDATORY ORDER)
@@ -93,9 +93,9 @@ git status --short
 9. **Commit** — leave the repo ready for a clean next context window unless the operator explicitly says otherwise.
 
 ## SESSION CHECKPOINT
-- Slice executed: PR-facing provenance projection in `pr-summary.md`
-- Outcome: concise PR summaries now show whether the riskiest invariant support is explicit, inferred, or missing without competing with `run.json`
-- Refactoring status: no new evidence authority was introduced; the change stayed as a projection from the existing additive sub-signal contract
+- Slice executed: governance-facing provenance projection in `plan.txt` and `govern.txt`
+- Outcome: concise governance/operator surfaces now show whether the riskiest invariant support is explicit, inferred, or missing without competing with `run.json`
+- Refactoring status: shared concise provenance rendering now keeps `pr-summary.md`, `plan.txt`, and `govern.txt` aligned without introducing a second evidence authority
 - Validation from the completed slice: `node --test test/policy-engine.test.mjs test/golden-output.test.mjs test/cli-integration.test.mjs` (pass), `npm run sample-artifacts` (pass), `npm test` (pass), `npm run verify` (pass), `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` (pass)
 - Next-session starting point: inspect exact-path AK readiness; if the queue is empty, perform a fresh SG2 operator-surface audit and materialize only one non-speculative follow-on slice if current repo truth justifies it
 

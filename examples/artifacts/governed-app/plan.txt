@@ -1,5 +1,12 @@
 Generated 2 governance step(s) from 2 finding(s) and 4 mutation result(s).
 
+- Invariant evidence at risk: auth.refresh.validity
+- Evidence provenance: explicit 3, inferred 1, missing 1
+- focused-test-alignment [clear; mode=inferred]: 1 focused test file aligned to invariant scope
+- scenario-support [missing; mode=missing]: 0/1 scenario(s) have deterministic support
+- mutation-pressure [warning; mode=explicit]: 3 surviving mutants across 4 mutation sites
+- Obligation: Add or tighten a focused test for scenario 'exact expiry boundary denies access' to preserve invariant 'Refresh token validity'.
+
 1. [test] Tighten tests around surviving mutants
    rationale: Surviving mutants show behavior that current tests do not constrain.
    evidence: src/auth/token.js:sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15; src/auth/token.js:sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20; src/auth/token.js:sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8
