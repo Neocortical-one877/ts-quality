@@ -1,78 +1,72 @@
 ---
-summary: "Operating plan for the active tactical goal (TG3) in ts-quality, with exact AK task IDs for the current concise-output regression-hardening wave."
+summary: "Operating-plan transition after AK #186; TG3 is complete and no follow-on repo-local AK slice is materialized yet."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
-  - "When translating the active tactical goal into the current repo-local queue"
+  - "When translating the current tactical state into the repo-local queue"
 type: "reference"
 ---
 
 # Operating plan
 
 ## Active decomposition target
-This file decomposes **TG3 — lock concise output parity with targeted regression coverage**.
-It does **not** queue TG4 yet.
+There is no active repo-local implementation slice materialized right now.
+TG3 is complete, and the next session should first materialize the opening SG2 slice.
 
-## Why TG3 is the active tactical goal
-Repo truth now shows the concise operator contract aligned end to end:
+## Why TG3 is now complete
+Repo truth now shows the concise operator contract hardened end to end:
 - `check-summary.txt` projects risky-invariant provenance
 - `trend` projects the latest run's first at-risk invariant provenance while keeping numeric deltas
-- generated sample artifacts now include `check-summary.txt`
-- `README.md` now describes the same concise artifact contract the code emits
+- generated sample artifacts include `check-summary.txt`
+- `README.md` describes the same concise artifact contract the code emits
+- targeted regression coverage now checks `check-summary.txt` provenance framing against the reviewed sample contract
 
-The remaining gap is regression hardening so future concise-output/report tweaks do not silently drift that contract.
-
-## Ordered operating slices (authoritative AK references)
+## Completed this session
 
 ### O1 — **AK `#186`** — add regression coverage for `check-summary` provenance output
 State:
-- ready now
+- completed 2026-03-18
 
-Deliverable:
+Deliverable now true:
 - targeted regression coverage proves `check-summary.txt` keeps the intended provenance projection
 - concise-output parity is harder to regress silently
-- no second evidence/report authority is introduced
+- no second evidence/report authority was introduced
 
-Primary files likely involved:
-- `test/cli-integration.test.mjs`
+Primary files touched:
 - `test/golden-output.test.mjs`
-- `examples/artifacts/governed-app/check-summary.txt`
-
-## Completed prerequisite slices
-
-### P1 — **AK `#184`** — project risky invariant provenance into `check-summary.txt`
-State:
-- completed 2026-03-18
-
-### P2 — **AK `#187`** — surface risky invariant context in `trend` output
-State:
-- completed 2026-03-18
-
-### P3 — **AK `#185`** — include `check-summary.txt` in generated sample artifacts and README
-State:
-- completed 2026-03-18
+- `docs/project/strategic_goals.md`
+- `docs/project/tactical_goals.md`
+- `docs/project/operating_plan.md`
+- `next_session_prompt.md`
+- `governance/work-items.json`
+- `diary/2026-03-18--test-check-summary-provenance-coverage.md`
 
 ## Current ready queue
 Ready now:
-- `#186` — add regression coverage for `check-summary` provenance output
+- none repo-local
 
 Completed this session:
-- `#185` — include `check-summary.txt` in generated sample artifacts and README
+- `#186` — add regression coverage for `check-summary` provenance output
+
+## Next materialization target
+Before more implementation work, decompose **SG2** into the first real repo-local AK slice.
+Candidate starting area: governance / legitimacy decision outputs that still compress evidence provenance or exact run targeting too far.
 
 ## HTN
 
 ```text
 G0: Make concise operator surfaces stay honest about invariant evidence provenance
-  SG1: Close the remaining concise operator-surface gaps under behaviorClaims[].evidenceSummary
+  SG1: Close the remaining concise operator-surface gaps under behaviorClaims[].evidenceSummary [done]
     TG1: Finish concise run-status outputs so they still show risky-invariant context [done]
       P1: AK #184 -> project provenance into check-summary.txt [done]
       P2: AK #187 -> surface risky invariant context in trend output [done]
     TG2: Align generated sample artifacts and README with the concise output contract [done]
       P3: AK #185 -> add check-summary.txt to sample artifacts and README [done]
-    TG3: Lock concise output parity with targeted regression coverage [active]
-      O1: AK #186 -> add regression coverage for check-summary provenance output
+    TG3: Lock concise output parity with targeted regression coverage [done]
+      O1: AK #186 -> add regression coverage for check-summary provenance output [done]
+  SG2: Carry the same evidence truth into governance/legitimacy decision surfaces [active, not yet decomposed]
 ```
 
 ## Queue discipline
-- start with `#186` unless the operator explicitly reprioritizes
-- do not decompose TG4 into active operating slices yet
-- after TG3 is materially complete, refresh `tactical_goals.md`, decide whether TG4 or SG2 is next, and point `next_session_prompt.md` at that real next slice
+- do not invent a fake active AK slice when none exists
+- start the next session by confirming repo-local readiness, then materialize the first SG2 task before coding
+- keep `next_session_prompt.md` pointed at real queue truth: either a ready AK task or an explicit “none materialized yet” handoff

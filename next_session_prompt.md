@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff: AK #185 is complete; start with #186 unless the operator reprioritizes."
+summary: "Active handoff: AK #186 is complete; no ready repo-local AK slice is materialized yet, so the next session should decompose SG2 first."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -13,9 +13,9 @@ Reading this file is authorization to begin immediately.
 Do not ask for permission to start.
 
 ## ACTIVE GOAL STACK
-- **Strategic goal:** SG1 — close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`
-- **Tactical goal:** TG3 — lock concise output parity with targeted regression coverage
-- **Operating slices:** AK `#186`
+- **Strategic goal:** SG2 — carry the same evidence truth into governance/legitimacy decision surfaces that still compress authority too far
+- **Tactical goal:** none materialized yet
+- **Operating slice:** no ready repo-local AK task is materialized yet
 
 ## START HERE
 1. Run `./scripts/ak.sh --doctor`
@@ -23,14 +23,14 @@ Do not ask for permission to start.
    ```bash
    ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'
    ```
-3. Unless the operator reprioritizes, start with **AK `#186`** — `ts-quality: add regression coverage for check-summary provenance output`
+3. If readiness is still empty, audit governance / legitimacy decision-facing outputs and materialize the first SG2 AK slice before coding.
 
 ## CURRENT QUEUE TRUTH
 Ready now:
-- `#186` — add regression coverage for check-summary provenance output
+- none repo-local
 
 Completed this session:
-- `#185` — include `check-summary.txt` in generated sample artifacts and README
+- `#186` — add regression coverage for `check-summary` provenance output
 
 ## READ-FIRST ORDER
 1. `AGENTS.md`
@@ -41,7 +41,7 @@ Completed this session:
 6. `docs/project/operating_plan.md`
 7. `docs/config-reference.md`
 8. `docs/invariant-dsl.md`
-9. relevant package source + tests for the claimed AK slice
+9. relevant governance / legitimacy source + tests for the SG2 candidate slice
 
 ## EXECUTION RULES
 - Keep `behaviorClaims[].evidenceSummary` as the additive authority.
@@ -52,6 +52,6 @@ Completed this session:
 
 ## END-OF-SESSION
 - keep this file short and current
-- point it at the next real AK task
+- point it at the next real AK task, or say clearly that none is materialized yet
 - move session narrative to `diary/`
 - keep AK authoritative for live task state

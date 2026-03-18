@@ -7,6 +7,12 @@ import { latestRunId, repoRoot, tempCopyOfFixture } from './helpers.mjs';
 
 const cli = path.join(repoRoot, 'dist', 'packages', 'ts-quality', 'src', 'cli.js');
 
+function normalizeCheckSummary(text) {
+  return text
+    .replace(/Merge confidence: \d+\/100/, 'Merge confidence: <score>/100')
+    .replace(/mutation-pressure \[warning; mode=explicit\]: \d+ surviving mutants? across \d+ mutation sites?/, 'mutation-pressure [warning; mode=explicit]: <survivors> surviving mutants across <sites> mutation sites');
+}
+
 test('concise operator outputs keep stable provenance framing', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
@@ -14,8 +20,10 @@ test('concise operator outputs keep stable provenance framing', () => {
   const runId = latestRunId(target);
   const base = path.join(target, '.ts-quality', 'runs', runId);
   const summary = fs.readFileSync(path.join(base, 'pr-summary.md'), 'utf8');
+  const checkSummary = fs.readFileSync(path.join(base, 'check-summary.txt'), 'utf8');
   const plan = fs.readFileSync(path.join(base, 'plan.txt'), 'utf8');
   const govern = fs.readFileSync(path.join(base, 'govern.txt'), 'utf8');
+  const expectedCheckSummary = fs.readFileSync(path.join(repoRoot, 'examples', 'artifacts', 'governed-app', 'check-summary.txt'), 'utf8');
   assert.match(summary, /^---\nsummary:/);
   assert.match(summary, /Merge confidence: \*\*[0-9]+\/100\*\*/);
   assert.match(summary, /Best next action:/);
@@ -23,6 +31,13 @@ test('concise operator outputs keep stable provenance framing', () => {
   assert.match(summary, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
   assert.match(summary, /focused-test-alignment \[clear; mode=inferred\]: 1 focused test file aligned to invariant scope/);
   assert.match(summary, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
+  assert.match(checkSummary, /^Merge confidence: [0-9]+\/100/);
+  assert.match(checkSummary, /Best next action:/);
+  assert.match(checkSummary, /Invariant evidence at risk: auth\.refresh\.validity/);
+  assert.match(checkSummary, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
+  assert.match(checkSummary, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
+  assert.doesNotMatch(checkSummary, /^Obligation:/m);
+  assert.equal(normalizeCheckSummary(checkSummary), normalizeCheckSummary(expectedCheckSummary));
   assert.match(plan, /Invariant evidence at risk: auth\.refresh\.validity/);
   assert.match(plan, /Evidence provenance: explicit [0-9]+, inferred [0-9]+, missing [0-9]+/);
   assert.match(plan, /mutation-pressure \[warning; mode=explicit\]: [0-9]+ surviving mutants across [0-9]+ mutation sites/);

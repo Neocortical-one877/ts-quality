@@ -102,14 +102,15 @@
         {
           "id": "AK-TASK-0186",
           "title": "ts-quality: add regression coverage for check-summary provenance output",
-          "state": "queued",
+          "state": "done",
           "tasks": [
             {
               "text": "ts-quality: add regression coverage for check-summary provenance output (task #186)",
-              "done": false
+              "done": true
             }
           ],
-          "dod": "Task reaches done in society.db with evidence recorded."
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
         },
         {
           "id": "AK-TASK-0187",

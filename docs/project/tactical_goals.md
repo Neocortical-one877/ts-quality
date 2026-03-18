@@ -1,82 +1,55 @@
 ---
-summary: "Tactical goals for the active strategic goal (SG1) in ts-quality, with TG3 now active after sample-artifact / README alignment landed."
+summary: "Tactical handoff after SG1 completion; SG2 is active but no repo-local SG2 tactical slice is materialized yet."
 read_when:
   - "When planning the next sprint/week for ts-quality"
-  - "When turning the active strategic goal into bounded delivery waves"
+  - "When turning the current strategic state into bounded delivery waves"
 type: "reference"
 ---
 
 # Tactical goals
 
-## Active strategic goal being decomposed
-This file decomposes **SG1 — close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`**.
-It does **not** yet decompose SG2.
+## Current decomposition state
+SG1 is materially complete as of 2026-03-18.
+SG2 is now the active strategic goal, but no repo-local SG2 tactical wave has been materialized into AK yet.
 
-## Tactical goals for SG1 (Eisenhower-3D)
+## SG1 tactical record
 
 | Rank | Tactical goal | Importance | Urgency | Difficulty | Status |
 |---|---|---:|---:|---:|---|
 | 1 | **TG1 — Finish concise run-status outputs so they still show risky-invariant context** | 5 | 5 | 2 | **completed 2026-03-18** |
 | 2 | **TG2 — Align generated sample artifacts and README with the concise output contract** | 4 | 4 | 2 | **completed 2026-03-18** |
-| 3 | **TG3 — Lock concise output parity with targeted regression coverage** | 4 | 4 | 3 | **active now** |
-| 4 | **TG4 — Re-audit remaining decision-side outputs after run-status parity lands** | 3 | 3 | 3 | later under SG1 |
-
-## TG1 — Finish concise run-status outputs so they still show risky-invariant context
-
-### Why TG1 is now complete
-The remaining concise run-status gap was `trend`.
-That gap is now closed:
-- `check-summary.txt` projects the first at-risk invariant plus concise provenance from `behaviorClaims[].evidenceSummary`
-- `trend` now keeps its delta role while also surfacing the latest run's first at-risk invariant and concise provenance when relevant
-
-### Completion signals now true
-- terse run-status outputs stay readable while exposing the first at-risk invariant when present
-- provenance remains a projection from `behaviorClaims[].evidenceSummary`, not a parallel reasoning tree
-- `trend` output no longer compresses the evidence basis into deltas alone
-
-### Operating-plan handoff
-`operating_plan.md` now decomposes **TG2 only**.
-
-## TG2 — Align generated sample artifacts and README with the concise output contract
-
-### Why TG2 is now complete
-The reviewed example bundle and README now show the same concise surfaces operators are expected to trust:
-- `scripts/generate-samples.mjs` exports `check-summary.txt`
-- `examples/artifacts/governed-app/` now includes `check-summary.txt`
-- `README.md` lists `check-summary.txt` as part of the concise run-status artifact contract
-
-### Completion signals now true
-- `scripts/generate-samples.mjs` exports the concise surfaces the repo intends reviewers to trust
-- `README.md` lists and describes those concise artifacts truthfully
-- example artifacts remain reviewable and intentional
-
-### Operating-plan handoff
-`operating_plan.md` now decomposes **TG3 only**.
+| 3 | **TG3 — Lock concise output parity with targeted regression coverage** | 4 | 4 | 3 | **completed 2026-03-18** |
+| 4 | **TG4 — Re-audit remaining decision-side outputs after run-status parity lands** | 3 | 3 | 3 | **not promoted; folded into SG2 intake** |
 
 ## TG3 — Lock concise output parity with targeted regression coverage
 
-### Why this is active now
-The runtime surfaces and reviewed sample/documentation contract are aligned.
-The remaining SG1 risk is drift: concise outputs look secondary, so they need explicit regression coverage before future report tweaks can silently break the contract.
+### Why TG3 is now complete
+The concise operator surfaces are no longer relying only on renderer truth and reviewed-sample convention.
+They now have targeted regression coverage for the remaining `check-summary.txt` projection risk.
 
-### Success signals
-- targeted tests fail if concise provenance disappears from the intended surfaces
-- golden-output coverage includes the concise run-status surfaces the repo treats as contract-bearing
-- future report tweaks are less likely to silently create divergence
+### Completion signals now true
+- targeted tests fail if concise provenance disappears from `check-summary.txt`
+- golden-output coverage now includes the concise run-status surface the repo treats as contract-bearing
+- the checked-in reviewed `examples/artifacts/governed-app/check-summary.txt` sample is now part of the regression-hardening path
 
 ## TG4 — Re-audit remaining decision-side outputs after run-status parity lands
 
-### Why this stays later
-This tactical goal belongs to the same strategic theme, but it should wait until TG3 is complete.
-After parity hardening lands, the repo can re-check whether any remaining decision-side outputs still summarize evidence too aggressively.
+### Why TG4 was not promoted as the next active tactical goal
+After `#186`, the remaining meaningful work sits one layer later than concise run-status parity.
+That makes it a better fit for **SG2** than for extending SG1 with another mostly-complete operator-surface wave.
 
-### Likely evidence to inspect when promoted
+### What moved into SG2 intake
 - authorization / attestation review text
-- amendment-facing outputs
-- any concise decision summaries downstream of governance or legitimacy flows
+- amendment-facing summaries
+- any remaining governance / legitimacy decision outputs that still compress evidence provenance or exact run targeting too far
+
+## Next tactical handoff
+- **Active strategic goal:** SG2
+- **Active tactical goal:** none materialized yet
+- **Next required action:** audit SG2 candidate decision surfaces and materialize the first repo-local AK slice before coding
 
 ## Tactical guardrails
 - keep `behaviorClaims[].evidenceSummary` as the additive root
-- do not let concise outputs outrank `run.json`
+- do not let concise or decision-side outputs outrank `run.json`
 - prefer small end-to-end slices over broad redesign
-- do not decompose TG4 into active operating slices until TG3 is materially complete
+- when no tactical slice is materialized yet, say so explicitly instead of pretending there is active queue truth
