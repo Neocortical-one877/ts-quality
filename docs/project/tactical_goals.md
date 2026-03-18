@@ -32,6 +32,7 @@ They now have targeted regression coverage for the remaining `check-summary.txt`
 - golden-output coverage now includes the concise run-status surface the repo treats as contract-bearing with exact deterministic parity restored under `node --test`
 - the checked-in reviewed `examples/artifacts/governed-app/check-summary.txt` sample is now part of the regression-hardening path
 - mutation subprocesses now ignore inherited nested test-runner recursion context so cacheable evidence stays stable across launcher contexts
+- reviewed sample-artifact generation is now idempotent, and repo verification fails if consecutive sample generation passes drift
 
 ## TG4 — Re-audit remaining decision-side outputs after run-status parity lands
 

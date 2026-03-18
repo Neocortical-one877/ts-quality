@@ -4,7 +4,7 @@
   "consideredAttestations": [
     "ci.verify"
   ],
-  "id": "2026-03-18T15-27-14-674Z:maintainer:merge",
+  "id": "sample-governed-app-run:maintainer:merge",
   "missingProof": [],
   "outcome": "approve",
   "overrideUsed": "maintainer",

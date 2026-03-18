@@ -137,6 +137,43 @@
           ],
           "dod": "Task reaches done in society.db with evidence recorded.",
           "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0189",
+          "title": "ts-quality: stabilize sample artifact generation and gate drift in verify",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: stabilize sample artifact generation and gate drift in verify (task #189)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0190",
+          "title": "ts-quality: automate AK-to-handoff projection sync",
+          "state": "deferred",
+          "tasks": [
+            {
+              "text": "ts-quality: automate AK-to-handoff projection sync (task #190)",
+              "done": false
+            }
+          ],
+          "dod": "Decision reached on projection authority and deferred task is resumed or replaced by a bound implementation slice."
+        },
+        {
+          "id": "AK-TASK-0191",
+          "title": "ts-quality: stabilize or untrack volatile verification artifacts",
+          "state": "deferred",
+          "tasks": [
+            {
+              "text": "ts-quality: stabilize or untrack volatile verification artifacts (task #191)",
+              "done": false
+            }
+          ],
+          "dod": "Decision reached on the checked-in verification artifact contract and deferred task is resumed or replaced by a bound implementation slice."
         }
       ]
     }

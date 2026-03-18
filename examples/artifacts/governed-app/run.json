@@ -4,9 +4,9 @@
       "src/auth/token.js"
     ],
     "changedRegions": [],
-    "createdAt": "2026-03-18T15:27:14.674Z",
-    "executionFingerprint": "sha256:2b001799cc3346d76ac00cef15ae42141a356582d54bcfa198079dc30143e594",
-    "runId": "2026-03-18T15-27-14-674Z",
+    "createdAt": "2026-01-01T00:00:00.000Z",
+    "executionFingerprint": "sha256:1849c6473ed679ba4461de4594fad924b8e39a7a6980c3f986e362a94fc4fa44",
+    "runId": "sample-governed-app-run",
     "sourceFiles": [
       "src/auth/token.js",
       "src/identity/store.js",
@@ -289,7 +289,7 @@
       "totalLines": 8
     }
   ],
-  "createdAt": "2026-03-18T15:27:14.674Z",
+  "createdAt": "2026-01-01T00:00:00.000Z",
   "files": [
     {
       "digest": "sha256:426470c01cf4f5dc02bacfc1eccf57ec0a2be3c6cf2c7a998017c8c67f801206",
@@ -383,39 +383,39 @@
     }
   ],
   "mutationBaseline": {
-    "details": "✔ active token before expiry allows access (0.488129ms)\n✔ missing token denies access (0.093312ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 49.517617",
-    "durationMs": 79,
+    "details": "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0",
+    "durationMs": 0,
     "exitCode": 0,
     "status": "pass"
   },
   "mutations": [
     {
-      "details": "✔ active token before expiry allows access (0.473546ms)\n✔ missing token denies access (0.088394ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 43.931048",
-      "durationMs": 73,
+      "details": "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0",
+      "durationMs": 0,
       "filePath": "src/auth/token.js",
       "kind": "mutation-result",
       "siteId": "sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15",
       "status": "survived"
     },
     {
-      "details": "✔ active token before expiry allows access (0.459234ms)\n✔ missing token denies access (0.087522ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 43.994715",
-      "durationMs": 72,
+      "details": "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0",
+      "durationMs": 0,
       "filePath": "src/auth/token.js",
       "kind": "mutation-result",
       "siteId": "sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20",
       "status": "survived"
     },
     {
-      "details": "✔ active token before expiry allows access (0.4566ms)\n✔ missing token denies access (0.088754ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 41.664079",
-      "durationMs": 72,
+      "details": "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0",
+      "durationMs": 0,
       "filePath": "src/auth/token.js",
       "kind": "mutation-result",
       "siteId": "sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8",
       "status": "survived"
     },
     {
-      "details": "✖ active token before expiry allows access (0.829615ms)\n✔ missing token denies access (0.138249ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 45.561254\n\n✖ failing tests:\n\ntest at test/token.test.js:5:1\n✖ active token before expiry allo",
-      "durationMs": 77,
+      "details": "✖ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 1\nℹ fail 1\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0\n\n✖ failing tests:\n\n<truncated failure output>",
+      "durationMs": 0,
       "filePath": "src/auth/token.js",
       "kind": "mutation-result",
       "siteId": "sha256:487f38e332d7dba3ce182d5e19378721fe317f956ba1da67310040b207e1fd5d",
@@ -483,16 +483,16 @@
   "overrides": [],
   "repo": {
     "digest": "sha256:b591e261c25f12d08c4ab7d681a674d069dcd0fba2f6e02d1c0684357e43696b",
-    "name": "tsq-samples-governed-app-KcALiw",
+    "name": "tsq-samples-governed-app",
     "packages": [
       {
         "dir": "",
         "name": "governed-app"
       }
     ],
-    "rootDir": "tmp/tsq-samples-governed-app-KcALiw"
+    "rootDir": "tmp/tsq-samples-governed-app"
   },
-  "runId": "2026-03-18T15-27-14-674Z",
+  "runId": "sample-governed-app-run",
   "symbols": [
     {
       "filePath": "src/payments/ledger.js",
@@ -595,7 +595,7 @@
       {
         "code": "surviving-mutant",
         "evidence": [
-          "✔ active token before expiry allows access (0.473546ms)\n✔ missing token denies access (0.088394ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 43.931048"
+          "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0"
         ],
         "id": "policy:surviving:sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15",
         "level": "error",
@@ -607,7 +607,7 @@
       {
         "code": "surviving-mutant",
         "evidence": [
-          "✔ active token before expiry allows access (0.459234ms)\n✔ missing token denies access (0.087522ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 43.994715"
+          "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0"
         ],
         "id": "policy:surviving:sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20",
         "level": "error",
@@ -619,7 +619,7 @@
       {
         "code": "surviving-mutant",
         "evidence": [
-          "✔ active token before expiry allows access (0.4566ms)\n✔ missing token denies access (0.088754ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 41.664079"
+          "✔ active token before expiry allows access (0ms)\n✔ missing token denies access (0ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 0"
         ],
         "id": "policy:surviving:sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8",
         "level": "error",

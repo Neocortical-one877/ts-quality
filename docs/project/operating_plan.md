@@ -1,5 +1,5 @@
 ---
-summary: "Operating-plan transition after corrective task AK #188; no follow-on repo-local SG2 slice is materialized yet."
+summary: "Operating-plan transition after corrective task AK #189; no follow-on repo-local SG2 slice is materialized yet."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
   - "When translating the current tactical state into the repo-local queue"
@@ -22,35 +22,36 @@ Repo truth now shows the concise operator contract hardened end to end:
 
 ## Completed this session
 
-### M1 — **AK `#188`** — hermeticize mutation subprocess context and fingerprint runner env
+### M2 — **AK `#189`** — stabilize sample artifact generation and gate drift in verify
 State:
 - completed 2026-03-18
 
 Deliverable now true:
-- mutation subprocesses ignore inherited nested `node:test` recursion context
-- mutation execution fingerprints now include the effective execution environment plus a cache-version bump so stale poisoned results are not silently reused
-- `check-summary.txt` golden coverage is back to exact deterministic parity instead of normalized score drift
+- `scripts/generate-samples.mjs` emits an idempotent reviewed sample bundle with fixed sample run ids and normalized volatile mutation timing text
+- `npm run verify` now reruns sample generation and fails if the second pass changes `examples/artifacts/governed-app`
+- sample-artifact drift is harder to miss without requiring a perfectly clean git tree during implementation
 
 Primary files touched:
-- `packages/ts-mutate/src/index.ts`
-- `test/ts-mutate.test.mjs`
-- `test/golden-output.test.mjs`
+- `scripts/generate-samples.mjs`
+- `scripts/verify.mjs`
 - `README.md`
-- `ARCHITECTURE.md`
-- `docs/config-reference.md`
 - `docs/project/strategic_goals.md`
 - `docs/project/tactical_goals.md`
 - `docs/project/operating_plan.md`
 - `next_session_prompt.md`
 - `governance/work-items.json`
-- `diary/2026-03-18--fix-hermetic-mutation-execution.md`
+- `diary/2026-03-18--fix-sample-artifact-idempotence.md`
 
 ## Current ready queue
 Ready now:
 - none repo-local
 
 Completed this session:
-- `#188` — hermeticize mutation subprocess context and fingerprint runner env
+- `#189` — stabilize sample artifact generation and gate drift in verify
+
+Deferred this session (authority-bound in AK):
+- `#190` — automate AK-to-handoff projection sync
+- `#191` — stabilize or untrack volatile verification artifacts
 
 ## Next materialization target
 Before more implementation work, decompose **SG2** into the first real repo-local AK slice.

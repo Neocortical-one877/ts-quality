@@ -16,6 +16,7 @@ The following commands were executed successfully:
 - `npm run lint --silent`
 - `npm test --silent`
 - `npm run sample-artifacts --silent`
+- second `npm run sample-artifacts --silent` idempotence check over `examples/artifacts/governed-app`
 - `npm run smoke --silent`
 
 Log: `verification/verification.log`

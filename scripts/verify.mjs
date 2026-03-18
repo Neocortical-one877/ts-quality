@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -20,12 +21,37 @@ function run(command, args) {
   }
 }
 
+function snapshotDirectory(dir) {
+  const entries = [];
+  function walk(currentDir) {
+    for (const entry of fs.readdirSync(currentDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+      const absolute = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        walk(absolute);
+        continue;
+      }
+      const relative = path.relative(dir, absolute).replace(/\\/g, '/');
+      const digest = crypto.createHash('sha256').update(fs.readFileSync(absolute)).digest('hex');
+      entries.push(`${relative}:${digest}`);
+    }
+  }
+  walk(dir);
+  return entries.join('\n');
+}
+
 run('npm', ['install', '--ignore-scripts']);
 run('npm', ['run', 'build', '--silent']);
 run('npm', ['run', 'typecheck', '--silent']);
 run('npm', ['run', 'lint', '--silent']);
 run('npm', ['test', '--silent']);
 run('npm', ['run', 'sample-artifacts', '--silent']);
+const sampleArtifactsDir = path.join(root, 'examples', 'artifacts', 'governed-app');
+const firstSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
+run('npm', ['run', 'sample-artifacts', '--silent']);
+const secondSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
+if (firstSampleSnapshot !== secondSampleSnapshot) {
+  throw new Error('Verification step failed: sample artifacts drifted across consecutive generation passes');
+}
 run('npm', ['run', 'smoke', '--silent']);
 
 const verificationMd = [
@@ -47,6 +73,7 @@ const verificationMd = [
   '- `npm run lint --silent`',
   '- `npm test --silent`',
   '- `npm run sample-artifacts --silent`',
+  '- second `npm run sample-artifacts --silent` idempotence check over `examples/artifacts/governed-app`',
   '- `npm run smoke --silent`',
   '',
   `Log: \`${path.relative(root, logPath).replace(/\\/g, '/')}\``

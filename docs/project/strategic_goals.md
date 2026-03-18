@@ -36,6 +36,7 @@ The work closed the runtime, reviewed-artifact, and regression-hardening gaps wi
 - `examples/artifacts/governed-app/` includes `check-summary.txt`
 - `README.md` describes the same concise artifact contract the code emits
 - `packages/ts-mutate/src/index.ts` now runs mutation subprocesses in a hermetic context and fingerprints the effective execution environment so parent test-runner leakage does not silently corrupt results or reuse stale cached outcomes
+- `scripts/generate-samples.mjs` now produces an idempotent reviewed sample bundle for `examples/artifacts/governed-app/`, with fixed sample run ids/timestamps where needed and normalized volatile mutation timing text
 - `test/golden-output.test.mjs` now hardens `check-summary.txt` provenance framing against the checked-in reviewed sample with exact deterministic parity restored
 
 ## SG2 — Carry the same evidence truth into governance/legitimacy decision surfaces that still compress authority too far
