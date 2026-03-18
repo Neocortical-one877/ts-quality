@@ -37,12 +37,16 @@ function changedFiles(): string[] | undefined {
   return value ? value.split(',').filter(Boolean) : undefined;
 }
 
+function runId(): string | undefined {
+  return takeOption('--run-id');
+}
+
 function usage(command?: string, subcommand?: string): string {
   if (!command) {
     return `ts-quality commands:\n- init\n- check\n- explain\n- report [--json]\n- trend\n- plan\n- govern\n- authorize --agent <id> [--action merge]\n- attest sign|verify|keygen\n- amend --proposal <file> [--apply]\n`;
   }
   if (command === 'check') {
-    return 'Usage: ts-quality check [--root <dir>] [--changed <a,b,c>]\n';
+    return 'Usage: ts-quality check [--root <dir>] [--changed <a,b,c>] [--run-id <id>]\n';
   }
   if (command === 'authorize') {
     return 'Usage: ts-quality authorize --agent <id> [--action merge] [--root <dir>]\n';
@@ -84,9 +88,13 @@ function main(): void {
 
   if (command === 'check') {
     const changed = changedFiles();
-    const checkOptions: { changedFiles?: string[] } = {};
+    const checkOptions: { changedFiles?: string[]; runId?: string } = {};
     if (changed) {
       checkOptions.changedFiles = changed;
+    }
+    const requestedRunId = runId();
+    if (requestedRunId) {
+      checkOptions.runId = requestedRunId;
     }
     const result = runCheck(cwd, checkOptions);
     process.stdout.write(`Merge confidence: ${result.run.verdict.mergeConfidence}/100\nOutcome: ${result.run.verdict.outcome}\nArtifacts: ${result.artifactDir}\n`);

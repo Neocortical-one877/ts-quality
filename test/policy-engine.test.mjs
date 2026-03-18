@@ -31,3 +31,19 @@ test('evaluatePolicy applies active waivers', () => {
   });
   assert.equal(result.verdict.warnings.some((item) => item.includes('Applied waiver')), true);
 });
+
+
+test('evaluatePolicy blocks when the mutation baseline is not green', () => {
+  const result = policy.evaluatePolicy({
+    nowIso: new Date().toISOString(),
+    policy: { maxChangedCrap: 10, minMutationScore: 0.8, minMergeConfidence: 70 },
+    changedComplexity: [{ crap: 5, changed: true, filePath: 'src/auth/token.js', symbol: 'function:x', span: { startLine: 1, endLine: 2 }, complexity: 3, coveragePct: 100, kind: 'complexity' }],
+    mutations: [{ kind: 'mutation-result', siteId: '1', filePath: 'src/auth/token.js', status: 'error', durationMs: 10, details: 'baseline failed' }],
+    mutationBaseline: { status: 'fail', exitCode: 1, durationMs: 10, details: 'test suite failed' },
+    behaviorClaims: [],
+    governance: [],
+    waivers: []
+  });
+  assert.equal(result.verdict.blockedBy.some((item) => item.includes('Mutation baseline test command did not pass')), true);
+  assert.equal(result.verdict.bestNextAction, 'Fix the baseline test command so it passes before trusting mutation evidence.');
+});

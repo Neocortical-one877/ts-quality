@@ -1,4 +1,4 @@
-import { type BehaviorClaim, type ComplexityEvidence, type GovernanceFinding, type MutationResult, type TrendDelta, type RunArtifact, type Verdict, type Waiver } from '../../evidence-model/src/index';
+import { type BehaviorClaim, type ComplexityEvidence, type ExecutionReceipt, type GovernanceFinding, type MutationResult, type TrendDelta, type RunArtifact, type Verdict, type Waiver } from '../../evidence-model/src/index';
 export interface PolicyConfig {
     maxChangedCrap: number;
     minMutationScore: number;
@@ -9,6 +9,7 @@ export interface PolicyInput {
     policy: PolicyConfig;
     changedComplexity: ComplexityEvidence[];
     mutations: MutationResult[];
+    mutationBaseline?: ExecutionReceipt;
     behaviorClaims: BehaviorClaim[];
     governance: GovernanceFinding[];
     waivers: Waiver[];

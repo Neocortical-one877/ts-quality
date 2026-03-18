@@ -306,6 +306,20 @@ export interface TrendDelta {
     survivingMutantDelta: number;
     hotspotDelta: number;
 }
+export interface ExecutionReceipt {
+    status: 'pass' | 'fail' | 'error' | 'timeout';
+    exitCode?: number | undefined;
+    durationMs: number;
+    details: string;
+}
+export interface AnalysisContext {
+    runId: string;
+    createdAt: string;
+    sourceFiles: string[];
+    changedFiles: string[];
+    changedRegions: ChangedRegion[];
+    executionFingerprint: string;
+}
 export interface Verdict {
     mergeConfidence: number;
     outcome: Outcome;
@@ -322,12 +336,14 @@ export interface RunArtifact {
     repo: RepositoryEntity;
     changedFiles: string[];
     changedRegions: ChangedRegion[];
+    analysis?: AnalysisContext | undefined;
     files: FileEntity[];
     symbols: SymbolEntity[];
     coverage: CoverageEvidence[];
     complexity: ComplexityEvidence[];
     mutationSites: MutationSite[];
     mutations: MutationResult[];
+    mutationBaseline?: ExecutionReceipt | undefined;
     invariants: InvariantSpec[];
     behaviorClaims: BehaviorClaim[];
     governance: GovernanceFinding[];
@@ -341,6 +357,8 @@ export interface LatestPointer {
     latestRunId: string;
 }
 export declare function normalizePath(value: string): string;
+export declare function createRunId(date?: Date): string;
+export declare function assertSafeRunId(runId: string): string;
 export declare function ensureDir(dirPath: string): void;
 export declare function stableSortKeys<T>(value: T): T;
 export declare function stableStringify(value: unknown): string;
@@ -359,6 +377,7 @@ export declare function collectSourceFiles(rootDir: string, patterns?: string[])
 export declare function globToRegExp(pattern: string): RegExp;
 export declare function matchPattern(pattern: string, value: string): boolean;
 export declare function matchesAny(patterns: string[], value: string): boolean;
+export declare function findCoverageEvidence(filePath: string, coverage: CoverageEvidence[]): CoverageEvidence | undefined;
 export declare function repoDigest(rootDir: string, filePaths: string[]): string;
 export declare function inferPackages(rootDir: string): PackageEntity[];
 export declare function resolvePackageName(filePath: string, packages: PackageEntity[]): string | undefined;

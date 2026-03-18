@@ -12,7 +12,7 @@ export interface GovernanceEvaluationOptions {
 export interface GovernancePlan {
     summary: string;
     steps: Array<{
-        type: 'test' | 'approval' | 'rollback' | 'boundary' | 'risk';
+        type: 'test' | 'approval' | 'rollback' | 'boundary' | 'risk' | 'ownership';
         title: string;
         rationale: string;
         evidence: string[];

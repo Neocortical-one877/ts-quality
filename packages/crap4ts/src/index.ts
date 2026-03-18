@@ -8,6 +8,7 @@ import {
   type LineSpan,
   changedFileSet,
   collectSourceFiles,
+  findCoverageEvidence,
   normalizePath,
   spanOverlaps
 } from '../../evidence-model/src/index';
@@ -152,8 +153,7 @@ function computeComplexity(node: any): number {
 }
 
 function findCoverage(filePath: string, coverage: CoverageEvidence[]): CoverageEvidence | undefined {
-  const normalized = normalizePath(filePath);
-  return coverage.find((item) => item.filePath === normalized || item.filePath.endsWith(normalized));
+  return findCoverageEvidence(filePath, coverage);
 }
 
 function nodeLineSpan(node: any, sourceFile: any): LineSpan {
@@ -180,7 +180,7 @@ export function analyzeSource(filePath: string, sourceText: string, coverage: Co
     const span = nodeLineSpan(node, sourceFile);
     const coveragePct = coverageForFile ? lineCoverage(coverageForFile.lines, span, sourceText) : 0;
     const complexity = computeComplexity(node);
-    const changedBySpan = fileRegions.length > 0 && fileRegions.some((region) => {
+    const changedBySpan = fileRegions.some((region) => {
       for (let line = region.span.startLine; line <= region.span.endLine; line += 1) {
         if (spanOverlaps(line, span)) {
           return true;
@@ -188,6 +188,11 @@ export function analyzeSource(filePath: string, sourceText: string, coverage: Co
       }
       return false;
     });
+    const changedInScope = changed.size === 0
+      ? true
+      : fileRegions.length > 0
+        ? changedBySpan
+        : changed.has(normalizePath(filePath));
     results.push({
       kind: 'complexity',
       filePath: normalizePath(filePath),
@@ -196,7 +201,7 @@ export function analyzeSource(filePath: string, sourceText: string, coverage: Co
       complexity,
       coveragePct,
       crap: crapScore(complexity, coveragePct),
-      changed: changed.has(normalizePath(filePath)) || changedBySpan
+      changed: changedInScope
     });
   }
 

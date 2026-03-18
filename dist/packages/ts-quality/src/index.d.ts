@@ -14,6 +14,7 @@ export declare function loadVerifiedAttestations(rootDir: string, attestationsDi
 export declare function runCheck(rootDir: string, options?: {
     changedFiles?: string[];
     configPath?: string;
+    runId?: string;
 }): CheckResult;
 export declare function initProject(rootDir: string): void;
 export declare function renderLatestReport(rootDir: string, format: 'markdown' | 'json'): string;

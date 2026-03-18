@@ -29,11 +29,12 @@ const config_1 = require("./config");
 function fileEntities(rootDir, filePaths) {
     const repo = (0, index_1.buildRepositoryEntity)(rootDir, filePaths);
     return filePaths.map((filePath) => {
+        const normalizedFilePath = (0, index_1.normalizePath)(filePath);
         const result = {
-            filePath: (0, index_1.normalizePath)(filePath),
+            filePath: normalizedFilePath,
             digest: (0, index_1.fileDigest)(path_1.default.join(rootDir, filePath))
         };
-        const packageName = repo.packages.find((entry) => entry.dir === '' || (0, index_1.normalizePath)(filePath).startsWith(`${entry.dir}/`) || (0, index_1.normalizePath)(filePath) === entry.dir)?.name;
+        const packageName = (0, index_1.resolvePackageName)(normalizedFilePath, repo.packages);
         if (packageName) {
             result.packageName = packageName;
         }
@@ -136,11 +137,23 @@ function loadVerifiedAttestations(rootDir, attestationsDir, trustedKeysDir) {
     }
     return { attestations, verification };
 }
+function buildAnalysisContext(input) {
+    return {
+        runId: input.runId,
+        createdAt: input.createdAt,
+        sourceFiles: [...input.sourceFiles],
+        changedFiles: [...input.changedFiles],
+        changedRegions: [...input.changedRegions],
+        executionFingerprint: input.executionFingerprint
+    };
+}
 function runCheck(rootDir, options) {
     const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
     const sourceFiles = (0, index_1.collectSourceFiles)(rootDir, loaded.config.sourcePatterns);
     const changedRegions = loaded.config.changeSet.diffFile ? (0, config_1.loadChangedRegions)(rootDir, loaded.config.changeSet.diffFile) : [];
     const changedFiles = (options?.changedFiles ?? loaded.config.changeSet.files ?? sourceFiles).map((item) => (0, index_1.normalizePath)(item));
+    const runId = (0, index_1.assertSafeRunId)(options?.runId ?? (0, index_1.createRunId)());
+    const createdAt = (0, index_1.nowIso)();
     const lcovPath = path_1.default.join(rootDir, loaded.config.coverage.lcovPath);
     const coverage = fs_1.default.existsSync(lcovPath) ? (0, index_2.parseLcov)(fs_1.default.readFileSync(lcovPath, 'utf8')) : [];
     const waivers = (0, config_1.loadWaivers)(rootDir, loaded.config.waiversPath);
@@ -188,6 +201,7 @@ function runCheck(rootDir, options) {
         },
         changedComplexity: crapReport.hotspots.filter((item) => item.changed),
         mutations: mutationRun.results,
+        mutationBaseline: mutationRun.baseline,
         behaviorClaims: claims,
         governance: [],
         waivers
@@ -202,6 +216,7 @@ function runCheck(rootDir, options) {
         changedFiles,
         changedRegions,
         approvals,
+        runId,
         attestationsClaims: verifiedAttestations.attestations.flatMap((item) => item.claims),
         run: {
             complexity: crapReport.hotspots,
@@ -217,6 +232,7 @@ function runCheck(rootDir, options) {
         },
         changedComplexity: crapReport.hotspots.filter((item) => item.changed),
         mutations: mutationRun.results,
+        mutationBaseline: mutationRun.baseline,
         behaviorClaims: claims,
         governance,
         waivers
@@ -225,21 +241,30 @@ function runCheck(rootDir, options) {
         evaluatedInput.previousRun = previousRun;
     }
     const evaluated = (0, index_5.evaluatePolicy)(evaluatedInput);
-    const runId = new Date().toISOString().replace(/[:.]/g, '-');
     const repo = (0, index_1.buildRepositoryEntity)(rootDir, sourceFiles);
+    const analysis = buildAnalysisContext({
+        runId,
+        createdAt,
+        sourceFiles,
+        changedFiles,
+        changedRegions,
+        executionFingerprint: mutationRun.executionFingerprint
+    });
     const run = {
         version: '5.0.0',
         runId,
-        createdAt: (0, index_1.nowIso)(),
+        createdAt,
         repo,
         changedFiles,
         changedRegions,
+        analysis,
         files: fileEntities(rootDir, sourceFiles),
         symbols: symbolEntities(crapReport.hotspots),
         coverage,
         complexity: crapReport.hotspots,
         mutationSites: mutationRun.sites,
         mutations: mutationRun.results,
+        mutationBaseline: mutationRun.baseline,
         invariants,
         behaviorClaims: claims,
         governance,

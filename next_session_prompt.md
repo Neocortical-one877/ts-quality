@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff after landing #181 invariant evidence modes; the next repo-local queue continues at #182 for PR-facing provenance projection."
+summary: "Active handoff after analysis-context hardening; the next repo-local queue continues at #182 for PR-facing provenance projection."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -37,7 +37,7 @@ Otherwise continue through research, implementation, validation, and handoff in 
 - Invariant contract: `docs/invariant-dsl.md`
 - CI/operator integration: `docs/ci-integration.md`
 - Latest durable learning: `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-- Latest session capture: `diary/2026-03-18--feat-invariant-evidence-modes.md`
+- Latest session capture: `diary/2026-03-18--feat-analysis-context-hardening.md`
 - Active/deferred work authority: Agent Kernel
 - Checked-in work-items projection: `governance/work-items.json`
 - Raw session capture: `diary/`
@@ -50,6 +50,7 @@ Prefer explicit evidence/report improvements over vague semantic-expansion work.
 ## ACTIVE HANDOFF
 - Repo registration in AK remains verified.
 - **`#181`** — introduce explicit vs inferred invariant evidence modes — is complete.
+- Operator-driven analysis-context hardening is now also complete: run artifacts carry additive `analysis` / `mutationBaseline` receipts, diff hunks narrow scope inside changed files, mutation cache keys fingerprint execution context, approvals can bind to exact run ids, ownership rules are enforced, and overrides are revalidated against real `override` grants.
 - The next reviewed repo-local queue now continues in the next SG2 operator-surface wave:
   - **`#182`** — surface invariant evidence provenance in `pr-summary.md`
 - Keep scope bounded to PR-facing output, evidence-summary projections, docs, regression tests, and generated sample artifacts.
@@ -80,7 +81,7 @@ git status --short
 8. `docs/config-reference.md`
 9. `docs/invariant-dsl.md`
 10. `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
-11. `diary/2026-03-18--feat-invariant-evidence-modes.md`
+11. `diary/2026-03-18--feat-analysis-context-hardening.md`
 12. relevant package source + regression tests for the claimed task
 
 ## EXECUTION MODE (MANDATORY ORDER)
@@ -95,11 +96,11 @@ git status --short
 9. **Commit** — leave the repo ready for a clean next context window unless the operator explicitly says otherwise.
 
 ## SESSION CHECKPOINT
-- Slice executed: **`#181`** — introduce explicit vs inferred invariant evidence modes
-- Outcome: additive `behaviorClaims[].evidenceSummary.subSignals[].mode` / `modeReason` support now flows through the evidence model, invariant evaluation, report/explain output, invariant-risk findings, docs, tests, and generated example artifacts
-- Refactoring status: no structural refactor was required; provenance fit cleanly into the existing additive sub-signal surface
-- Validation from the completed slice: `node --test test/invariants.test.mjs test/cli-integration.test.mjs` (pass), `npm test` (pass), `npm run verify` (pass)
-- Next-session starting point: inspect AK task **`#182`**, read the PR-summary/report rendering code paths it touches, and keep the concise provenance projection downstream of the current evidence-summary authority
+- Slice executed: operator-driven analysis-context hardening across evidence-model / crap4ts / ts-mutate / governance / legitimacy / ts-quality
+- Outcome: additive `run.analysis` / `run.mutationBaseline` receipts now ship; diff hunks narrow scope within changed files; mutation scoring refuses red baselines and fingerprints execution context; exact run-id approval binding, ownership enforcement, override-scope checks, and deep package attribution are covered by regression tests/docs/sample artifacts
+- Refactoring status: structural hardening stayed additive-first; existing report/invariant surfaces were preserved while the hidden execution context became explicit
+- Validation from the completed slice: `npm test` (pass), `npm run sample-artifacts` (pass), `npm run verify` (pass), `node ~/ai-society/core/agent-scripts/scripts/docs-list.mjs --docs . --strict` (pass)
+- Next-session starting point: inspect AK task **`#182`**, read the PR-summary/report rendering code paths it touches, and keep the concise provenance projection downstream of the current evidence-summary authority plus the new run-level analysis receipts
 
 ## END-OF-SESSION
 - keep this file aligned with the real next starting point

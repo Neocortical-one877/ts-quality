@@ -362,6 +362,22 @@ export interface TrendDelta {
   hotspotDelta: number;
 }
 
+export interface ExecutionReceipt {
+  status: 'pass' | 'fail' | 'error' | 'timeout';
+  exitCode?: number | undefined;
+  durationMs: number;
+  details: string;
+}
+
+export interface AnalysisContext {
+  runId: string;
+  createdAt: string;
+  sourceFiles: string[];
+  changedFiles: string[];
+  changedRegions: ChangedRegion[];
+  executionFingerprint: string;
+}
+
 export interface Verdict {
   mergeConfidence: number;
   outcome: Outcome;
@@ -379,12 +395,14 @@ export interface RunArtifact {
   repo: RepositoryEntity;
   changedFiles: string[];
   changedRegions: ChangedRegion[];
+  analysis?: AnalysisContext | undefined;
   files: FileEntity[];
   symbols: SymbolEntity[];
   coverage: CoverageEvidence[];
   complexity: ComplexityEvidence[];
   mutationSites: MutationSite[];
   mutations: MutationResult[];
+  mutationBaseline?: ExecutionReceipt | undefined;
   invariants: InvariantSpec[];
   behaviorClaims: BehaviorClaim[];
   governance: GovernanceFinding[];
@@ -402,6 +420,17 @@ export interface LatestPointer {
 export function normalizePath(value: string): string {
   const normalized = value.replace(/\\/g, '/').replace(/\/+/g, '/');
   return normalized.replace(/^\.\//, '').replace(/^\//, '').replace(/\/$/, '');
+}
+
+export function createRunId(date = new Date()): string {
+  return date.toISOString().replace(/[:.]/g, '-');
+}
+
+export function assertSafeRunId(runId: string): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runId)) {
+    throw new Error(`runId must use only letters, numbers, dot, underscore, and hyphen: ${runId}`);
+  }
+  return runId;
 }
 
 export function ensureDir(dirPath: string): void {
@@ -535,6 +564,16 @@ export function matchesAny(patterns: string[], value: string): boolean {
   return patterns.some((pattern) => matchPattern(pattern, value));
 }
 
+export function findCoverageEvidence(filePath: string, coverage: CoverageEvidence[]): CoverageEvidence | undefined {
+  const normalized = normalizePath(filePath);
+  const exact = coverage.find((item) => normalizePath(item.filePath) === normalized);
+  if (exact) {
+    return exact;
+  }
+  const suffixMatches = coverage.filter((item) => normalizePath(item.filePath).endsWith(`/${normalized}`));
+  return suffixMatches.length === 1 ? suffixMatches[0] : undefined;
+}
+
 export function repoDigest(rootDir: string, filePaths: string[]): string {
   const entries = filePaths.map((filePath) => ({ filePath, digest: fileDigest(path.join(rootDir, filePath)) }));
   return digestObject(entries);
@@ -615,11 +654,12 @@ export function parseUnifiedDiff(diffText: string): ChangedRegion[] {
 }
 
 export function writeRunArtifact(rootDir: string, run: RunArtifact): string {
-  const artifactRoot = path.join(rootDir, '.ts-quality', 'runs', run.runId);
+  const safeRunId = assertSafeRunId(run.runId);
+  const artifactRoot = path.join(rootDir, '.ts-quality', 'runs', safeRunId);
   ensureDir(artifactRoot);
   writeJson(path.join(artifactRoot, 'run.json'), run);
   writeJson(path.join(artifactRoot, 'verdict.json'), run.verdict);
-  writeJson(path.join(rootDir, '.ts-quality', 'latest.json'), { latestRunId: run.runId } satisfies LatestPointer);
+  writeJson(path.join(rootDir, '.ts-quality', 'latest.json'), { latestRunId: safeRunId } satisfies LatestPointer);
   return artifactRoot;
 }
 
@@ -629,7 +669,7 @@ export function readLatestRun(rootDir: string): RunArtifact {
     throw new Error(`No latest run pointer found at ${latestPointerPath}`);
   }
   const pointer = readJson<LatestPointer>(latestPointerPath);
-  return readJson<RunArtifact>(path.join(rootDir, '.ts-quality', 'runs', pointer.latestRunId, 'run.json'));
+  return loadRun(rootDir, pointer.latestRunId);
 }
 
 export function listRunIds(rootDir: string): string[] {
@@ -641,7 +681,8 @@ export function listRunIds(rootDir: string): string[] {
 }
 
 export function loadRun(rootDir: string, runId: string): RunArtifact {
-  return readJson<RunArtifact>(path.join(rootDir, '.ts-quality', 'runs', runId, 'run.json'));
+  const safeRunId = assertSafeRunId(runId);
+  return readJson<RunArtifact>(path.join(rootDir, '.ts-quality', 'runs', safeRunId, 'run.json'));
 }
 
 export function readMaybe<T>(filePath: string): T | undefined {

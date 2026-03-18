@@ -1,6 +1,6 @@
-import { type ChangedRegion, type CoverageEvidence, type MutationResult, type MutationSite } from '../../evidence-model/src/index';
+import { type ChangedRegion, type CoverageEvidence, type ExecutionReceipt, type MutationResult, type MutationSite } from '../../evidence-model/src/index';
 export interface MutationManifest {
-    version: '1';
+    version: '2';
     entries: Record<string, MutationResult>;
 }
 export interface MutationOptions {
@@ -21,6 +21,8 @@ export interface MutationRun {
     score: number;
     killed: number;
     survived: number;
+    baseline: ExecutionReceipt;
+    executionFingerprint: string;
 }
 export declare function discoverMutationSites(sourceText: string, filePath: string, coverage?: CoverageEvidence[], changedFiles?: string[], changedRegions?: ChangedRegion[], coveredOnly?: boolean): MutationSite[];
 export declare function applyMutation(sourceText: string, site: MutationSite): string;

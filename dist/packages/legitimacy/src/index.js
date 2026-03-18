@@ -117,8 +117,20 @@ function collectApprovalRequirements(constitution, changedFiles) {
         .filter((rule) => rule.kind === 'approval' && changedFiles.some((filePath) => (0, index_1.matchesAny)(rule.paths, filePath)))
         .flatMap((rule) => rule.roles);
 }
-function validOverride(overrides, targetId, agents) {
-    return overrides.find((override) => override.targetId === targetId && agents.some((agent) => agent.id === override.by && agent.kind === 'human' && agent.roles.includes(override.role ?? '')));
+function validOverride(overrides, targetId, changedFiles, agents) {
+    return overrides.find((override) => {
+        if (override.targetId !== targetId) {
+            return false;
+        }
+        const agent = agents.find((candidate) => candidate.id === override.by && candidate.kind === 'human');
+        if (!agent) {
+            return false;
+        }
+        if (override.role && !agent.roles.includes(override.role)) {
+            return false;
+        }
+        return agent.grants.some((grant) => grantMatches(grant, 'override', changedFiles));
+    });
 }
 function uniqueApprovalsForTarget(approvals, approvers, targetId) {
     const unique = new Map();
@@ -177,7 +189,7 @@ function authorizeChange(agentId, action, bundle, run, agents, constitution, att
     const attestationClaims = new Set(attestations.flatMap((item) => item.claims));
     const missingProof = [...requiredAttestations].filter((claim) => !attestationClaims.has(claim));
     const requiredApprovers = collectApprovalRequirements(constitution, bundle.changedFiles);
-    const override = validOverride(overrides, `${bundle.runId}:${agentId}:${action}`, agents);
+    const override = validOverride(overrides, `${bundle.runId}:${agentId}:${action}`, bundle.changedFiles, agents);
     if (override) {
         return {
             id: `${bundle.runId}:${agentId}:${action}`,

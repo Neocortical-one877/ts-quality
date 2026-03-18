@@ -2,18 +2,18 @@
   "claims": [
     "ci.tests.passed"
   ],
-  "issuedAt": "2026-03-18T01:00:03.492Z",
+  "issuedAt": "2026-03-18T01:35:43.571Z",
   "issuer": "ci.verify",
   "kind": "attestation",
   "payload": {
-    "subjectFile": ".ts-quality/runs/2026-03-18T01-00-02-990Z/verdict.json"
+    "subjectFile": ".ts-quality/runs/2026-03-18T01-35-42-645Z/verdict.json"
   },
   "signature": {
     "algorithm": "ed25519",
     "keyId": "sample",
-    "value": "fcHVZYn7ty1u8QG3OFVidPjr39Hlhh1J2Rq+P+gA6dFxqSy/GLLN95CQjwucz7YlGUHNv5J5UmfgUm84b9SNAw=="
+    "value": "veAnxM1RNZDSfVzHEUxIBcL1lFEumpYkyUg4pzGMJu/IjBIexAjNRXeTnE3bjOcWrj+P4pGL3+8Mv1b+O/Y7BQ=="
   },
-  "subjectDigest": "sha256:5f234ef95485caa0c2c4f81f40ad5fcd541794d00a82ac5fd086e3314e981522",
+  "subjectDigest": "sha256:72b415d844be4557f4a19435370eb259bda91c821a510ca36d30244cfeb30bc8",
   "subjectType": "json-artifact",
   "version": "1"
 }

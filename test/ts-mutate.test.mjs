@@ -1,4 +1,5 @@
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import test from 'node:test';
 import assert from 'assert/strict';
@@ -60,4 +61,80 @@ test('runMutations writes manifest and reuses cached results', () => {
   });
   assert.equal(fs.existsSync(manifestPath), true);
   assert.equal(second.results.length, first.results.length);
+  assert.equal(second.executionFingerprint, first.executionFingerprint);
+});
+
+
+test('discoverMutationSites honors diff hunks within changed files', () => {
+  const source = [
+    'function first(a, b) {',
+    '  return a === b;',
+    '}',
+    '',
+    'function second(a, b) {',
+    '  return a > b;',
+    '}',
+    ''
+  ].join('\n');
+  const sites = mutate.discoverMutationSites(source, 'src/sample.js', [], ['src/sample.js'], [{ filePath: 'src/sample.js', hunkId: 'h1', span: { startLine: 5, endLine: 6 } }], false);
+  assert.deepEqual(sites.map((site) => site.span.startLine), [6]);
+});
+
+
+test('runMutations requires a passing baseline before trusting mutation results', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-mutant-baseline-'));
+  fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'flag.js'), 'function flag() { return true; }\nmodule.exports = { flag };\n', 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'check.js'), 'process.exit(1);\n', 'utf8');
+
+  const run = mutate.runMutations({
+    repoRoot: rootDir,
+    sourceFiles: ['src/flag.js'],
+    changedFiles: ['src/flag.js'],
+    testCommand: ['node', 'check.js'],
+    coveredOnly: false,
+    maxSites: 5,
+    timeoutMs: 5_000
+  });
+
+  assert.equal(run.baseline.status, 'fail');
+  assert.equal(run.score, 0);
+  assert.equal(run.results.every((result) => result.status === 'error'), true);
+});
+
+
+test('runMutations invalidates manifest entries when the test corpus changes', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-mutant-manifest-'));
+  const manifestPath = path.join(rootDir, '.ts-quality', 'mutation-manifest.json');
+  fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'flag.js'), 'function flag() { return true; }\nmodule.exports = { flag };\n', 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'state.json'), JSON.stringify({ ok: true }), 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'check.js'), "const fs = require('fs'); const state = JSON.parse(fs.readFileSync('state.json', 'utf8')); process.exit(state.ok ? 0 : 1);\n", 'utf8');
+
+  const first = mutate.runMutations({
+    repoRoot: rootDir,
+    sourceFiles: ['src/flag.js'],
+    changedFiles: ['src/flag.js'],
+    testCommand: ['node', 'check.js'],
+    coveredOnly: false,
+    manifestPath,
+    maxSites: 5,
+    timeoutMs: 5_000
+  });
+  fs.writeFileSync(path.join(rootDir, 'state.json'), JSON.stringify({ ok: false }), 'utf8');
+  const second = mutate.runMutations({
+    repoRoot: rootDir,
+    sourceFiles: ['src/flag.js'],
+    changedFiles: ['src/flag.js'],
+    testCommand: ['node', 'check.js'],
+    coveredOnly: false,
+    manifestPath,
+    maxSites: 5,
+    timeoutMs: 5_000
+  });
+
+  assert.equal(first.baseline.status, 'pass');
+  assert.equal(second.baseline.status, 'fail');
+  assert.equal(second.executionFingerprint === first.executionFingerprint, false);
+  assert.equal(second.results.every((result) => result.status === 'error'), true);
 });

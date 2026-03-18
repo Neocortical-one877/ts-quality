@@ -4,6 +4,8 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.normalizePath = normalizePath;
+exports.createRunId = createRunId;
+exports.assertSafeRunId = assertSafeRunId;
 exports.ensureDir = ensureDir;
 exports.stableSortKeys = stableSortKeys;
 exports.stableStringify = stableStringify;
@@ -19,6 +21,7 @@ exports.collectSourceFiles = collectSourceFiles;
 exports.globToRegExp = globToRegExp;
 exports.matchPattern = matchPattern;
 exports.matchesAny = matchesAny;
+exports.findCoverageEvidence = findCoverageEvidence;
 exports.repoDigest = repoDigest;
 exports.inferPackages = inferPackages;
 exports.resolvePackageName = resolvePackageName;
@@ -43,6 +46,15 @@ const crypto_1 = __importDefault(require("crypto"));
 function normalizePath(value) {
     const normalized = value.replace(/\\/g, '/').replace(/\/+/g, '/');
     return normalized.replace(/^\.\//, '').replace(/^\//, '').replace(/\/$/, '');
+}
+function createRunId(date = new Date()) {
+    return date.toISOString().replace(/[:.]/g, '-');
+}
+function assertSafeRunId(runId) {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(runId)) {
+        throw new Error(`runId must use only letters, numbers, dot, underscore, and hyphen: ${runId}`);
+    }
+    return runId;
 }
 function ensureDir(dirPath) {
     fs_1.default.mkdirSync(dirPath, { recursive: true });
@@ -154,6 +166,15 @@ function matchPattern(pattern, value) {
 function matchesAny(patterns, value) {
     return patterns.some((pattern) => matchPattern(pattern, value));
 }
+function findCoverageEvidence(filePath, coverage) {
+    const normalized = normalizePath(filePath);
+    const exact = coverage.find((item) => normalizePath(item.filePath) === normalized);
+    if (exact) {
+        return exact;
+    }
+    const suffixMatches = coverage.filter((item) => normalizePath(item.filePath).endsWith(`/${normalized}`));
+    return suffixMatches.length === 1 ? suffixMatches[0] : undefined;
+}
 function repoDigest(rootDir, filePaths) {
     const entries = filePaths.map((filePath) => ({ filePath, digest: fileDigest(path_1.default.join(rootDir, filePath)) }));
     return digestObject(entries);
@@ -226,11 +247,12 @@ function parseUnifiedDiff(diffText) {
     return regions;
 }
 function writeRunArtifact(rootDir, run) {
-    const artifactRoot = path_1.default.join(rootDir, '.ts-quality', 'runs', run.runId);
+    const safeRunId = assertSafeRunId(run.runId);
+    const artifactRoot = path_1.default.join(rootDir, '.ts-quality', 'runs', safeRunId);
     ensureDir(artifactRoot);
     writeJson(path_1.default.join(artifactRoot, 'run.json'), run);
     writeJson(path_1.default.join(artifactRoot, 'verdict.json'), run.verdict);
-    writeJson(path_1.default.join(rootDir, '.ts-quality', 'latest.json'), { latestRunId: run.runId });
+    writeJson(path_1.default.join(rootDir, '.ts-quality', 'latest.json'), { latestRunId: safeRunId });
     return artifactRoot;
 }
 function readLatestRun(rootDir) {
@@ -239,7 +261,7 @@ function readLatestRun(rootDir) {
         throw new Error(`No latest run pointer found at ${latestPointerPath}`);
     }
     const pointer = readJson(latestPointerPath);
-    return readJson(path_1.default.join(rootDir, '.ts-quality', 'runs', pointer.latestRunId, 'run.json'));
+    return loadRun(rootDir, pointer.latestRunId);
 }
 function listRunIds(rootDir) {
     const runsDir = path_1.default.join(rootDir, '.ts-quality', 'runs');
@@ -249,7 +271,8 @@ function listRunIds(rootDir) {
     return fs_1.default.readdirSync(runsDir, { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name).sort();
 }
 function loadRun(rootDir, runId) {
-    return readJson(path_1.default.join(rootDir, '.ts-quality', 'runs', runId, 'run.json'));
+    const safeRunId = assertSafeRunId(runId);
+    return readJson(path_1.default.join(rootDir, '.ts-quality', 'runs', safeRunId, 'run.json'));
 }
 function readMaybe(filePath) {
     if (!fs_1.default.existsSync(filePath)) {

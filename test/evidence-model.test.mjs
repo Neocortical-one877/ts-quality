@@ -42,3 +42,10 @@ test('collectSourceFiles includes mjs and cjs inputs', () => {
   const files = evidence.collectSourceFiles(rootDir, ['src/**/*.mjs', 'src/**/*.cjs']);
   assert.deepEqual(files, ['src/legacy.cjs', 'src/main.mjs']);
 });
+
+
+test('assertSafeRunId rejects path-like values', () => {
+  assert.equal(evidence.assertSafeRunId('run-123'), 'run-123');
+  assert.throws(() => evidence.assertSafeRunId('../escape'));
+  assert.throws(() => evidence.assertSafeRunId('nested/run'));
+});

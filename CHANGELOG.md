@@ -16,6 +16,7 @@ type: "reference"
 - Added regression tests for `.mjs` config loading, extension-aware source discovery, and focused invariant evidence.
 - Clarified docs around deterministic scope, coverage prerequisites, and focused test evidence.
 - Added explicit/inferred/missing provenance modes to invariant evidence sub-signals and rendered report/explain output.
+- Added additive analysis-context and mutation-baseline receipts to run artifacts, exact diff-hunk narrowing inside changed files, deterministic mutation execution fingerprints, explicit blocking for invalid mutation baselines, exact run-id binding for approval rules, ownership-rule enforcement, deeper package attribution, override-scope revalidation, and safe run-id validation to prevent artifact-path traversal.
 
 ## 5.0.0
 

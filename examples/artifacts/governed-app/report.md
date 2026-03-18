@@ -8,7 +8,7 @@ type: "reference"
 
 # ts-quality report
 
-- Run: `2026-03-18T01-00-02-990Z`
+- Run: `2026-03-18T01-35-42-645Z`
 - Merge confidence: **6/100**
 - Outcome: **fail**
 - Changed files: src/auth/token.js
@@ -17,44 +17,38 @@ type: "reference"
 - [error] Mutation score 0.25 is below budget 0.75
   - Killed 1, survived 3
 - [error] Surviving mutant in src/auth/token.js
-  - TAP version 13
-# Subtest: active token before expiry allows access
-ok 1 - active token before expiry allows access
-  ---
-  duration_ms: 0.666934
-  type: 'test'
-  ...
-# Subtest: missing token denies access
-ok 2 - missing token denies access
-  ---
-  duration_ms: 0.106878
-  type: 't
+  - ✔ active token before expiry allows access (0.466896ms)
+✔ missing token denies access (0.089535ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 45.24983
 - [error] Surviving mutant in src/auth/token.js
-  - TAP version 13
-# Subtest: active token before expiry allows access
-ok 1 - active token before expiry allows access
-  ---
-  duration_ms: 0.652729
-  type: 'test'
-  ...
-# Subtest: missing token denies access
-ok 2 - missing token denies access
-  ---
-  duration_ms: 0.117485
-  type: 't
+  - ✔ active token before expiry allows access (0.453376ms)
+✔ missing token denies access (0.088244ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 41.58664
 - [error] Surviving mutant in src/auth/token.js
-  - TAP version 13
-# Subtest: active token before expiry allows access
-ok 1 - active token before expiry allows access
-  ---
-  duration_ms: 0.642612
-  type: 'test'
-  ...
-# Subtest: missing token denies access
-ok 2 - missing token denies access
-  ---
-  duration_ms: 0.111725
-  type: 't
+  - ✔ active token before expiry allows access (0.465063ms)
+✔ missing token denies access (0.088874ms)
+ℹ tests 2
+ℹ suites 0
+ℹ pass 2
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 46.257184
 - [error] Invariant auth.refresh.validity is at-risk
   - 3 surviving mutants in impacted invariant scope
   - Missing deterministic test evidence for scenario 'exact expiry boundary denies access'

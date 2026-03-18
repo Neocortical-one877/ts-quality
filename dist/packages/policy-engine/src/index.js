@@ -41,6 +41,23 @@ function evaluatePolicy(input) {
         findings.push(finding('policy:mutation-score', 'mutation-score-budget', 'error', `Mutation score ${mutationSummary.score.toFixed(2)} is below budget ${input.policy.minMutationScore.toFixed(2)}`, input.mutations.map((item) => item.filePath), [`Killed ${mutationSummary.killed}, survived ${mutationSummary.survived}`]));
         reasons.push(`Mutation score is ${Math.round(mutationSummary.score * 100)}/100 with ${mutationSummary.survived} surviving mutants.`);
     }
+    if (input.mutationBaseline && input.mutationBaseline.status !== 'pass') {
+        mergeConfidence -= 30;
+        findings.push(finding('policy:mutation-baseline', 'mutation-baseline', 'error', 'Mutation baseline test command did not pass', input.changedComplexity.map((item) => item.filePath), [
+            `status=${input.mutationBaseline.status}`,
+            `exitCode=${input.mutationBaseline.exitCode ?? 'none'}`,
+            input.mutationBaseline.details || 'no output'
+        ]));
+        reasons.push('Mutation baseline test command failed before mutant execution, so mutation evidence is not trustworthy yet.');
+    }
+    const erroredMutations = input.mutations.filter((result) => result.status === 'error' || result.status === 'invalid');
+    if (erroredMutations.length > 0) {
+        mergeConfidence -= Math.min(8 * erroredMutations.length, 20);
+        for (const mutation of erroredMutations) {
+            findings.push(finding(`policy:mutation-error:${mutation.siteId}`, 'mutation-execution', 'error', `Mutation execution failed for ${mutation.filePath}`, [mutation.filePath], [mutation.details ?? mutation.siteId]));
+        }
+        reasons.push(`${erroredMutations.length} mutation site(s) could not be trusted due to invalid or errored execution.`);
+    }
     const survivingMutants = input.mutations.filter((result) => result.status === 'survived');
     if (survivingMutants.length > 0) {
         mergeConfidence -= Math.min(12 * survivingMutants.length, 24);
@@ -83,9 +100,11 @@ function evaluatePolicy(input) {
     for (const item of findings.filter((entry) => entry.level === 'error' && !entry.waived)) {
         blockedBy.push(item.message);
     }
-    const bestNextAction = survivingMutants.length > 0
-        ? `Add or tighten an assertion covering ${survivingMutants[0]?.filePath} around the surviving mutant.`
-        : riskyClaims[0]?.obligations[0]?.description ?? (hotspot ? `Refactor or cover ${hotspot.symbol} in ${hotspot.filePath}.` : undefined);
+    const bestNextAction = input.mutationBaseline && input.mutationBaseline.status !== 'pass'
+        ? 'Fix the baseline test command so it passes before trusting mutation evidence.'
+        : survivingMutants.length > 0
+            ? `Add or tighten an assertion covering ${survivingMutants[0]?.filePath} around the surviving mutant.`
+            : riskyClaims[0]?.obligations[0]?.description ?? (hotspot ? `Refactor or cover ${hotspot.symbol} in ${hotspot.filePath}.` : undefined);
     const outcome = blockedBy.length > 0 ? 'fail' : warnings.length > 0 || mergeConfidence < 85 ? 'warn' : 'pass';
     const verdict = {
         mergeConfidence,

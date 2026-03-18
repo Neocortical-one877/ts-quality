@@ -3,7 +3,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import test from 'node:test';
 import assert from 'assert/strict';
-import { repoRoot, tempCopyOfFixture, latestRunId } from './helpers.mjs';
+import { repoRoot, tempCopyOfFixture, latestRunId, readRun } from './helpers.mjs';
 
 const cli = path.join(repoRoot, 'dist', 'packages', 'ts-quality', 'src', 'cli.js');
 
@@ -37,6 +37,73 @@ test('check, report, and explain produce artifacts', () => {
   assert.match(explain.stdout, /focused tests: test\/token.test.js/);
   assert.match(explain.stdout, /scenario-support \[missing; mode=missing\]: 0\/1 scenario\(s\) have deterministic support/);
 });
+
+test('check persists analysis context and mutation baseline receipts', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const run = readRun(target);
+  assert.equal(typeof run.analysis?.executionFingerprint, 'string');
+  assert.equal(run.analysis?.changedFiles.includes('src/auth/token.js'), true);
+  assert.equal(run.mutationBaseline?.status, 'pass');
+});
+
+
+test('check accepts a caller-supplied run id for exact approval binding', () => {
+  const target = tempCopyOfFixture('governed-app');
+  fs.writeFileSync(path.join(target, 'ts-quality.config.ts'), `export default {
+  sourcePatterns: ['src/**/*.js'],
+  testPatterns: ['test/**/*.js'],
+  coverage: { lcovPath: 'coverage/lcov.info' },
+  mutations: { testCommand: ['node', '--test'], coveredOnly: true, timeoutMs: 10000, maxSites: 4 },
+  policy: { maxChangedCrap: 30, minMutationScore: 0.5, minMergeConfidence: 50 },
+  changeSet: { files: ['src/payments/ledger.js'] },
+  invariantsPath: '.ts-quality/invariants.ts',
+  constitutionPath: '.ts-quality/constitution.ts',
+  agentsPath: '.ts-quality/agents.ts',
+  approvalsPath: '.ts-quality/approvals.json',
+  waiversPath: '.ts-quality/waivers.json',
+  overridesPath: '.ts-quality/overrides.json',
+  attestationsDir: '.ts-quality/attestations',
+  trustedKeysDir: '.ts-quality/keys'
+};
+`, 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'approvals.json'), JSON.stringify([
+    {
+      by: 'maintainer',
+      role: 'maintainer',
+      rationale: 'pre-bound exact run approval',
+      createdAt: new Date().toISOString(),
+      targetId: 'exact-run-1:payments-maintainer-approval'
+    }
+  ], null, 2));
+
+  const check = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'exact-run-1'], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const run = readRun(target);
+  assert.equal(run.runId, 'exact-run-1');
+  assert.equal(run.governance.some((finding) => finding.ruleId === 'payments-maintainer-approval'), false);
+});
+
+
+test('check assigns nested package files to the deepest matching package', () => {
+  const target = tempCopyOfFixture('mini-monorepo');
+  fs.writeFileSync(path.join(target, 'packages', 'api', 'package.json'), JSON.stringify({ name: 'api-pkg', private: true }, null, 2));
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const run = readRun(target);
+  const apiFile = run.files.find((file) => file.filePath === 'packages/api/src/consumer.js');
+  assert.equal(apiFile?.packageName, 'api-pkg');
+});
+
+
+test('check rejects unsafe run ids', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', '../../escape'], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /runId must use only letters, numbers, dot, underscore, and hyphen/);
+});
+
 
 test('check --help renders usage instead of executing analysis', () => {
   const result = spawnSync('node', [cli, 'check', '--help'], { encoding: 'utf8' });

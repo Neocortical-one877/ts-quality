@@ -18,6 +18,41 @@ test('signAttestation and verifyAttestation round-trip', () => {
   assert.equal(result.ok, true);
 });
 
+
+test('authorizeChange requires override grants to match the overridden scope', () => {
+  const decision = legitimacy.authorizeChange(
+    'release-bot',
+    'merge',
+    {
+      version: '1',
+      kind: 'change-bundle',
+      action: 'merge',
+      agentId: 'release-bot',
+      runId: 'run-1',
+      createdAt: new Date().toISOString(),
+      changedFiles: ['src/payments/ledger.js'],
+      fileDigests: {},
+      runDigest: 'sha256:x'
+    },
+    {
+      runId: 'run-1',
+      changedFiles: ['src/payments/ledger.js'],
+      governance: [],
+      verdict: { mergeConfidence: 90 }
+    },
+    [
+      { id: 'release-bot', kind: 'automation', roles: ['ci'], grants: [{ id: 'release', actions: ['merge'], paths: ['src/**'], requireHumanReview: true }] },
+      { id: 'security-lead', kind: 'human', roles: ['security'], grants: [{ id: 'security-override', actions: ['override'], paths: ['src/auth/**'] }] }
+    ],
+    [],
+    [],
+    [{ kind: 'override', by: 'security-lead', role: 'security', rationale: 'wrong scope', createdAt: new Date().toISOString(), targetId: 'run-1:release-bot:merge' }]
+  );
+
+  assert.notEqual(decision.outcome, 'approve');
+});
+
+
 test('evaluateAmendment enforces maintainer approvals and evidence', () => {
   const agents = [{ id: 'maintainer', kind: 'human', roles: ['maintainer'], grants: [] }];
   const constitution = [{ kind: 'boundary', id: 'rule-1', from: ['src/**'], to: ['src/internal/**'], mode: 'forbid', message: 'x' }];

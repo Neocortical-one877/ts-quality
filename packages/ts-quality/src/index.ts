@@ -2,14 +2,17 @@ import fs from 'fs';
 import path from 'path';
 import {
   type AmendmentProposal,
+  type AnalysisContext,
   type Approval,
   type Attestation,
   type FileEntity,
   type OverrideRecord,
   type RunArtifact,
   type SymbolEntity,
+  assertSafeRunId,
   buildRepositoryEntity,
   collectSourceFiles,
+  createRunId,
   digestObject,
   ensureDir,
   fileDigest,
@@ -18,6 +21,7 @@ import {
   normalizePath,
   nowIso,
   readLatestRun,
+  resolvePackageName,
   stableStringify,
   writeJson,
   writeRunArtifact
@@ -38,11 +42,12 @@ export interface CheckResult {
 function fileEntities(rootDir: string, filePaths: string[]): FileEntity[] {
   const repo = buildRepositoryEntity(rootDir, filePaths);
   return filePaths.map((filePath) => {
+    const normalizedFilePath = normalizePath(filePath);
     const result: FileEntity = {
-      filePath: normalizePath(filePath),
+      filePath: normalizedFilePath,
       digest: fileDigest(path.join(rootDir, filePath))
     };
-    const packageName = repo.packages.find((entry) => entry.dir === '' || normalizePath(filePath).startsWith(`${entry.dir}/`) || normalizePath(filePath) === entry.dir)?.name;
+    const packageName = resolvePackageName(normalizedFilePath, repo.packages);
     if (packageName) {
       result.packageName = packageName;
     }
@@ -155,12 +160,32 @@ export function loadVerifiedAttestations(rootDir: string, attestationsDir: strin
   return { attestations, verification };
 }
 
-export function runCheck(rootDir: string, options?: { changedFiles?: string[]; configPath?: string }): CheckResult {
+function buildAnalysisContext(input: {
+  runId: string;
+  createdAt: string;
+  sourceFiles: string[];
+  changedFiles: string[];
+  changedRegions: RunArtifact['changedRegions'];
+  executionFingerprint: string;
+}): AnalysisContext {
+  return {
+    runId: input.runId,
+    createdAt: input.createdAt,
+    sourceFiles: [...input.sourceFiles],
+    changedFiles: [...input.changedFiles],
+    changedRegions: [...input.changedRegions],
+    executionFingerprint: input.executionFingerprint
+  };
+}
+
+export function runCheck(rootDir: string, options?: { changedFiles?: string[]; configPath?: string; runId?: string }): CheckResult {
   const loaded = loadContext(rootDir, options?.configPath);
   const sourceFiles = collectSourceFiles(rootDir, loaded.config.sourcePatterns);
   const changedRegions = loaded.config.changeSet.diffFile ? loadChangedRegions(rootDir, loaded.config.changeSet.diffFile) : [];
 
   const changedFiles = (options?.changedFiles ?? loaded.config.changeSet.files ?? sourceFiles).map((item) => normalizePath(item));
+  const runId = assertSafeRunId(options?.runId ?? createRunId());
+  const createdAt = nowIso();
   const lcovPath = path.join(rootDir, loaded.config.coverage.lcovPath);
   const coverage = fs.existsSync(lcovPath) ? parseLcov(fs.readFileSync(lcovPath, 'utf8')) : [];
   const waivers = loadWaivers(rootDir, loaded.config.waiversPath);
@@ -213,6 +238,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
     },
     changedComplexity: crapReport.hotspots.filter((item) => item.changed),
     mutations: mutationRun.results,
+    mutationBaseline: mutationRun.baseline,
     behaviorClaims: claims,
     governance: [],
     waivers
@@ -228,6 +254,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
     changedFiles,
     changedRegions,
     approvals,
+    runId,
     attestationsClaims: verifiedAttestations.attestations.flatMap((item) => item.claims),
     run: {
       complexity: crapReport.hotspots,
@@ -244,6 +271,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
     },
     changedComplexity: crapReport.hotspots.filter((item) => item.changed),
     mutations: mutationRun.results,
+    mutationBaseline: mutationRun.baseline,
     behaviorClaims: claims,
     governance,
     waivers
@@ -253,21 +281,30 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   }
   const evaluated = evaluatePolicy(evaluatedInput);
 
-  const runId = new Date().toISOString().replace(/[:.]/g, '-');
   const repo = buildRepositoryEntity(rootDir, sourceFiles);
+  const analysis = buildAnalysisContext({
+    runId,
+    createdAt,
+    sourceFiles,
+    changedFiles,
+    changedRegions,
+    executionFingerprint: mutationRun.executionFingerprint
+  });
   const run: RunArtifact = {
     version: '5.0.0',
     runId,
-    createdAt: nowIso(),
+    createdAt,
     repo,
     changedFiles,
     changedRegions,
+    analysis,
     files: fileEntities(rootDir, sourceFiles),
     symbols: symbolEntities(crapReport.hotspots),
     coverage,
     complexity: crapReport.hotspots,
     mutationSites: mutationRun.sites,
     mutations: mutationRun.results,
+    mutationBaseline: mutationRun.baseline,
     invariants,
     behaviorClaims: claims,
     governance,

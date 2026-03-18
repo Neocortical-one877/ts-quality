@@ -41,3 +41,65 @@ test('approval rules count only unique targeted approvals', () => {
   assert.equal(findings.length, 1);
   assert.match(findings[0].evidence[0], /Approvals present 1\/2/);
 });
+
+
+test('approval rules accept exact run-targeted approvals when runId is provided', () => {
+  const rootDir = fixturePath('governed-app');
+  const findings = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'approval',
+      id: 'payments-maintainer-approval',
+      paths: ['src/payments/**'],
+      message: 'Payments require explicit approval.',
+      minApprovals: 1,
+      roles: ['maintainer']
+    }],
+    changedFiles: ['src/payments/ledger.js'],
+    changedRegions: [],
+    runId: 'run-123',
+    approvals: [
+      { by: 'maintainer-a', role: 'maintainer', rationale: 'ok', createdAt: new Date().toISOString(), targetId: 'run-123:payments-maintainer-approval' }
+    ]
+  });
+  assert.equal(findings.length, 0);
+});
+
+
+test('ownership rules require owner approval or an allowed agent approval', () => {
+  const rootDir = fixturePath('governed-app');
+  const withoutApproval = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'ownership',
+      id: 'auth-owned',
+      owner: 'security',
+      paths: ['src/auth/**'],
+      message: 'Auth code is reserved for security review.',
+      allowedAgents: ['security-lead']
+    }],
+    changedFiles: ['src/auth/token.js'],
+    changedRegions: [],
+    approvals: []
+  });
+  const withAllowedAgent = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'ownership',
+      id: 'auth-owned',
+      owner: 'security',
+      paths: ['src/auth/**'],
+      message: 'Auth code is reserved for security review.',
+      allowedAgents: ['security-lead']
+    }],
+    changedFiles: ['src/auth/token.js'],
+    changedRegions: [],
+    approvals: [
+      { by: 'security-lead', role: 'security', rationale: 'ok', createdAt: new Date().toISOString(), targetId: 'auth-owned' }
+    ]
+  });
+
+  assert.equal(withoutApproval.length, 1);
+  assert.match(withoutApproval[0].evidence[0], /No ownership approval recorded/);
+  assert.equal(withAllowedAgent.length, 0);
+});

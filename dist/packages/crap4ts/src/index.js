@@ -119,8 +119,7 @@ function computeComplexity(node) {
     return complexity;
 }
 function findCoverage(filePath, coverage) {
-    const normalized = (0, index_1.normalizePath)(filePath);
-    return coverage.find((item) => item.filePath === normalized || item.filePath.endsWith(normalized));
+    return (0, index_1.findCoverageEvidence)(filePath, coverage);
 }
 function nodeLineSpan(node, sourceFile) {
     const start = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
@@ -143,7 +142,7 @@ function analyzeSource(filePath, sourceText, coverage, changed, changedRegions) 
         const span = nodeLineSpan(node, sourceFile);
         const coveragePct = coverageForFile ? lineCoverage(coverageForFile.lines, span, sourceText) : 0;
         const complexity = computeComplexity(node);
-        const changedBySpan = fileRegions.length > 0 && fileRegions.some((region) => {
+        const changedBySpan = fileRegions.some((region) => {
             for (let line = region.span.startLine; line <= region.span.endLine; line += 1) {
                 if ((0, index_1.spanOverlaps)(line, span)) {
                     return true;
@@ -151,6 +150,11 @@ function analyzeSource(filePath, sourceText, coverage, changed, changedRegions) 
             }
             return false;
         });
+        const changedInScope = changed.size === 0
+            ? true
+            : fileRegions.length > 0
+                ? changedBySpan
+                : changed.has((0, index_1.normalizePath)(filePath));
         results.push({
             kind: 'complexity',
             filePath: (0, index_1.normalizePath)(filePath),
@@ -159,7 +163,7 @@ function analyzeSource(filePath, sourceText, coverage, changed, changedRegions) 
             complexity,
             coveragePct,
             crap: crapScore(complexity, coveragePct),
-            changed: changed.has((0, index_1.normalizePath)(filePath)) || changedBySpan
+            changed: changedInScope
         });
     }
     function visit(node) {

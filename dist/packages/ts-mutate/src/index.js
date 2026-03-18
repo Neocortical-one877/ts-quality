@@ -8,7 +8,6 @@ exports.applyMutation = applyMutation;
 exports.runMutations = runMutations;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const os_1 = __importDefault(require("os"));
 const child_process_1 = require("child_process");
 const typescript_1 = __importDefault(require("typescript"));
 const index_1 = require("../../evidence-model/src/index");
@@ -21,8 +20,7 @@ function spanFor(node, sourceFile) {
     return { startLine, endLine, startOffset: node.getStart(sourceFile), endOffset: node.end };
 }
 function coverageForLine(filePath, line, coverage) {
-    const normalized = (0, index_1.normalizePath)(filePath);
-    const entry = coverage.find((item) => item.filePath === normalized || item.filePath.endsWith(normalized));
+    const entry = (0, index_1.findCoverageEvidence)(filePath, coverage);
     if (!entry) {
         return true;
     }
@@ -39,9 +37,12 @@ function discoverMutationSites(sourceText, filePath, coverage = [], changedFiles
     function consider(node, replacement, operator, description) {
         const span = spanFor(node, sourceFile);
         const line = span.startLine;
-        const inChangedRegion = fileRegions.length === 0 || fileRegions.some((region) => (0, index_1.spanOverlaps)(line, region.span));
-        if (changed.size > 0 && !changed.has((0, index_1.normalizePath)(filePath)) && !inChangedRegion) {
-            return;
+        const inChangedRegion = fileRegions.some((region) => (0, index_1.spanOverlaps)(line, region.span));
+        if (changed.size > 0) {
+            const inChangeScope = fileRegions.length > 0 ? inChangedRegion : changed.has((0, index_1.normalizePath)(filePath));
+            if (!inChangeScope) {
+                return;
+            }
         }
         if (coveredOnly && !coverageForLine(filePath, line, coverage)) {
             return;
@@ -129,22 +130,74 @@ function hasSyntaxErrors(filePath, sourceText) {
     const sourceFile = typescript_1.default.createSourceFile(filePath, sourceText, typescript_1.default.ScriptTarget.Latest, true);
     return sourceFile.parseDiagnostics.length > 0;
 }
-function manifestKey(repoRoot, site, testCommand) {
+function commandDetails(result) {
+    return `${(result.stdout ?? '').trim()}\n${(result.stderr ?? '').trim()}`.trim().slice(0, 280);
+}
+function runCommandReceipt(cwd, testCommand, timeoutMs) {
+    const started = Date.now();
+    const result = (0, child_process_1.spawnSync)(testCommand[0], testCommand.slice(1), {
+        cwd,
+        encoding: 'utf8',
+        timeout: timeoutMs,
+        shell: process.platform === 'win32'
+    });
+    const durationMs = Date.now() - started;
+    if (result.error) {
+        const error = result.error;
+        const status = error.code === 'ETIMEDOUT' ? 'timeout' : 'error';
+        return {
+            status,
+            exitCode: typeof result.status === 'number' ? result.status : undefined,
+            durationMs,
+            details: error.message ?? 'unknown test command error'
+        };
+    }
+    return {
+        status: result.status === 0 ? 'pass' : 'fail',
+        exitCode: typeof result.status === 'number' ? result.status : undefined,
+        durationMs,
+        details: commandDetails(result)
+    };
+}
+function buildExecutionFingerprint(repoRoot, testCommand) {
+    const repoFiles = (0, index_1.listFiles)(repoRoot, { excludeDirs: ['.git', 'node_modules', '.ts-quality'] })
+        .map((filePath) => ({ filePath, digest: (0, index_1.fileDigest)(path_1.default.join(repoRoot, filePath)) }));
+    return (0, index_1.digestObject)({
+        testCommand,
+        node: process.version,
+        platform: process.platform,
+        arch: process.arch,
+        repoFiles
+    });
+}
+function manifestKey(repoRoot, site, executionFingerprint) {
     const absolutePath = path_1.default.join(repoRoot, site.filePath);
     const fileText = fs_1.default.readFileSync(absolutePath, 'utf8');
-    return (0, index_1.digestObject)({ site, sourceDigest: (0, index_1.digestObject)(fileText), testCommand });
+    return (0, index_1.digestObject)({ site, sourceDigest: (0, index_1.digestObject)(fileText), executionFingerprint });
 }
 function loadManifest(filePath) {
     if (!filePath || !fs_1.default.existsSync(filePath)) {
-        return { version: '1', entries: {} };
+        return { version: '2', entries: {} };
     }
-    return (0, index_1.readJson)(filePath);
+    const manifest = (0, index_1.readJson)(filePath);
+    return manifest.version === '2' ? manifest : { version: '2', entries: {} };
 }
 function saveManifest(filePath, manifest) {
     if (!filePath) {
         return;
     }
     (0, index_1.writeJson)(filePath, manifest);
+}
+function linkSharedPath(sourcePath, destinationPath) {
+    if (!fs_1.default.existsSync(sourcePath) || fs_1.default.existsSync(destinationPath)) {
+        return;
+    }
+    const type = fs_1.default.statSync(sourcePath).isDirectory() ? 'junction' : 'file';
+    fs_1.default.symlinkSync(sourcePath, destinationPath, type);
+}
+function hydrateTempRuntime(repoRoot, tempDir) {
+    linkSharedPath(path_1.default.join(repoRoot, 'node_modules'), path_1.default.join(tempDir, 'node_modules'));
+    linkSharedPath(path_1.default.join(repoRoot, 'dist'), path_1.default.join(tempDir, 'dist'));
 }
 function runSingleMutation(repoRoot, site, mutatedSource, testCommand, timeoutMs) {
     if (hasSyntaxErrors(site.filePath, mutatedSource)) {
@@ -157,37 +210,23 @@ function runSingleMutation(repoRoot, site, mutatedSource, testCommand, timeoutMs
             details: 'Mutation produced syntax errors'
         };
     }
-    const tempDir = fs_1.default.mkdtempSync(path_1.default.join(os_1.default.tmpdir(), 'ts-quality-mutant-'));
+    const tempRoot = path_1.default.join(repoRoot, '.ts-quality', 'tmp-mutants');
+    (0, index_1.ensureDir)(tempRoot);
+    const tempDir = fs_1.default.mkdtempSync(path_1.default.join(tempRoot, 'mutant-'));
     try {
         copyRecursive(repoRoot, tempDir, new Set(['.git', 'node_modules', 'dist', '.ts-quality']));
+        hydrateTempRuntime(repoRoot, tempDir);
         const targetPath = path_1.default.join(tempDir, site.filePath);
         (0, index_1.ensureDir)(path_1.default.dirname(targetPath));
         fs_1.default.writeFileSync(targetPath, mutatedSource, 'utf8');
-        const started = Date.now();
-        const result = (0, child_process_1.spawnSync)(testCommand[0], testCommand.slice(1), {
-            cwd: tempDir,
-            encoding: 'utf8',
-            timeout: timeoutMs,
-            shell: process.platform === 'win32'
-        });
-        const durationMs = Date.now() - started;
-        if (result.error) {
-            return {
-                kind: 'mutation-result',
-                siteId: site.id,
-                filePath: site.filePath,
-                status: 'error',
-                durationMs,
-                details: result.error.message
-            };
-        }
+        const receipt = runCommandReceipt(tempDir, testCommand, timeoutMs);
         return {
             kind: 'mutation-result',
             siteId: site.id,
             filePath: site.filePath,
-            status: result.status === 0 ? 'survived' : 'killed',
-            durationMs,
-            details: `${(result.stdout ?? '').trim()}\n${(result.stderr ?? '').trim()}`.trim().slice(0, 280)
+            status: receipt.status === 'pass' ? 'survived' : receipt.status === 'fail' ? 'killed' : 'error',
+            durationMs: receipt.durationMs,
+            details: receipt.status === 'timeout' ? `test command timed out: ${receipt.details}` : receipt.details
         };
     }
     finally {
@@ -205,10 +244,32 @@ function runMutations(options) {
         return discoverMutationSites(sourceText, relativePath, coverage, changedFiles, changedRegions, options.coveredOnly ?? false);
     });
     const limitedSites = typeof options.maxSites === 'number' ? sites.slice(0, options.maxSites) : sites;
+    const timeoutMs = options.timeoutMs ?? 15_000;
+    const executionFingerprint = buildExecutionFingerprint(options.repoRoot, options.testCommand);
+    const baseline = runCommandReceipt(options.repoRoot, options.testCommand, timeoutMs);
+    if (baseline.status !== 'pass') {
+        const results = limitedSites.map((site) => ({
+            kind: 'mutation-result',
+            siteId: site.id,
+            filePath: site.filePath,
+            status: 'error',
+            durationMs: baseline.durationMs,
+            details: `Baseline test command must pass before mutation scoring is trusted. ${baseline.details}`.trim().slice(0, 280)
+        }));
+        return {
+            sites: limitedSites,
+            results,
+            score: 0,
+            killed: 0,
+            survived: 0,
+            baseline,
+            executionFingerprint
+        };
+    }
     const manifest = loadManifest(options.manifestPath);
     const results = [];
     for (const site of limitedSites) {
-        const key = manifestKey(options.repoRoot, site, options.testCommand);
+        const key = manifestKey(options.repoRoot, site, executionFingerprint);
         const cached = manifest.entries[key];
         if (cached) {
             results.push(cached);
@@ -216,7 +277,7 @@ function runMutations(options) {
         }
         const sourceText = fs_1.default.readFileSync(path_1.default.join(options.repoRoot, site.filePath), 'utf8');
         const mutatedSource = applyMutation(sourceText, site);
-        const result = runSingleMutation(options.repoRoot, site, mutatedSource, options.testCommand, options.timeoutMs ?? 15_000);
+        const result = runSingleMutation(options.repoRoot, site, mutatedSource, options.testCommand, timeoutMs);
         results.push(result);
         manifest.entries[key] = result;
     }
@@ -229,7 +290,9 @@ function runMutations(options) {
         results,
         score: total === 0 ? 1 : killed / total,
         killed,
-        survived
+        survived,
+        baseline,
+        executionFingerprint
     };
 }
 //# sourceMappingURL=index.js.map

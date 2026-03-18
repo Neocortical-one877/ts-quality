@@ -29,7 +29,7 @@
     {
       "code": "surviving-mutant",
       "evidence": [
-        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.666934\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.106878\n  type: 't"
+        "✔ active token before expiry allows access (0.466896ms)\n✔ missing token denies access (0.089535ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 45.24983"
       ],
       "id": "policy:surviving:sha256:386f3c89e4d0ab340adde90f9e0628e8fa2988ac6877661d9db7aa0ba1f5bb15",
       "level": "error",
@@ -41,7 +41,7 @@
     {
       "code": "surviving-mutant",
       "evidence": [
-        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.652729\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.117485\n  type: 't"
+        "✔ active token before expiry allows access (0.453376ms)\n✔ missing token denies access (0.088244ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 41.58664"
       ],
       "id": "policy:surviving:sha256:eb06d3279d4a7dd1c71e740d66cb0d3a39842478a019f312f4fe57cfd73d7e20",
       "level": "error",
@@ -53,7 +53,7 @@
     {
       "code": "surviving-mutant",
       "evidence": [
-        "TAP version 13\n# Subtest: active token before expiry allows access\nok 1 - active token before expiry allows access\n  ---\n  duration_ms: 0.642612\n  type: 'test'\n  ...\n# Subtest: missing token denies access\nok 2 - missing token denies access\n  ---\n  duration_ms: 0.111725\n  type: 't"
+        "✔ active token before expiry allows access (0.465063ms)\n✔ missing token denies access (0.088874ms)\nℹ tests 2\nℹ suites 0\nℹ pass 2\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 46.257184"
       ],
       "id": "policy:surviving:sha256:1dfca70ec304cd7d2e119c9a06b2fea09f848e2d74a92d8aedac81f4df7fb1b8",
       "level": "error",

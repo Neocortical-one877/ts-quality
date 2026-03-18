@@ -16,7 +16,7 @@ Supported rule kinds:
 - `risk` — stricter CRAP, mutation, or merge-confidence budgets for sensitive domains
 - `approval` — require human approvers with named roles
 - `rollback` — require attested evidence before risky migrations
-- `ownership` — reserve paths for named owners
+- `ownership` — reserve paths for named owners or explicitly allowed agents
 
 Example:
 
@@ -32,5 +32,9 @@ export default [
   }
 ];
 ```
+
+Approval-style rules may target either the rule id itself or an exact run binding of `runId` / `runId:ruleId`. `ts-quality check --run-id <id>` lets operators pre-bind that exact run identity when they need deterministic approval targeting. Caller-supplied run ids are validated as artifact ids and may contain only letters, numbers, dots, underscores, and hyphens.
+
+Ownership rules are enforced through explicit approvals: the named `owner` (or an `allowedAgents` entry) must record a matching approval for the reserved path scope.
 
 `ts-quality govern` renders constitutional findings. `ts-quality plan` turns those findings into concrete next steps with tradeoffs.

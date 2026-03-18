@@ -8,6 +8,7 @@ import {
   type ChangedRegion,
   type ConstitutionRule,
   type GovernanceFinding,
+  type OwnershipRule,
   type RiskBudgetRule,
   type RollbackRule,
   type RunArtifact,
@@ -31,7 +32,7 @@ export interface GovernanceEvaluationOptions {
 export interface GovernancePlan {
   summary: string;
   steps: Array<{
-    type: 'test' | 'approval' | 'rollback' | 'boundary' | 'risk';
+    type: 'test' | 'approval' | 'rollback' | 'boundary' | 'risk' | 'ownership';
     title: string;
     rationale: string;
     evidence: string[];
@@ -163,6 +164,10 @@ function evaluateRiskRule(rule: RiskBudgetRule, options: GovernanceEvaluationOpt
   return findings;
 }
 
+function approvalTargetsRuleOrRun(approval: Approval, ruleId: string, runId?: string): boolean {
+  return approval.targetId === ruleId || (runId ? approval.targetId === runId || approval.targetId === `${runId}:${ruleId}` : false);
+}
+
 function evaluateApprovalRule(rule: ApprovalRule, options: GovernanceEvaluationOptions): GovernanceFinding[] {
   const files = options.changedFiles.filter((filePath) => matchesAny(rule.paths, filePath));
   if (files.length === 0) {
@@ -173,7 +178,7 @@ function evaluateApprovalRule(rule: ApprovalRule, options: GovernanceEvaluationO
   const accepted = new Map<string, Approval>();
   for (const approval of approvals) {
     const roleMatches = rule.roles.length === 0 || rule.roles.includes(approval.role ?? '');
-    const targetMatches = approval.targetId === rule.id || (runId ? approval.targetId === runId || approval.targetId === `${runId}:${rule.id}` : false);
+    const targetMatches = approvalTargetsRuleOrRun(approval, rule.id, runId);
     if (!roleMatches || !targetMatches || accepted.has(approval.by)) {
       continue;
     }
@@ -188,6 +193,35 @@ function evaluateApprovalRule(rule: ApprovalRule, options: GovernanceEvaluationO
     level: rule.severity ?? 'error',
     message: rule.message,
     evidence: [`Approvals present ${accepted.size}/${rule.minApprovals}; roles required: ${rule.roles.join(', ') || 'any'}; target must match ${rule.id}${runId ? ` or ${runId}` : ''}`],
+    scope: files
+  }];
+}
+
+function evaluateOwnershipRule(rule: OwnershipRule, options: GovernanceEvaluationOptions): GovernanceFinding[] {
+  const files = options.changedFiles.filter((filePath) => matchesAny(rule.paths, filePath));
+  if (files.length === 0) {
+    return [];
+  }
+  const approvals = options.approvals ?? [];
+  const accepted = new Map<string, Approval>();
+  for (const approval of approvals) {
+    const targetMatches = approvalTargetsRuleOrRun(approval, rule.id, options.runId);
+    const approvedByOwner = approval.by === rule.owner || approval.role === rule.owner || approval.standing === rule.owner;
+    const approvedByAllowedAgent = (rule.allowedAgents ?? []).includes(approval.by);
+    if (!targetMatches || (!approvedByOwner && !approvedByAllowedAgent) || accepted.has(approval.by)) {
+      continue;
+    }
+    accepted.set(approval.by, approval);
+  }
+  if (accepted.size > 0) {
+    return [];
+  }
+  return [{
+    id: `${rule.id}:ownership`,
+    ruleId: rule.id,
+    level: rule.severity ?? 'error',
+    message: rule.message,
+    evidence: [`No ownership approval recorded for owner ${rule.owner}${(rule.allowedAgents ?? []).length > 0 ? ` or allowed agents ${rule.allowedAgents?.join(', ')}` : ''}; target must match ${rule.id}${options.runId ? ` or ${options.runId}` : ''}`],
     scope: files
   }];
 }
@@ -228,6 +262,9 @@ export function evaluateGovernance(options: GovernanceEvaluationOptions): Govern
     if (rule.kind === 'rollback') {
       findings.push(...evaluateRollbackRule(rule, { ...options, changedFiles }));
     }
+    if (rule.kind === 'ownership') {
+      findings.push(...evaluateOwnershipRule(rule, { ...options, changedFiles }));
+    }
   }
   return findings;
 }
@@ -237,6 +274,7 @@ export function generateGovernancePlan(run: RunArtifact, constitution: Constitut
   const approvalsRequired = constitution.filter((rule) => rule.kind === 'approval' && run.changedFiles.some((filePath) => matchesAny(rule.paths, filePath))) as ApprovalRule[];
   const rollbackRules = constitution.filter((rule) => rule.kind === 'rollback' && run.changedFiles.some((filePath) => matchesAny(rule.paths, filePath))) as RollbackRule[];
   const riskRules = constitution.filter((rule) => rule.kind === 'risk' && run.changedFiles.some((filePath) => matchesAny(rule.paths, filePath))) as RiskBudgetRule[];
+  const ownershipRules = constitution.filter((rule) => rule.kind === 'ownership' && run.changedFiles.some((filePath) => matchesAny(rule.paths, filePath))) as OwnershipRule[];
 
   const survivingMutants = run.mutations.filter((result) => result.status === 'survived');
   if (survivingMutants.length > 0) {
@@ -280,6 +318,16 @@ export function generateGovernancePlan(run: RunArtifact, constitution: Constitut
         `Current outcome: ${run.verdict.outcome}`
       ],
       tradeoffs: ['May require refactoring or more tests', 'Reduces policy exceptions later']
+    });
+  }
+
+  for (const rule of ownershipRules) {
+    steps.push({
+      type: 'ownership',
+      title: `Obtain owner approval for ${rule.id}`,
+      rationale: rule.message,
+      evidence: [`Owner: ${rule.owner}`, ...(rule.allowedAgents ?? []).map((agentId) => `Allowed agent: ${agentId}`)],
+      tradeoffs: ['May require owner coordination', 'Preserves path-level accountability']
     });
   }
 
