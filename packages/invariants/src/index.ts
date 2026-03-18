@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import ts from 'typescript';
 import {
   type BehaviorClaim,
   type ChangedRegion,
@@ -33,6 +34,7 @@ interface TestDocument {
   filePath: string;
   contents: string;
   lowered: string;
+  importHints: string[];
 }
 
 interface FocusedTestSelection {
@@ -72,6 +74,31 @@ function impactedFiles(invariant: InvariantSpec, changedFiles: string[], changed
   return [...output].sort();
 }
 
+function importHintsForDocument(filePath: string, contents: string): string[] {
+  const sourceFile = ts.createSourceFile(filePath, contents, ts.ScriptTarget.Latest, true);
+  const hints: string[] = [];
+
+  function pushSpecifier(specifier: string): void {
+    hints.push(...lexicalVariants(specifier));
+  }
+
+  function visit(node: any): void {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier && ts.isStringLiteral(node.moduleSpecifier)) {
+      pushSpecifier(node.moduleSpecifier.text);
+    }
+    if (ts.isCallExpression(node) && node.expression?.getText(sourceFile) === 'require' && node.arguments.length === 1) {
+      const argument = node.arguments[0];
+      if (ts.isStringLiteral(argument)) {
+        pushSpecifier(argument.text);
+      }
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return unique(hints.map((hint) => hint.toLowerCase()));
+}
+
 function loadTestDocuments(rootDir: string, patterns: string[]): TestDocument[] {
   const files = collectSourceFiles(rootDir, patterns);
   return files.map((filePath) => {
@@ -79,7 +106,8 @@ function loadTestDocuments(rootDir: string, patterns: string[]): TestDocument[] 
     return {
       filePath,
       contents,
-      lowered: contents.toLowerCase()
+      lowered: contents.toLowerCase(),
+      importHints: importHintsForDocument(filePath, contents)
     } satisfies TestDocument;
   });
 }
@@ -137,15 +165,15 @@ function focusedTestDocuments(testDocuments: TestDocument[], invariant: Invarian
 
   const documents = testDocuments.filter((document) => {
     const loweredPath = document.filePath.toLowerCase();
-    return hints.some((hint) => loweredPath.includes(hint) || document.lowered.includes(hint));
+    return hints.some((hint) => loweredPath.includes(hint) || document.importHints.some((importHint) => importHint.includes(hint)));
   });
 
   return {
     documents,
     mode: documents.length > 0 ? 'inferred' : 'missing',
     modeReason: documents.length > 0
-      ? 'matched focused tests via deterministic path/name/selector hints'
-      : 'no focused tests matched deterministic path/name/selector hints'
+      ? 'matched focused tests via deterministic path/import/selector hints'
+      : 'no focused tests matched deterministic path/import/selector hints'
   } satisfies FocusedTestSelection;
 }
 
