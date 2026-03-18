@@ -83,7 +83,19 @@ export function evaluatePolicy(input: PolicyInput): { verdict: Verdict; trend?: 
   if (riskyClaims.length > 0) {
     mergeConfidence -= Math.min(10 * riskyClaims.length, 20);
     for (const claim of riskyClaims) {
-      findings.push(finding(`policy:invariant:${claim.invariantId}`, 'invariant-risk', claim.status === 'at-risk' ? 'error' : 'warn', `Invariant ${claim.invariantId} is ${claim.status}`, [claim.invariantId], [...claim.evidence, ...claim.obligations.map((item) => item.description)]));
+      const modeSummary = invariantModeSummary(claim);
+      findings.push(finding(
+        `policy:invariant:${claim.invariantId}`,
+        'invariant-risk',
+        claim.status === 'at-risk' ? 'error' : 'warn',
+        `Invariant ${claim.invariantId} is ${claim.status}`,
+        [claim.invariantId],
+        [
+          ...claim.evidence,
+          ...(modeSummary ? [modeSummary] : []),
+          ...claim.obligations.map((item) => item.description)
+        ]
+      ));
     }
     reasons.push(`${riskyClaims.length} invariant(s) need stronger test evidence or failure-path coverage.`);
   }
@@ -156,6 +168,14 @@ function scenarioSummaryLabel(result: NonNullable<BehaviorClaim['evidenceSummary
   return `missing ${missing.join(' + ')} evidence`;
 }
 
+function invariantModeSummary(claim: BehaviorClaim): string | undefined {
+  const summary = claim.evidenceSummary;
+  if (!summary || summary.subSignals.length === 0) {
+    return undefined;
+  }
+  return `Invariant evidence modes: ${summary.subSignals.map((item) => `${item.signalId}=${item.mode}`).join('; ')}`;
+}
+
 function renderInvariantSubSignals(claim: BehaviorClaim): string[] {
   const summary = claim.evidenceSummary;
   if (!summary || summary.subSignals.length === 0) {
@@ -163,7 +183,7 @@ function renderInvariantSubSignals(claim: BehaviorClaim): string[] {
   }
   const lines = ['  - sub-signals:'];
   for (const subSignal of summary.subSignals) {
-    lines.push(`    - ${subSignal.signalId} [${subSignal.level}]: ${subSignal.summary}`);
+    lines.push(`    - ${subSignal.signalId} [${subSignal.level}; mode=${subSignal.mode}]: ${subSignal.summary}`);
     for (const fact of subSignal.facts) {
       lines.push(`      - ${fact}`);
     }

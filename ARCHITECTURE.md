@@ -50,7 +50,7 @@ Product surface. It loads configuration, orchestrates the engines, writes artifa
 2. Changed files and optional diff hunks define the scope.
 3. `crap4ts` computes structural risk.
 4. `ts-mutate` computes behavioral pressure.
-5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries with named sub-signals (focused-test alignment, changed-function pressure, coverage pressure, mutation pressure, and scenario support).
+5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries with named sub-signals (focused-test alignment, changed-function pressure, coverage pressure, mutation pressure, and scenario support) plus additive provenance modes (`explicit`, `inferred`, `missing`).
 6. `policy-engine` emits an explainable merge-confidence verdict.
 7. `governance` evaluates constitutional constraints and produces a plan.
 8. `legitimacy` consumes the evidence bundle for authorization, attestation, override, and amendment flows.
@@ -62,3 +62,4 @@ Product surface. It loads configuration, orchestrates the engines, writes artifa
 - **Deterministic semantics**: invariant reasoning is keyword- and selector-driven, not opaque.
 - **Stable artifacts**: JSON is key-sorted for hashing, signing, and diffability.
 - **Human overrideability**: automation can be blocked, narrowed, or overridden with recorded standing and rationale.
+verrideability**: automation can be blocked, narrowed, or overridden with recorded standing and rationale.

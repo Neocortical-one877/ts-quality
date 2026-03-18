@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_at": "2026-03-17",
+  "updated_at": "2026-03-18",
   "owner": "@tryinget",
   "project_name": "ts-quality",
   "milestones": [
@@ -37,10 +37,23 @@
         {
           "id": "AK-TASK-0181",
           "title": "ts-quality: introduce explicit vs inferred invariant evidence modes",
-          "state": "queued",
+          "state": "done",
           "tasks": [
             {
               "text": "ts-quality: introduce explicit vs inferred invariant evidence modes (task #181)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0182",
+          "title": "ts-quality: surface invariant evidence provenance in pr-summary.md",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: surface invariant evidence provenance in pr-summary.md (task #182)",
               "done": false
             }
           ],

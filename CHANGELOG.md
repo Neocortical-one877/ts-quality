@@ -15,6 +15,7 @@ type: "reference"
 - Tightened invariant evidence so only focused tests aligned to impacted files or explicit `requiredTestPatterns` count toward support.
 - Added regression tests for `.mjs` config loading, extension-aware source discovery, and focused invariant evidence.
 - Clarified docs around deterministic scope, coverage prerequisites, and focused test evidence.
+- Added explicit/inferred/missing provenance modes to invariant evidence sub-signals and rendered report/explain output.
 
 ## 5.0.0
 

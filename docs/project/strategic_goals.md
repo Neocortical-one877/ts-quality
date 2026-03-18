@@ -1,5 +1,5 @@
 ---
-summary: "Strategic goals for ts-quality after #179 established invariant-scoped evidence summaries."
+summary: "Strategic goals for ts-quality after #181 completed the invariant evidence contract foundation."
 read_when:
   - "When deciding the next quarter-scale direction for ts-quality"
   - "When translating the vision into bounded delivery waves"
@@ -9,15 +9,15 @@ type: "reference"
 # Strategic goals
 
 ## Why this file exists now
-The repo already proved an important direction with `#179`: invariant evidence can be made more explicit without breaking the core artifact shape.
+The repo already proved an important direction with `#179` through `#181`: invariant evidence can be made more explicit, decomposed, and mode-aware without breaking the core artifact shape.
 That matters because the product's credibility depends less on new headline scores and more on whether the existing evidence basis becomes inspectable.
-These goals define the next durable bridge between the project vision and the active tactical queue.
+These goals define the durable bridge between the project vision and the active tactical queue.
 
 ## Strategic goals
 
 ### SG1 — Make invariant evidence first-class, decomposed, and mode-aware
-The current artifact surface now has `behaviorClaims[].evidenceSummary`, but that summary still needs to grow from a compact rollup into a clearer evidence contract.
-The active strategic move is to make invariant support legible as named sub-signals and to distinguish explicit evidence from inferred evidence instead of silently blending them.
+The repo has now validated SG1's core contract: `behaviorClaims[].evidenceSummary` can carry additive invariant summaries, named sub-signals, and explicit/inferred/missing provenance modes without destabilizing the artifact surface.
+SG1 remains an important completed foundation rather than the active next wave.
 
 Success signals:
 - invariant evaluation exposes distinct evidence sub-signals instead of one opaque support impression
@@ -27,7 +27,7 @@ Success signals:
 
 ### SG2 — Keep every operator surface downstream of the same evidence truth
 The repo already emits multiple surfaces: `run.json`, `report.md`, `pr-summary.md`, `explain.txt`, `plan.txt`, and governance/legitimacy outputs.
-The next strategic move after SG1 is to make those surfaces easier to read while keeping them downstream of the same native evidence contract.
+The next unfinished strategic move is to make those surfaces easier to read while keeping them downstream of the same native evidence contract.
 
 Success signals:
 - runtime artifacts and rendered reports describe the same evidence facts with no silent divergence
@@ -42,6 +42,6 @@ Success signals:
 - company-root or workflow-platform expansion unrelated to this repo's native product layers
 
 ## Relationship to tactical goals
-- `docs/project/tactical_goals.md` should currently decompose **SG1** into the next bounded reviewed wave
-- if the active tactical goal completes, refresh the tactical layer from the next unfinished strategic goal instead of leaving placeholders behind
+- `docs/project/tactical_goals.md` should currently decompose the next unfinished strategic goal into the next bounded reviewed wave
+- after the SG1 foundation landed, the active tactical layer should refresh from **SG2** instead of pretending the earlier wave is still active
 - `next_session_prompt.md` should point only at the real next starting point from that tactical queue

@@ -4,6 +4,7 @@ import {
   type BehaviorClaim,
   type ChangedRegion,
   type ComplexityEvidence,
+  type InvariantEvidenceMode,
   type InvariantEvidenceSubSignal,
   type InvariantEvidenceSummary,
   type InvariantScenarioResult,
@@ -32,6 +33,12 @@ interface TestDocument {
   filePath: string;
   contents: string;
   lowered: string;
+}
+
+interface FocusedTestSelection {
+  documents: TestDocument[];
+  mode: InvariantEvidenceMode;
+  modeReason: string;
 }
 
 function selectorMatchesInvariant(selector: string, filePath: string, symbols: ComplexityEvidence[]): boolean {
@@ -111,9 +118,16 @@ function selectorHints(invariant: InvariantSpec): string[] {
   return unique(hints);
 }
 
-function focusedTestDocuments(testDocuments: TestDocument[], invariant: InvariantSpec, files: string[]): TestDocument[] {
+function focusedTestDocuments(testDocuments: TestDocument[], invariant: InvariantSpec, files: string[]): FocusedTestSelection {
   if (invariant.requiredTestPatterns && invariant.requiredTestPatterns.length > 0) {
-    return testDocuments.filter((document) => invariant.requiredTestPatterns?.some((pattern) => matchPattern(pattern, document.filePath)));
+    const documents = testDocuments.filter((document) => invariant.requiredTestPatterns?.some((pattern) => matchPattern(pattern, document.filePath)));
+    return {
+      documents,
+      mode: documents.length > 0 ? 'explicit' : 'missing',
+      modeReason: documents.length > 0
+        ? `matched explicit requiredTestPatterns (${invariant.requiredTestPatterns.join(', ')})`
+        : `requiredTestPatterns matched no test files (${invariant.requiredTestPatterns.join(', ')})`
+    } satisfies FocusedTestSelection;
   }
 
   const hints = unique([
@@ -121,10 +135,18 @@ function focusedTestDocuments(testDocuments: TestDocument[], invariant: Invarian
     ...selectorHints(invariant)
   ]).filter((hint) => hint.length >= 3);
 
-  return testDocuments.filter((document) => {
+  const documents = testDocuments.filter((document) => {
     const loweredPath = document.filePath.toLowerCase();
     return hints.some((hint) => loweredPath.includes(hint) || document.lowered.includes(hint));
   });
+
+  return {
+    documents,
+    mode: documents.length > 0 ? 'inferred' : 'missing',
+    modeReason: documents.length > 0
+      ? 'matched focused tests via deterministic path/name/selector hints'
+      : 'no focused tests matched deterministic path/name/selector hints'
+  } satisfies FocusedTestSelection;
 }
 
 function scenarioHasCoverage(corpus: string, keywords: string[]): boolean {
@@ -154,9 +176,59 @@ function summarizeScenarioSupport(result: InvariantScenarioResult): string {
   return `${result.scenarioId}: missing ${missing.join(' + ')} evidence`;
 }
 
+function withModeReason(modeReason: string, facts: string[]): string[] {
+  return [`mode reason: ${modeReason}`, ...facts];
+}
+
+function explicitArtifactMode(hasEvidence: boolean, options: { explicitReason: string; missingReason: string }): { mode: InvariantEvidenceMode; modeReason: string } {
+  return hasEvidence
+    ? { mode: 'explicit', modeReason: options.explicitReason }
+    : { mode: 'missing', modeReason: options.missingReason };
+}
+
+function scenarioSupportMode(scenarioResults: InvariantScenarioResult[], focusedTestSelection: FocusedTestSelection): InvariantEvidenceMode {
+  if (scenarioResults.length === 0) {
+    return 'missing';
+  }
+
+  const supportedCount = scenarioResults.filter((item) => item.supported).length;
+  if (supportedCount === 0) {
+    return 'missing';
+  }
+
+  return focusedTestSelection.mode === 'explicit' ? 'explicit' : 'inferred';
+}
+
+function scenarioSupportModeReason(scenarioResults: InvariantScenarioResult[], focusedTestSelection: FocusedTestSelection): string {
+  if (scenarioResults.length === 0) {
+    return 'invariant declares no scenarios';
+  }
+
+  const supportedCount = scenarioResults.filter((item) => item.supported).length;
+  if (supportedCount === 0) {
+    if (focusedTestSelection.mode === 'explicit') {
+      return focusedTestSelection.documents.length > 0
+        ? 'requiredTestPatterns selected tests, but no scenario has full deterministic support'
+        : 'requiredTestPatterns matched no test files for deterministic scenario evaluation';
+    }
+    if (focusedTestSelection.mode === 'inferred') {
+      return 'heuristically aligned focused tests were evaluated, but no scenario has full deterministic support';
+    }
+    return 'no focused tests were available for deterministic scenario evaluation';
+  }
+
+  if (focusedTestSelection.mode === 'explicit') {
+    return 'scenario support came from tests matched by explicit requiredTestPatterns';
+  }
+  if (focusedTestSelection.mode === 'inferred') {
+    return 'scenario support came from heuristically aligned focused tests';
+  }
+  return 'no focused tests were available for deterministic scenario evaluation';
+}
+
 function buildSubSignals(options: {
   files: string[];
-  focusedTests: TestDocument[];
+  focusedTestSelection: FocusedTestSelection;
   changedFunctions: Array<{ filePath: string; symbol: string; coveragePct: number; crap: number }>;
   lowCoverageChanged: Array<{ filePath: string; symbol: string; coveragePct: number; crap: number }>;
   mutationSitesInScope: number;
@@ -164,8 +236,22 @@ function buildSubSignals(options: {
   survivingMutantsInScope: number;
   scenarioResults: InvariantScenarioResult[];
 }): InvariantEvidenceSubSignal[] {
-  const focusedTestFiles = options.focusedTests.map((document) => document.filePath);
+  const focusedTestFiles = options.focusedTestSelection.documents.map((document) => document.filePath);
   const scenarioSupportedCount = options.scenarioResults.filter((item) => item.supported).length;
+  const scenarioMode = scenarioSupportMode(options.scenarioResults, options.focusedTestSelection);
+  const scenarioModeReason = scenarioSupportModeReason(options.scenarioResults, options.focusedTestSelection);
+  const coverageMode = explicitArtifactMode(options.changedFunctions.length > 0, {
+    explicitReason: 'coverage evidence came from LCOV for changed functions in invariant scope',
+    missingReason: 'no changed functions were mapped into invariant scope for coverage evaluation'
+  });
+  const mutationMode = explicitArtifactMode(options.mutationSitesInScope > 0, {
+    explicitReason: 'mutation evidence came from selected mutation sites in invariant scope',
+    missingReason: 'no mutation sites were selected in invariant scope'
+  });
+  const changedFunctionMode = explicitArtifactMode(options.changedFunctions.length > 0, {
+    explicitReason: 'changed-function evidence came from CRAP/changed-function mapping in invariant scope',
+    missingReason: 'no changed functions were mapped into invariant scope'
+  });
   const changedFunctionsSummary = options.changedFunctions.length > 0
     ? options.changedFunctions.map((item) => describeChangedFunction(item))
     : ['none'];
@@ -175,13 +261,15 @@ function buildSubSignals(options: {
       signalId: 'focused-test-alignment',
       label: 'Focused test alignment',
       level: focusedTestFiles.length > 0 ? 'clear' : 'missing',
+      mode: options.focusedTestSelection.mode,
+      modeReason: options.focusedTestSelection.modeReason,
       summary: focusedTestFiles.length > 0
         ? `${pluralize(focusedTestFiles.length, 'focused test file')} aligned to invariant scope`
         : 'No focused test files aligned to invariant scope',
-      facts: [
+      facts: withModeReason(options.focusedTestSelection.modeReason, [
         `impacted files: ${options.files.join(', ') || 'none'}`,
         `focused tests: ${focusedTestFiles.join(', ') || 'none'}`
-      ]
+      ])
     },
     {
       signalId: 'scenario-support',
@@ -193,23 +281,35 @@ function buildSubSignals(options: {
           : scenarioSupportedCount === 0
             ? 'missing'
             : 'warning',
+      mode: scenarioMode,
+      modeReason: scenarioModeReason,
       summary: options.scenarioResults.length === 0
         ? 'Invariant declares no scenarios'
         : `${scenarioSupportedCount}/${options.scenarioResults.length} scenario(s) have deterministic support`,
-      facts: options.scenarioResults.length > 0
+      facts: withModeReason(scenarioModeReason, options.scenarioResults.length > 0
         ? options.scenarioResults.map((item) => summarizeScenarioSupport(item))
-        : ['none']
+        : ['none'])
     },
     {
       signalId: 'coverage-pressure',
       label: 'Coverage pressure',
-      level: options.lowCoverageChanged.length > 0 ? 'warning' : 'clear',
-      summary: options.lowCoverageChanged.length > 0
-        ? `${pluralize(options.lowCoverageChanged.length, 'changed function')} under 80% coverage`
-        : 'All changed functions in invariant scope are at or above 80% coverage',
-      facts: options.lowCoverageChanged.length > 0
-        ? options.lowCoverageChanged.map((item) => describeChangedFunction(item))
-        : ['changed functions under 80% coverage: 0']
+      level: options.changedFunctions.length === 0
+        ? 'missing'
+        : options.lowCoverageChanged.length > 0
+          ? 'warning'
+          : 'clear',
+      mode: coverageMode.mode,
+      modeReason: coverageMode.modeReason,
+      summary: options.changedFunctions.length === 0
+        ? 'No changed functions were available for coverage evaluation in invariant scope'
+        : options.lowCoverageChanged.length > 0
+          ? `${pluralize(options.lowCoverageChanged.length, 'changed function')} under 80% coverage`
+          : 'All changed functions in invariant scope are at or above 80% coverage',
+      facts: withModeReason(coverageMode.modeReason, options.changedFunctions.length === 0
+        ? ['changed functions in scope: 0']
+        : options.lowCoverageChanged.length > 0
+          ? options.lowCoverageChanged.map((item) => describeChangedFunction(item))
+          : ['changed functions under 80% coverage: 0'])
     },
     {
       signalId: 'mutation-pressure',
@@ -219,25 +319,29 @@ function buildSubSignals(options: {
         : options.survivingMutantsInScope > 0
           ? 'warning'
           : 'clear',
+      mode: mutationMode.mode,
+      modeReason: mutationMode.modeReason,
       summary: options.mutationSitesInScope === 0
         ? 'No mutation sites were selected in invariant scope'
         : options.survivingMutantsInScope > 0
           ? `${pluralize(options.survivingMutantsInScope, 'surviving mutant')} across ${pluralize(options.mutationSitesInScope, 'mutation site')}`
           : `${pluralize(options.killedMutantsInScope, 'killed mutant')} across ${pluralize(options.mutationSitesInScope, 'mutation site')} with no survivors`,
-      facts: [
+      facts: withModeReason(mutationMode.modeReason, [
         `mutation sites in scope: ${options.mutationSitesInScope}`,
         `killed mutants in scope: ${options.killedMutantsInScope}`,
         `surviving mutants in scope: ${options.survivingMutantsInScope}`
-      ]
+      ])
     },
     {
       signalId: 'changed-function-pressure',
       label: 'Changed function pressure',
       level: options.changedFunctions.length > 0 ? 'info' : 'missing',
+      mode: changedFunctionMode.mode,
+      modeReason: changedFunctionMode.modeReason,
       summary: options.changedFunctions.length > 0
         ? `${pluralize(options.changedFunctions.length, 'changed function')} in invariant scope; max changed CRAP ${options.changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0)}`
         : 'No changed functions were mapped into invariant scope',
-      facts: changedFunctionsSummary
+      facts: withModeReason(changedFunctionMode.modeReason, changedFunctionsSummary)
     }
   ];
 }
@@ -272,7 +376,8 @@ export function evaluateInvariants(options: InvariantEvaluationOptions): Behavio
       .sort((left, right) => left.filePath.localeCompare(right.filePath) || left.symbol.localeCompare(right.symbol));
     const lowCoverageChanged = changedFunctions.filter((item) => item.coveragePct < 80);
     const maxChangedCrap = changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0);
-    const focusedTests = focusedTestDocuments(testDocuments, invariant, files);
+    const focusedTestSelection = focusedTestDocuments(testDocuments, invariant, files);
+    const focusedTests = focusedTestSelection.documents;
     const focusedCorpus = focusedTests.map((document) => document.contents).join('\n');
     const scenarioResults: InvariantScenarioResult[] = [];
 
@@ -286,7 +391,9 @@ export function evaluateInvariants(options: InvariantEvaluationOptions): Behavio
     }
     if (focusedTests.length === 0) {
       status = status === 'at-risk' ? 'at-risk' : 'unsupported';
-      evidence.push(`No focused test files matched invariant scope for ${files.join(', ')}; align test names/imports or set requiredTestPatterns.`);
+      evidence.push(invariant.requiredTestPatterns && invariant.requiredTestPatterns.length > 0
+        ? `requiredTestPatterns matched no focused test files for ${files.join(', ')}; review the configured patterns.`
+        : `No focused test files matched invariant scope for ${files.join(', ')}; align test names/imports or set requiredTestPatterns.`);
     }
 
     for (const scenario of invariant.scenarios) {
@@ -345,7 +452,7 @@ export function evaluateInvariants(options: InvariantEvaluationOptions): Behavio
       scenarioResults,
       subSignals: buildSubSignals({
         files,
-        focusedTests,
+        focusedTestSelection,
         changedFunctions,
         lowCoverageChanged,
         mutationSitesInScope: fileMutations.length,

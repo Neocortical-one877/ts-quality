@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff after landing #180 invariant evidence sub-signals; the next repo-local queue continues at #181 over explicit vs inferred evidence modes."
+summary: "Active handoff after landing #181 invariant evidence modes; the next repo-local queue continues at #182 for PR-facing provenance projection."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -36,8 +36,8 @@ Otherwise continue through research, implementation, validation, and handoff in 
 - Config contract: `docs/config-reference.md`
 - Invariant contract: `docs/invariant-dsl.md`
 - CI/operator integration: `docs/ci-integration.md`
-- Latest durable learning: `docs/learnings/2026-03-17-deterministic-evidence-depth.md`
-- Latest session capture: `diary/2026-03-17--feat-invariant-evidence-sub-signals.md`
+- Latest durable learning: `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
+- Latest session capture: `diary/2026-03-18--feat-invariant-evidence-modes.md`
 - Active/deferred work authority: Agent Kernel
 - Checked-in work-items projection: `governance/work-items.json`
 - Raw session capture: `diary/`
@@ -49,16 +49,12 @@ Prefer explicit evidence/report improvements over vague semantic-expansion work.
 
 ## ACTIVE HANDOFF
 - Repo registration in AK remains verified.
-- **`#180`** — split invariant evaluation into explicit evidence sub-signals — is complete.
-- The next reviewed repo-local queue now continues in the same invariant-evidence wave:
-  - **`#181`** — introduce explicit vs inferred invariant evidence modes
-- Keep scope bounded to this repo's invariant evaluation, evidence-model, report/explain/run artifact surfaces, docs, examples, and regression tests.
-- Keep `behaviorClaims[].evidenceSummary` additive; extend it rather than replacing it with a new top-level authority unless the repo explicitly adopts that change.
-- Keep deterministic evidence depth grounded in:
-  - correct glob semantics
-  - focused aligned tests or explicit `requiredTestPatterns`
-  - explicit artifact evidence rather than repo-global keyword coincidence
-- Do **not** reintroduce repo-global invariant keyword matching as if it were focused evidence.
+- **`#181`** — introduce explicit vs inferred invariant evidence modes — is complete.
+- The next reviewed repo-local queue now continues in the next SG2 operator-surface wave:
+  - **`#182`** — surface invariant evidence provenance in `pr-summary.md`
+- Keep scope bounded to PR-facing output, evidence-summary projections, docs, regression tests, and generated sample artifacts.
+- Keep `pr-summary.md` downstream of `behaviorClaims[].evidenceSummary`; do **not** invent a second authority or a second reasoning system.
+- Keep concise output honest about whether invariant support is explicit, inferred, or missing.
 - Do **not** let a headline merge-confidence score outrank the underlying evidence basis.
 - Do **not** let docs promise semantic depth beyond what deterministic evidence actually supports.
 
@@ -68,8 +64,8 @@ This repo now ships the same repo-local AK launcher pattern used in `ts-quality-
 ```bash
 ./scripts/ak.sh --doctor
 ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'
-./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 181)'
-./scripts/ak.sh task claim 181 --agent pi
+./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 182)'
+./scripts/ak.sh task claim 182 --agent pi
 git status --short
 ```
 
@@ -83,8 +79,8 @@ git status --short
 7. `docs/project/operating_plan.md`
 8. `docs/config-reference.md`
 9. `docs/invariant-dsl.md`
-10. `docs/learnings/2026-03-17-deterministic-evidence-depth.md`
-11. `diary/2026-03-17--feat-invariant-evidence-sub-signals.md`
+10. `docs/learnings/2026-03-18-additive-evidence-provenance-modes.md`
+11. `diary/2026-03-18--feat-invariant-evidence-modes.md`
 12. relevant package source + regression tests for the claimed task
 
 ## EXECUTION MODE (MANDATORY ORDER)
@@ -99,11 +95,11 @@ git status --short
 9. **Commit** — leave the repo ready for a clean next context window unless the operator explicitly says otherwise.
 
 ## SESSION CHECKPOINT
-- Slice executed: **`#180`** — split invariant evaluation into explicit evidence sub-signals
-- Outcome: additive `behaviorClaims[].evidenceSummary.subSignals` support now flows through the evidence model, invariant evaluation, run/report/explain output, docs, tests, and generated example artifacts
-- Refactoring status: no structural refactor was required; the existing behavior-claim summary surface absorbed the new sub-signals cleanly
+- Slice executed: **`#181`** — introduce explicit vs inferred invariant evidence modes
+- Outcome: additive `behaviorClaims[].evidenceSummary.subSignals[].mode` / `modeReason` support now flows through the evidence model, invariant evaluation, report/explain output, invariant-risk findings, docs, tests, and generated example artifacts
+- Refactoring status: no structural refactor was required; provenance fit cleanly into the existing additive sub-signal surface
 - Validation from the completed slice: `node --test test/invariants.test.mjs test/cli-integration.test.mjs` (pass), `npm test` (pass), `npm run verify` (pass)
-- Next-session starting point: inspect AK task **`#181`**, read the invariant/evidence-model/report code paths it touches, and keep the provenance-mode addition additive to the current sub-signal surface
+- Next-session starting point: inspect AK task **`#182`**, read the PR-summary/report rendering code paths it touches, and keep the concise provenance projection downstream of the current evidence-summary authority
 
 ## END-OF-SESSION
 - keep this file aligned with the real next starting point

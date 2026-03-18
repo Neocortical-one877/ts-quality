@@ -64,7 +64,7 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `plan.txt` — governance plan
 - `govern.txt` — governance findings
 
-Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, per-scenario support, and named deterministic sub-signals such as `focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, and `changed-function-pressure`.
+Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, per-scenario support, and named deterministic sub-signals such as `focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, and `changed-function-pressure`. Every sub-signal is also labeled as `explicit`, `inferred`, or `missing` so reviewers can tell whether support came from direct configured/artifact evidence or deterministic alignment heuristics.
 
 ## Why it is explainable
 
@@ -115,8 +115,8 @@ Use `./scripts/ak.sh` as the canonical entrypoint and `./scripts/ak-v2.sh` as th
 ```bash
 ./scripts/ak.sh --doctor
 ./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == env.PWD)'
-./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == env.PWD and (.id == 180 or .id == 181))'
-./scripts/ak.sh task claim 180 --agent pi
+./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == env.PWD and (.id == 181 or .id == 182))'
+./scripts/ak.sh task claim 182 --agent pi
 ```
 
 ## Sample artifacts

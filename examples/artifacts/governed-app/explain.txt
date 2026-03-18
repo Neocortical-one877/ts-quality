@@ -1,4 +1,4 @@
-Run 2026-03-18T00-35-25-575Z
+Run 2026-03-18T01-00-02-990Z
 Changed files: src/auth/token.js
 Merge confidence: 6/100 (fail)
 
@@ -18,18 +18,23 @@ Invariant impact:
   - mutation scope: 4 site(s), 1 killed, 3 survived
   - scenario results: expired-boundary=missing failure-path evidence
   - sub-signals:
-    - focused-test-alignment [clear]: 1 focused test file aligned to invariant scope
+    - focused-test-alignment [clear; mode=inferred]: 1 focused test file aligned to invariant scope
+      - mode reason: matched focused tests via deterministic path/name/selector hints
       - impacted files: src/auth/token.js
       - focused tests: test/token.test.js
-    - scenario-support [missing]: 0/1 scenario(s) have deterministic support
+    - scenario-support [missing; mode=missing]: 0/1 scenario(s) have deterministic support
+      - mode reason: heuristically aligned focused tests were evaluated, but no scenario has full deterministic support
       - expired-boundary: missing failure-path evidence
-    - coverage-pressure [clear]: All changed functions in invariant scope are at or above 80% coverage
+    - coverage-pressure [clear; mode=explicit]: All changed functions in invariant scope are at or above 80% coverage
+      - mode reason: coverage evidence came from LCOV for changed functions in invariant scope
       - changed functions under 80% coverage: 0
-    - mutation-pressure [warning]: 3 surviving mutants across 4 mutation sites
+    - mutation-pressure [warning; mode=explicit]: 3 surviving mutants across 4 mutation sites
+      - mode reason: mutation evidence came from selected mutation sites in invariant scope
       - mutation sites in scope: 4
       - killed mutants in scope: 1
       - surviving mutants in scope: 3
-    - changed-function-pressure [info]: 3 changed functions in invariant scope; max changed CRAP 3
+    - changed-function-pressure [info; mode=explicit]: 3 changed functions in invariant scope; max changed CRAP 3
+      - mode reason: changed-function evidence came from CRAP/changed-function mapping in invariant scope
       - function:canUseRefreshToken (src/auth/token.js, coverage 100%, CRAP 3)
       - function:isRefreshExpired (src/auth/token.js, coverage 100%, CRAP 1)
       - function:issueAccessDecision (src/auth/token.js, coverage 100%, CRAP 3)

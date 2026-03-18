@@ -102,10 +102,13 @@ export interface InvariantScenarioResult {
 }
 export type InvariantEvidenceSignalId = 'focused-test-alignment' | 'scenario-support' | 'coverage-pressure' | 'mutation-pressure' | 'changed-function-pressure';
 export type InvariantEvidenceSignalLevel = 'clear' | 'warning' | 'missing' | 'info';
+export type InvariantEvidenceMode = 'explicit' | 'inferred' | 'missing';
 export interface InvariantEvidenceSubSignal {
     signalId: InvariantEvidenceSignalId;
     label: string;
     level: InvariantEvidenceSignalLevel;
+    mode: InvariantEvidenceMode;
+    modeReason: string;
     summary: string;
     facts: string[];
 }

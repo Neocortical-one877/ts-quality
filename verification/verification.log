@@ -1,5 +1,9 @@
 $ npm install --ignore-scripts
 
+up to date, audited 2 packages in 401ms
+
+found 0 vulnerabilities
+
 
 exit=0
 $ npm run build --silent
@@ -16,56 +20,57 @@ lint: ok
 
 exit=0
 $ npm test --silent
-✔ amend evaluates sensitive proposal with duplicate approvals as needing more approval (203.151686ms)
-✔ amend --apply writes a loadable constitution module (392.4971ms)
-✔ authorize denies automation without override and approves with a maintainer override (579.857051ms)
-✔ attest sign and verify produce a valid signed claim (515.509922ms)
-✔ authorize ignores attestations that target an older run (862.576617ms)
-✔ init creates starter files in an empty repo (168.99968ms)
-✔ check, report, and explain produce artifacts (505.322173ms)
-✔ check --help renders usage instead of executing analysis (156.508626ms)
-✔ attest sign accepts cwd-relative paths even when --root is also set (361.151248ms)
-✔ attest verify fails when the signed subject file changes (514.055984ms)
-✔ loadContext accepts ts-quality.config.mjs (23.716422ms)
-✔ parseLcov reads coverage entries (4.662753ms)
-✔ crapScore increases with lower coverage (0.175796ms)
-✔ analyzeCrap marks changed functions (5.806743ms)
-✔ normalizePath is idempotent and slash-stable (0.600138ms)
-✔ matchPattern supports path prefixes and globs (0.302648ms)
-✔ stableStringify sorts object keys deterministically (4.253153ms)
-✔ parseUnifiedDiff returns changed regions (0.637044ms)
-✔ collectSourceFiles includes mjs and cjs inputs (0.649302ms)
-✔ PR summary keeps stable user-facing framing (208.041963ms)
-✔ evaluateGovernance catches extensionless forbidden imports (25.30203ms)
-✔ approval rules count only unique targeted approvals (0.407135ms)
-✔ evaluateInvariants produces obligations for missing failure-path tests (148.677782ms)
-✔ evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords (0.547228ms)
-✔ evaluateInvariants accepts focused mjs tests aligned to the impacted file (0.4165ms)
-✔ signAttestation and verifyAttestation round-trip (7.2328ms)
-✔ evaluateAmendment enforces maintainer approvals and evidence (0.254815ms)
-✔ evaluateAmendment counts only unique approvers targeting the proposal id (0.514027ms)
-✔ evaluatePolicy reduces confidence for survivors and low mutation score (0.992851ms)
-✔ evaluatePolicy applies active waivers (0.280784ms)
-✔ normalizePath property seed 1 (0.642892ms)
-✔ normalizePath property seed 2 (0.085158ms)
-✔ normalizePath property seed 3 (0.064197ms)
-✔ normalizePath property seed 4 (0.065389ms)
-✔ normalizePath property seed 5 (0.066451ms)
-✔ normalizePath property seed 6 (0.053962ms)
-✔ normalizePath property seed 7 (0.051798ms)
-✔ normalizePath property seed 8 (0.050016ms)
-✔ stableStringify round-trips random objects (5.248139ms)
-✔ discoverMutationSites finds boolean and operator mutations (10.327401ms)
-✔ applyMutation replaces exact span instead of first matching line fragment (0.102445ms)
-✔ runMutations writes manifest and reuses cached results (4.080622ms)
-ℹ tests 42
+✔ amend evaluates sensitive proposal with duplicate approvals as needing more approval (188.357592ms)
+✔ amend --apply writes a loadable constitution module (383.817605ms)
+✔ authorize denies automation without override and approves with a maintainer override (567.34359ms)
+✔ attest sign and verify produce a valid signed claim (485.358454ms)
+✔ authorize ignores attestations that target an older run (877.565336ms)
+✔ init creates starter files in an empty repo (152.121462ms)
+✔ check, report, and explain produce artifacts (492.090776ms)
+✔ check --help renders usage instead of executing analysis (147.704302ms)
+✔ attest sign accepts cwd-relative paths even when --root is also set (372.665259ms)
+✔ attest verify fails when the signed subject file changes (517.216293ms)
+✔ loadContext accepts ts-quality.config.mjs (23.786862ms)
+✔ parseLcov reads coverage entries (4.604283ms)
+✔ crapScore increases with lower coverage (0.142866ms)
+✔ analyzeCrap marks changed functions (5.605537ms)
+✔ normalizePath is idempotent and slash-stable (0.61526ms)
+✔ matchPattern supports path prefixes and globs (0.317531ms)
+✔ stableStringify sorts object keys deterministically (4.267754ms)
+✔ parseUnifiedDiff returns changed regions (0.6217ms)
+✔ collectSourceFiles includes mjs and cjs inputs (0.617384ms)
+✔ PR summary keeps stable user-facing framing (206.960094ms)
+✔ evaluateGovernance catches extensionless forbidden imports (24.268471ms)
+✔ approval rules count only unique targeted approvals (0.391553ms)
+✔ evaluateInvariants produces obligations for missing failure-path tests (152.852197ms)
+✔ evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords (0.519846ms)
+✔ evaluateInvariants accepts focused mjs tests aligned to the impacted file (0.46283ms)
+✔ evaluateInvariants marks requiredTestPatterns evidence as explicit (0.392323ms)
+✔ signAttestation and verifyAttestation round-trip (7.094499ms)
+✔ evaluateAmendment enforces maintainer approvals and evidence (0.25068ms)
+✔ evaluateAmendment counts only unique approvers targeting the proposal id (0.508509ms)
+✔ evaluatePolicy reduces confidence for survivors and low mutation score (0.989666ms)
+✔ evaluatePolicy applies active waivers (0.26427ms)
+✔ normalizePath property seed 1 (0.665927ms)
+✔ normalizePath property seed 2 (0.089836ms)
+✔ normalizePath property seed 3 (0.065339ms)
+✔ normalizePath property seed 4 (0.05938ms)
+✔ normalizePath property seed 5 (0.075174ms)
+✔ normalizePath property seed 6 (0.062684ms)
+✔ normalizePath property seed 7 (0.063767ms)
+✔ normalizePath property seed 8 (0.050216ms)
+✔ stableStringify round-trips random objects (5.517965ms)
+✔ discoverMutationSites finds boolean and operator mutations (10.31507ms)
+✔ applyMutation replaces exact span instead of first matching line fragment (0.113572ms)
+✔ runMutations writes manifest and reuses cached results (4.00094ms)
+ℹ tests 43
 ℹ suites 0
-ℹ pass 42
+ℹ pass 43
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 2005.736489
+ℹ duration_ms 1981.652891
 
 
 exit=0

@@ -47,15 +47,25 @@ test('evaluateInvariants produces obligations for missing failure-path tests', (
   assert.equal(authClaim.evidenceSummary.survivingMutantsInScope, mutationRun.results.filter((item) => item.status === 'survived').length);
   assert.equal(authClaim.evidenceSummary.scenarioResults[0].supported, false);
   assert.equal(authClaim.evidenceSummary.scenarioResults[0].failurePathKeywordsMatched, false);
+
+  const focusedAlignment = authClaim.evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
+  assert.ok(focusedAlignment);
+  assert.equal(focusedAlignment.mode, 'inferred');
+  assert.match(focusedAlignment.facts.join('\n'), /mode reason: matched focused tests via deterministic path\/name\/selector hints/);
+
   const mutationPressure = authClaim.evidenceSummary.subSignals.find((item) => item.signalId === 'mutation-pressure');
   assert.ok(mutationPressure);
   assert.equal(mutationPressure.level, 'warning');
+  assert.equal(mutationPressure.mode, 'explicit');
   assert.match(mutationPressure.summary, /surviving mutant/);
+
   const scenarioSupport = authClaim.evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
   assert.ok(scenarioSupport);
   assert.equal(scenarioSupport.level, 'missing');
+  assert.equal(scenarioSupport.mode, 'missing');
   assert.match(scenarioSupport.facts.join('\n'), /expired-boundary: missing failure-path evidence/);
 });
+
 test('evaluateInvariants ignores unrelated mjs tests even if they contain the right keywords', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-invariants-unrelated-'));
   fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
@@ -86,10 +96,16 @@ test('evaluateInvariants ignores unrelated mjs tests even if they contain the ri
   assert.deepEqual(claims[0].evidenceSummary.focusedTests, []);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, false);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].keywordsMatched, false);
+
   const focusedAlignment = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
   assert.ok(focusedAlignment);
   assert.equal(focusedAlignment.level, 'missing');
+  assert.equal(focusedAlignment.mode, 'missing');
   assert.match(focusedAlignment.summary, /No focused test files aligned/);
+
+  const scenarioSupport = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
+  assert.ok(scenarioSupport);
+  assert.equal(scenarioSupport.mode, 'missing');
 });
 
 test('evaluateInvariants accepts focused mjs tests aligned to the impacted file', () => {
@@ -123,10 +139,54 @@ test('evaluateInvariants accepts focused mjs tests aligned to the impacted file'
   assert.equal(claims[0].evidenceSummary.changedFunctions.length, 1);
   assert.equal(claims[0].evidenceSummary.maxChangedCrap, 1);
   assert.equal(claims[0].evidenceSummary.scenarioResults[0].supported, true);
+
   const focusedAlignment = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
   assert.ok(focusedAlignment);
   assert.equal(focusedAlignment.level, 'clear');
+  assert.equal(focusedAlignment.mode, 'inferred');
+
   const scenarioSupport = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
   assert.ok(scenarioSupport);
   assert.equal(scenarioSupport.level, 'clear');
+  assert.equal(scenarioSupport.mode, 'inferred');
+});
+
+test('evaluateInvariants marks requiredTestPatterns evidence as explicit', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-invariants-explicit-'));
+  fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, 'tests'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'TriggerEditor.js'), 'export function getContext() { return true; }\n', 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'tests', 'behavior-proof.test.mjs'), "test('proof', () => { const cwd = 'x'; const sessionCtx = {}; const value = undefined; });\n", 'utf8');
+
+  const claims = invariants.evaluateInvariants({
+    rootDir,
+    invariants: [{
+      id: 'trigger-editor.session-context',
+      title: 'Session context propagation',
+      description: 'TriggerEditor must propagate cwd and sessionKey to context.',
+      severity: 'medium',
+      selectors: ['path:src/TriggerEditor.js', 'symbol:getContext'],
+      requiredTestPatterns: ['tests/behavior-proof.test.mjs'],
+      scenarios: [{ id: 'context-has-cwd', description: 'context includes session cwd', keywords: ['cwd', 'sessionCtx'], failurePathKeywords: ['undefined'], expected: 'defined' }]
+    }],
+    changedFiles: ['src/TriggerEditor.js'],
+    changedRegions: [],
+    complexity: [{ kind: 'complexity', filePath: 'src/TriggerEditor.js', symbol: 'function:getContext', span: { startLine: 1, endLine: 1 }, complexity: 1, coveragePct: 100, crap: 1, changed: true }],
+    mutationSites: [],
+    mutations: [],
+    testPatterns: ['tests/**/*.mjs']
+  });
+
+  assert.equal(claims[0].status, 'supported');
+  assert.deepEqual(claims[0].evidenceSummary.focusedTests, ['tests/behavior-proof.test.mjs']);
+
+  const focusedAlignment = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'focused-test-alignment');
+  assert.ok(focusedAlignment);
+  assert.equal(focusedAlignment.mode, 'explicit');
+  assert.match(focusedAlignment.facts.join('\n'), /requiredTestPatterns/);
+
+  const scenarioSupport = claims[0].evidenceSummary.subSignals.find((item) => item.signalId === 'scenario-support');
+  assert.ok(scenarioSupport);
+  assert.equal(scenarioSupport.mode, 'explicit');
+  assert.match(scenarioSupport.facts.join('\n'), /explicit requiredTestPatterns/);
 });

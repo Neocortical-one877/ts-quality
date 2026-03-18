@@ -1,5 +1,5 @@
 ---
-summary: "Tactical goals for ts-quality after #180 landed; the active queue now continues at #181."
+summary: "Tactical goals for ts-quality after #181 landed; the active queue now refreshes into SG2 at #182."
 read_when:
   - "When planning the next sprint/week for ts-quality"
   - "When turning the strategic direction into the next bounded implementation slice"
@@ -10,30 +10,34 @@ type: "reference"
 
 ## Current tactical window
 `#179` established additive invariant-local evidence summaries.
-`#180` then extended that same `behaviorClaims[].evidenceSummary` surface with named deterministic sub-signals.
-The active strategic goal is therefore still **SG1 — make invariant evidence first-class, decomposed, and mode-aware**.
+`#180` extended that same `behaviorClaims[].evidenceSummary` surface with named deterministic sub-signals.
+`#181` then labeled those sub-signals as `explicit`, `inferred`, or `missing` without introducing a second authority.
 
-The remaining bounded tactical work in the current SG1 window is now:
-- keep the new sub-signal surface additive and stable
-- classify whether those signals are explicit or inferred
+That means the SG1 wave is now complete enough to stop treating it as the active tactical window.
+The next tactical refresh now comes from **SG2 — keep every operator surface downstream of the same evidence truth**.
 
 ## Active tactical goals
 
-### TG2 — Surface explicit versus inferred invariant evidence modes
-Now that invariant support is decomposed into named sub-signals, make the provenance of those signals visible so operators can tell whether support comes from direct/configured evidence or deterministic alignment heuristics.
-This is the active tactical goal now.
+### TG3 — Surface invariant evidence provenance in PR-facing outputs
+The next bounded move is to carry the clearer invariant evidence contract into the fastest operator-facing review surface: `pr-summary.md`.
+That summary should stay concise, but it should stop hiding whether the risky invariant evidence is explicit, inferred, or missing.
 
 Why this is the current tactical move:
-- it completes the second half of **SG1** without inventing a new authority
-- it strengthens **SG2** by making every downstream report surface more honest about where support comes from
-- it prevents inferred evidence from being overread as if it were direct proof
+- it is the smallest honest follow-on from `#181`
+- it advances **SG2** without inventing a second report authority
+- it improves review ergonomics while keeping `run.json` / `behaviorClaims[].evidenceSummary` canonical
 
 Backlog coverage:
-- **AK `#181`** — introduce explicit vs inferred invariant evidence modes
-  - Intended slice: distinguish evidence that is directly declared/configured (for example explicit test-pattern targeting) from evidence that is derived through deterministic alignment heuristics
-  - Minimum acceptance shape: surface the mode in artifacts/reports/docs/tests so operators can tell when an invariant is backed by direct evidence versus scoped inference
+- **AK `#182`** — surface invariant evidence provenance in `pr-summary.md`
+  - Intended slice: add a compact, review-friendly projection of invariant evidence modes to `pr-summary.md`
+  - Minimum acceptance shape: one PR-facing summary can tell a reviewer whether the riskiest invariant support is explicit, inferred, or missing without reverse-engineering the full report
 
 ## Recently completed tactical goals
+
+### TG2 — Surface explicit versus inferred invariant evidence modes
+Backlog coverage:
+- **AK `#181`** — introduce explicit vs inferred invariant evidence modes
+  - Status: complete via additive `behaviorClaims[].evidenceSummary.subSignals[].mode` / `modeReason` support in the evidence model, invariant evaluation, report/explain output, invariant-risk findings, docs, tests, and generated sample artifacts
 
 ### TG1 — Expose explicit invariant evidence sub-signals
 Backlog coverage:
@@ -46,12 +50,12 @@ Backlog coverage:
   - Status: complete via additive `behaviorClaims[].evidenceSummary` support in the evidence model, invariant evaluation, docs, reports, explain output, tests, and generated example artifacts
 
 ## Tactical guardrails
-- keep `behaviorClaims[].evidenceSummary` as the current additive authority unless the repo explicitly adopts a breaking redesign
-- do not reintroduce repo-global invariant keyword matching as fake support
-- do not let explicit/inferred mode wording inflate trust beyond what the evidence justifies
+- keep `behaviorClaims[].evidenceSummary` as the additive authority unless the repo explicitly adopts a breaking redesign
+- do not let `pr-summary.md` or other concise operator surfaces outrank `run.json`
+- do not reintroduce repo-global keyword matching as fake support
+- do not let explicit/inferred wording inflate trust beyond what the evidence justifies
 - keep report and run-artifact changes additive-first and regression-tested
 - prefer the smallest end-to-end slice that proves the contract over broad speculative redesign
 
 ## What should happen after this tactical window
-If `#181` is complete, the next tactical refresh should come from the next unfinished strategic goal.
-The most likely follow-on is to propagate the clearer evidence contract consistently across remaining operator surfaces, not to invent a new scoring layer.
+If `#182` is complete, continue decomposing **SG2** across the next remaining operator surfaces instead of inventing new scores or semantic theater.

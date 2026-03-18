@@ -1,5 +1,5 @@
 ---
-summary: "Operating plan for ts-quality's current invariant-evidence wave after #180; the live queue now continues at #181."
+summary: "Operating plan for ts-quality after #181; the live queue now focuses on PR-facing evidence provenance in #182."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
   - "When translating the active tactical goal into the current repo-local queue"
@@ -10,10 +10,11 @@ type: "reference"
 
 ## Why this plan exists now
 `#179` established additive invariant-scoped evidence summaries.
-`#180` then made that summary decomposed by adding named deterministic sub-signals.
+`#180` made that summary decomposed by adding named deterministic sub-signals.
+`#181` then made those sub-signals mode-aware by labeling them as `explicit`, `inferred`, or `missing`.
 
-Per `docs/project/tactical_goals.md`, the **active tactical goal right now is TG2 — surface explicit versus inferred invariant evidence modes**.
-That means this operating plan should now stay focused on the current repo-local slice behind AK task `#181`.
+Per `docs/project/tactical_goals.md`, the **active tactical goal right now is TG3 — surface invariant evidence provenance in PR-facing outputs**.
+That means this operating plan should now stay focused on the current repo-local slice behind AK task `#182`.
 
 This plan stays intentionally narrow and does **not** invent extra operating slices or new AK tasks that the authoritative queue does not yet justify.
 
@@ -25,67 +26,66 @@ Do **not** replace these authorities:
 - `packages/ts-quality/src/*.ts`
 - `README.md`
 - `ARCHITECTURE.md`
-- `docs/config-reference.md`
 - `docs/invariant-dsl.md`
-- `test/invariants.test.mjs`
+- `test/golden-output.test.mjs`
 - `test/cli-integration.test.mjs`
 - generated sample artifacts under `examples/artifacts/`
 
 The active wave must stay downstream of those authorities.
-It may clarify or extend their evidence contract, but it must not invent a second source of truth.
+It may clarify or extend their review projection, but it must not invent a second source of truth.
 
 ## Ordered queue
 Agent Kernel is authoritative for live task state.
-This file is the reviewed narrative contract for the active operating slice under TG2.
+This file is the reviewed narrative contract for the active operating slice under TG3.
 
 Completed predecessor slices:
 - `#179` — add invariant-scoped evidence summaries
 - `#180` — split invariant evaluation into explicit evidence sub-signals
+- `#181` — introduce explicit vs inferred invariant evidence modes
 
 Active operating slice:
 
 | AK task | Priority | Slice | Deliverable | Validation anchor |
 |---|---:|---|---|---|
-| `#181` | P2 | Explicit vs inferred evidence modes | label the provenance of invariant evidence sub-signals without replacing the additive evidence-summary/report surface | targeted invariant + CLI tests, then repo validation |
+| `#182` | P2 | PR-facing provenance projection | surface a concise invariant evidence-mode projection in `pr-summary.md` without replacing the additive evidence-summary authority | targeted golden/CLI tests, then repo validation |
 
 Next queue action:
 - start with `./scripts/ak.sh --doctor`
 - inspect repo-local candidates with `./scripts/ak.sh task ready --format json | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality")'`
-- inspect task detail with `./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 181)'`
-- claim **`#181`** if it is still the top repo-local ready task
-- keep `behaviorClaims[].evidenceSummary` as the additive authority while extending it
-- keep scope bounded to invariant evaluation, evidence model, report/explain/run artifacts, docs, tests, and generated sample artifacts
+- inspect task detail with `./scripts/ak.sh task list --format json --verbose | jq '.[] | select(.repo == "/home/tryinget/ai-society/softwareco/owned/ts-quality" and .id == 182)'`
+- claim **`#182`** if it is still the top repo-local ready task
+- keep `pr-summary.md` downstream of `behaviorClaims[].evidenceSummary`
+- keep scope bounded to PR-facing output, docs, tests, and generated sample artifacts
 
 ## HTN for the active wave
 
 ```text
-G0: Make invariant evidence mode-aware without replacing the current artifact authority
-  TG2: Explicit vs inferred evidence modes (#181)
-    A1: define the minimum provenance contract for invariant evidence sub-signals
-    A2: carry those modes through evidence model, invariant evaluation, and rendered outputs
-    A3: pin the additive contract with targeted docs/tests/example-artifact updates
+G0: Keep concise operator surfaces downstream of the same invariant evidence truth
+  TG3: Surface invariant evidence provenance in PR-facing outputs (#182)
+    A1: define the minimum PR-summary projection of evidence modes
+    A2: carry that projection through rendering, tests, and generated artifacts
+    A3: document the concise-vs-canonical boundary so run.json remains authoritative
 ```
 
 ## Scope guardrails
 In scope:
-- invariant evidence-model contract changes
-- invariant evaluation logic
-- report / explain / run artifact clarity
-- docs and regression tests needed to explain the new contract
-- generated example artifacts when the canonical surfaces change
+- PR-facing summary rendering
+- concise invariant evidence-mode projection derived from existing summaries
+- docs and regression tests needed to explain the new projection
+- generated sample artifacts when canonical surfaces change
 
 Out of scope:
+- new scoring layers
+- a second evidence authority outside `behaviorClaims[].evidenceSummary`
+- unrelated governance/legitimacy expansion
 - repo-global keyword matching revival
-- semantic-theater scoring changes
-- unrelated governance/legitimacy feature expansion
-- new workflow/control-plane product surfaces outside this repo's native evidence model
 
 ## Validation baseline
 Every slice in this operating wave should keep using the smallest truthful validation set first, then widen only as needed:
 
 ```bash
 ./scripts/ak.sh --doctor
-node --test test/invariants.test.mjs test/cli-integration.test.mjs
+node --test test/golden-output.test.mjs test/cli-integration.test.mjs
 npm test
 npm run verify
 ```
