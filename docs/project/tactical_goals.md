@@ -1,70 +1,76 @@
 ---
-summary: "Tactical goals for ts-quality after #183 landed; SG2 stays active but no new tactical slice is materialized until a real remaining operator-surface gap is confirmed."
+summary: "Tactical goals for the active strategic goal (SG1) in ts-quality, ranked by Eisenhower-3D and grounded in current concise output gaps."
 read_when:
   - "When planning the next sprint/week for ts-quality"
-  - "When turning the strategic direction into the next bounded implementation slice"
+  - "When turning the active strategic goal into bounded delivery waves"
 type: "reference"
 ---
 
 # Tactical goals
 
-## Current tactical window
-`#179` established additive invariant-local evidence summaries.
-`#180` extended that same `behaviorClaims[].evidenceSummary` surface with named deterministic sub-signals.
-`#181` then labeled those sub-signals as `explicit`, `inferred`, or `missing` without introducing a second authority.
-`#182` carried that same evidence truth into `pr-summary.md`, so the fastest PR-facing surface now tells a reviewer whether the riskiest invariant support is explicit, inferred, or missing.
-`#183` carried the same concise provenance projection into `plan.txt` and `govern.txt`, so governance-facing operator surfaces no longer hide the invariant evidence basis behind plan/finding summaries alone.
+## Active strategic goal being decomposed
+This file decomposes **SG1 — close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`**.
+It does **not** yet decompose SG2.
 
-That closes the current bounded tactical wave under **SG2 — keep every operator surface downstream of the same evidence truth**.
-SG2 remains the active strategic goal, but the repo does **not** have a truthful next SG2 tactical slice materialized yet.
+## Tactical goals for SG1 (Eisenhower-3D)
 
-## Active tactical goals
-There is no newly materialized tactical goal right now.
+| Rank | Tactical goal | Importance | Urgency | Difficulty | Status |
+|---|---|---:|---:|---:|---|
+| 1 | **TG1 — Finish concise run-status outputs so they still show risky-invariant context** | 5 | 5 | 2 | **active now** |
+| 2 | **TG2 — Align generated sample artifacts and README with the concise output contract** | 4 | 4 | 2 | next under SG1 |
+| 3 | **TG3 — Lock concise output parity with targeted regression coverage** | 4 | 4 | 3 | next under SG1 |
+| 4 | **TG4 — Re-audit remaining decision-side outputs after run-status parity lands** | 3 | 3 | 3 | later under SG1 |
 
-Why that is truthful:
-- TG4 closed the only exact-path repo-local AK slice currently justified by the fresh operator-surface audit
-- `run.json`, `report.md`, `explain.txt`, `pr-summary.md`, `plan.txt`, and `govern.txt` now project the same additive invariant evidence authority
-- creating another SG2 task before a fresh audit would be speculative backlog bloat
+## TG1 — Finish concise run-status outputs so they still show risky-invariant context
 
-The next tactical refresh should happen only when one of these is true:
-- exact-path repo-local AK truth gains a concrete follow-on slice, or
-- a fresh audit shows another current operator surface still hides or diverges from `behaviorClaims[].evidenceSummary`
+### Why TG1 is active now
+Two currently shipped concise run-status surfaces still compress the evidence basis too far:
+- `check-summary.txt` reports outcome and best next action, but not the risky invariant provenance that explains them
+- `trend` reports deltas, but not whether the latest run's at-risk invariant evidence is explicit, inferred, or missing
 
-## Recently completed tactical goals
+### Success signals
+- terse run-status outputs stay readable while exposing the first at-risk invariant when present
+- provenance remains a projection from `behaviorClaims[].evidenceSummary`, not a parallel reasoning tree
+- trend output keeps its delta role while adding just enough invariant context to stay honest
 
-### TG4 — Surface invariant evidence provenance in governance-facing outputs
-Backlog coverage:
-- **AK `#183`** — surface invariant evidence provenance in plan/govern outputs
-  - Status: complete via concise provenance projections in `plan.txt`, `govern.txt`, and the `plan` / `govern` CLI surfaces rendered directly from `behaviorClaims[].evidenceSummary.subSignals[]`, with tests, README text, and generated sample artifacts refreshed to match
+### Operating-plan handoff
+`operating_plan.md` now decomposes **TG1 only** into exact AK slices.
 
-### TG3 — Surface invariant evidence provenance in PR-facing outputs
-Backlog coverage:
-- **AK `#182`** — surface invariant evidence provenance in `pr-summary.md`
-  - Status: complete via a concise PR-facing projection of evidence-mode counts plus notable sub-signals rendered directly from `behaviorClaims[].evidenceSummary.subSignals[]`, with README/tests/sample artifacts refreshed to match
+## TG2 — Align generated sample artifacts and README with the concise output contract
 
-### TG2 — Surface explicit versus inferred invariant evidence modes
-Backlog coverage:
-- **AK `#181`** — introduce explicit vs inferred invariant evidence modes
-  - Status: complete via additive `behaviorClaims[].evidenceSummary.subSignals[].mode` / `modeReason` support in the evidence model, invariant evaluation, report/explain output, invariant-risk findings, docs, tests, and generated sample artifacts
+### Why this matters next
+Once TG1 lands, the reviewed example bundle and README must show the same concise surfaces the runtime emits.
+That keeps docs and examples from lagging behind the product surface.
 
-### TG1 — Expose explicit invariant evidence sub-signals
-Backlog coverage:
-- **AK `#180`** — split invariant evaluation into explicit evidence sub-signals
-  - Status: complete via additive `behaviorClaims[].evidenceSummary.subSignals` support in the evidence model, invariant evaluation, docs, reports, explain output, tests, and generated example artifacts
+### Success signals
+- `scripts/generate-samples.mjs` exports the concise surfaces the repo intends reviewers to trust
+- `README.md` lists and describes those concise artifacts truthfully
+- example artifacts remain reviewable and intentional
 
-### TG0 — Add invariant-scoped evidence summaries
-Backlog coverage:
-- **AK `#179`** — add invariant-scoped evidence summaries
-  - Status: complete via additive `behaviorClaims[].evidenceSummary` support in the evidence model, invariant evaluation, docs, reports, explain output, tests, and generated example artifacts
+## TG3 — Lock concise output parity with targeted regression coverage
+
+### Why this matters next
+Concise outputs drift easily because they look secondary.
+They need explicit regression coverage once the remaining projections are in place.
+
+### Success signals
+- targeted tests fail if concise provenance disappears from the intended surfaces
+- golden-output coverage includes the concise run-status surfaces the repo treats as contract-bearing
+- future report tweaks are less likely to silently create divergence
+
+## TG4 — Re-audit remaining decision-side outputs after run-status parity lands
+
+### Why this stays later
+This tactical goal belongs to the same strategic theme, but it should wait until the run-status surfaces are complete.
+After TG1-TG3, the repo can re-check whether any remaining decision-side outputs still summarize evidence too aggressively.
+
+### Likely evidence to inspect when promoted
+- authorization / attestation review text
+- amendment-facing outputs
+- any concise decision summaries downstream of governance or legitimacy flows
 
 ## Tactical guardrails
-- keep `behaviorClaims[].evidenceSummary` as the additive authority unless the repo explicitly adopts a breaking redesign
-- do not let `pr-summary.md`, `plan.txt`, `govern.txt`, or other concise operator surfaces outrank `run.json`
-- do not reintroduce repo-global keyword matching as fake support
-- do not let explicit/inferred wording inflate trust beyond what the evidence justifies
-- keep report and run-artifact changes additive-first and regression-tested
-- prefer the smallest end-to-end slice that proves the contract over broad speculative redesign
-
-## What should happen after this tactical window
-Do **not** open a replacement SG2 tactical wave just to keep the queue full.
-Re-run exact-path AK truth plus an operator-surface audit, and materialize the next tactical goal only if current repo reality shows a remaining downstream provenance gap.
+- keep `behaviorClaims[].evidenceSummary` as the additive root
+- do not let concise outputs outrank `run.json`
+- prefer small end-to-end slices over broad redesign
+- do not decompose TG2-TG4 into operating slices until TG1 is materially complete

@@ -1,5 +1,5 @@
 ---
-summary: "Strategic goals for ts-quality after #181 completed the invariant evidence contract foundation."
+summary: "Strategic goals for ts-quality selected from the current vision and unfinished repo-local work using Eisenhower-3D."
 read_when:
   - "When deciding the next quarter-scale direction for ts-quality"
   - "When translating the vision into bounded delivery waves"
@@ -8,40 +8,69 @@ type: "reference"
 
 # Strategic goals
 
-## Why this file exists now
-The repo already proved an important direction with `#179` through `#181`: invariant evidence can be made more explicit, decomposed, and mode-aware without breaking the core artifact shape.
-That matters because the product's credibility depends less on new headline scores and more on whether the existing evidence basis becomes inspectable.
-These goals define the durable bridge between the project vision and the active tactical queue.
+## Selection rule used here
+This file now lists the **top 2 unfinished strategic goals** derived from `vision.md` plus present-tense repo truth.
+Completed foundation work (`#179` → `#183`) stays as prerequisite context, not as the active strategy queue.
 
-## Strategic goals
+## Completed prerequisite foundation
+The repo already proved the additive evidence foundation:
+- invariant-scoped evidence summaries exist
+- sub-signals are decomposed and mode-aware
+- `pr-summary.md`, `plan.txt`, and `govern.txt` already project concise provenance from the same authority
 
-### SG1 — Make invariant evidence first-class, decomposed, and mode-aware
-The repo has now validated SG1's core contract: `behaviorClaims[].evidenceSummary` can carry additive invariant summaries, named sub-signals, and explicit/inferred/missing provenance modes without destabilizing the artifact surface.
-SG1 remains an important completed foundation rather than the active next wave.
+That foundation narrows the real strategic choice to what still remains unfinished.
 
-Success signals:
-- invariant evaluation exposes distinct evidence sub-signals instead of one opaque support impression
-- explicit evidence and inferred evidence are represented as different modes in the artifact/report surface
-- a reviewer can tell whether an invariant failed because of test alignment, scenario support, low coverage, or mutation pressure without reverse-engineering free-form prose
-- changes stay additive-first and regression-tested rather than destabilizing existing artifacts
+## Top 2 strategic goals (Eisenhower-3D)
 
-### SG2 — Keep every operator surface downstream of the same evidence truth
-The repo already emits multiple surfaces: `run.json`, `report.md`, `pr-summary.md`, `explain.txt`, `plan.txt`, and governance/legitimacy outputs.
-The next unfinished strategic move is to make those surfaces easier to read while keeping them downstream of the same native evidence contract.
+| Rank | Goal | Importance | Urgency | Difficulty | Why it made the cut |
+|---|---|---:|---:|---:|---|
+| 1 | **SG1 — Close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`** | 5 | 5 | 3 | `check-summary.txt` still omits risky-invariant provenance, `renderTrend()` still reports only deltas, and `scripts/generate-samples.mjs` does not yet carry `check-summary.txt` into the reviewed sample bundle. |
+| 2 | **SG2 — Carry the same evidence truth into governance/legitimacy decision surfaces that still compress authority too far** | 4 | 3 | 4 | The vision explicitly calls for governance and legitimacy to consume the same explainable evidence basis, but the repo has not yet decomposed that later wave into executable repo-local work. |
 
-Success signals:
-- runtime artifacts and rendered reports describe the same evidence facts with no silent divergence
-- docs explain the same contract the code emits
-- CLI/report improvements increase clarity without adding a second source of truth
-- top-line verdicts stay subordinate to the underlying evidence basis rather than drifting into semantic theater
+## Active now vs next
+- **Active now:** SG1
+- **Next after SG1:** SG2
 
-## Non-goals for the current strategic window
-- natural-language semantic reasoning beyond deterministic evidence
-- repo-global lexical matching as a substitute for aligned/focused tests
-- another top-level report authority that competes with `run.json`
-- company-root or workflow-platform expansion unrelated to this repo's native product layers
+## SG1 — Close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`
 
-## Relationship to tactical goals
-- `docs/project/tactical_goals.md` should currently decompose the next unfinished strategic goal into the next bounded reviewed wave
-- after the SG1 foundation landed, the active tactical layer should refresh from **SG2** instead of pretending the earlier wave is still active
-- `next_session_prompt.md` should point only at the real next starting point from that tactical queue
+### Why this is the active strategic goal
+The vision says reviewers should be able to tell what evidence is explicit, inferred, or missing without guesswork.
+The repo now does that in the canonical artifact and several downstream projections, but not yet across every concise operator-facing surface.
+
+Current repo-local evidence for SG1:
+- `packages/ts-quality/src/index.ts` writes `check-summary.txt` with merge confidence, outcome, and best-next-action only
+- `packages/ts-quality/src/index.ts` renders `trend` with deltas only and no invariant-risk context
+- `scripts/generate-samples.mjs` exports `pr-summary.md`, `plan.txt`, and `govern.txt`, but not `check-summary.txt`
+
+### Success signals
+- every concise run-status surface stays visibly downstream of the additive invariant evidence authority
+- reviewers can still see the riskiest invariant context even when using terse surfaces
+- sample artifacts and README contract language describe the same concise surfaces the code emits
+- no new report authority is introduced
+
+## SG2 — Carry the same evidence truth into governance/legitimacy decision surfaces that still compress authority too far
+
+### Why this is next, not current
+This is important, but it is one layer farther from the current proven operator-surface wave.
+The repo should finish SG1 before decomposing this next decision-surface wave.
+
+### Likely scope when promoted
+- authorization / attestation / amendment review surfaces
+- governance and legitimacy docs where authority boundaries could drift from emitted artifacts
+- any remaining decision-facing outputs that summarize evidence without enough provenance context
+
+### Success signals
+- governance and legitimacy actions stay visibly tied to exact evidence artifacts and run boundaries
+- reviewer-facing decision outputs remain explainable without competing with `run.json`
+- exact approval / attestation / override semantics stay clearer in concise outputs and docs
+
+## Non-goals for this strategic window
+- semantic proof or non-deterministic scoring theater
+- repo-global keyword matching as fake understanding
+- another top-level evidence authority outside the additive artifact contract
+- cross-repo program work not owned by this repo
+
+## Relationship to downstream docs
+- `tactical_goals.md` must decompose **SG1 only** until SG1 is materially complete
+- `operating_plan.md` must decompose the single highest-priority tactical goal under SG1
+- `next_session_prompt.md` must point at the first active AK slice from that operating plan

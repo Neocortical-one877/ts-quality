@@ -72,6 +72,54 @@
           ],
           "dod": "Task reaches done in society.db with evidence recorded.",
           "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0184",
+          "title": "ts-quality: project risky invariant provenance into check-summary.txt",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: project risky invariant provenance into check-summary.txt (task #184)",
+              "done": false
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded."
+        },
+        {
+          "id": "AK-TASK-0185",
+          "title": "ts-quality: include check-summary.txt in generated sample artifacts and README",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: include check-summary.txt in generated sample artifacts and README (task #185)",
+              "done": false
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded."
+        },
+        {
+          "id": "AK-TASK-0186",
+          "title": "ts-quality: add regression coverage for check-summary provenance output",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: add regression coverage for check-summary provenance output (task #186)",
+              "done": false
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded."
+        },
+        {
+          "id": "AK-TASK-0187",
+          "title": "ts-quality: surface risky invariant context in trend output",
+          "state": "queued",
+          "tasks": [
+            {
+              "text": "ts-quality: surface risky invariant context in trend output (task #187)",
+              "done": false
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded."
         }
       ]
     }
