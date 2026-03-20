@@ -4,7 +4,7 @@ import path from 'path';
 import { spawnSync } from 'child_process';
 import test from 'node:test';
 import assert from 'assert/strict';
-import { repoRoot, tempCopyOfFixture, latestRunId, readRun } from './helpers.mjs';
+import { repoRoot, tempCopyOfFixture, latestRunId, readRun, importDist } from './helpers.mjs';
 
 const cli = path.join(repoRoot, 'dist', 'packages', 'ts-quality', 'src', 'cli.js');
 
@@ -403,7 +403,7 @@ test('attest sign accepts cwd-relative paths even when --root is also set', () =
   assert.equal(fs.existsSync(path.join(target, '.ts-quality', 'attestations', 'edge.json')), true);
 });
 
-test('attest verify fails when the signed subject file changes', () => {
+test('attest verify keeps signed subject context visible when verification fails', () => {
   const target = tempCopyOfFixture('governed-app');
   let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
   assert.equal(result.status, 0);
@@ -415,7 +415,160 @@ test('attest verify fails when the signed subject file changes', () => {
   fs.appendFileSync(path.join(target, subject), '\n', 'utf8');
   result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', output, '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
   assert.equal(result.status, 0);
-  assert.match(result.stdout, /failed \(subject digest mismatch\)/);
+  assert.match(result.stdout, /^ci\.verify: failed \(subject digest mismatch\)$/m);
+  assert.match(result.stdout, new RegExp(`^Subject: \\.ts-quality/runs/${runId}/verdict\\.json$`, 'm'));
+  assert.match(result.stdout, new RegExp(`^Run: ${runId}$`, 'm'));
+  assert.match(result.stdout, /^Artifact: verdict\.json$/m);
+});
+
+test('check writes the same attestation verification framing used by the CLI verify path', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'attestation-parity-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', '.ts-quality/runs/attestation-parity-run/verdict.json', '--claims', 'ci.tests.passed', '--out', '.ts-quality/attestations/ci.tests.passed.json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const verify = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/ci.tests.passed.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(verify.status, 0, verify.stderr);
+  result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'attestation-parity-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const verifyText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', 'attestation-parity-run', 'attestation-verify.txt'), 'utf8');
+  assert.equal(verifyText, verify.stdout);
+});
+
+test('attest verify rejects signed artifactName drift instead of masking it with the subject path', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'artifact-name-mismatch-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  const verdictText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', 'artifact-name-mismatch-run', 'verdict.json'), 'utf8');
+  const attestation = legitimacy.signAttestation({
+    issuer: 'ci.verify',
+    keyId: 'sample',
+    privateKeyPem,
+    subjectType: 'json-artifact',
+    subjectDigest: evidenceModel.digestObject(verdictText),
+    claims: ['ci.tests.passed'],
+    payload: {
+      subjectFile: '.ts-quality/runs/artifact-name-mismatch-run/verdict.json',
+      runId: 'artifact-name-mismatch-run',
+      artifactName: 'fake.json'
+    }
+  });
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'mismatch.json'), attestation);
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/mismatch.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^ci\.verify: failed \(attestation payload artifactName does not match subject path\)$/m);
+  assert.match(result.stdout, /^Artifact: verdict\.json$/m);
+});
+
+test('attest verify keeps run-scoped context for nested artifacts under a run directory', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'nested-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const nestedSubject = path.join(target, '.ts-quality', 'runs', 'nested-run', 'receipts', 'ci.json');
+  fs.mkdirSync(path.dirname(nestedSubject), { recursive: true });
+  fs.writeFileSync(nestedSubject, '{"ok":true}\n', 'utf8');
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', '.ts-quality/runs/nested-run/receipts/ci.json', '--claims', 'ci.tests.passed', '--out', '.ts-quality/attestations/nested.json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/nested.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^Run: nested-run$/m);
+  assert.match(result.stdout, /^Artifact: receipts\/ci\.json$/m);
+});
+
+test('attest verify supports machine-readable json output', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'json-verify-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', '.ts-quality/runs/json-verify-run/verdict.json', '--claims', 'ci.tests.passed', '--out', '.ts-quality/attestations/json.json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/json.json', '--trusted-keys', '.ts-quality/keys', '--json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.deepEqual(parsed, {
+    artifactName: 'verdict.json',
+    issuer: 'ci.verify',
+    ok: true,
+    reason: 'verified',
+    runId: 'json-verify-run',
+    source: 'json.json',
+    subjectFile: '.ts-quality/runs/json-verify-run/verdict.json'
+  });
+});
+
+test('attest verify reports malformed input through the canonical record instead of a raw syntax error', () => {
+  const target = tempCopyOfFixture('governed-app');
+  fs.mkdirSync(path.join(target, '.ts-quality', 'attestations'), { recursive: true });
+  fs.writeFileSync(path.join(target, '.ts-quality', 'attestations', 'broken.json'), '{not json\n', 'utf8');
+  const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/broken.json', '--trusted-keys', '.ts-quality/keys', '--json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.source, 'broken.json');
+  assert.equal(parsed.ok, false);
+  assert.match(parsed.reason, /^invalid JSON:/);
+});
+
+test('attest verify fails fast when the requested attestation file is unreadable', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/missing.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /unable to read attestation file \.ts-quality\/attestations\/missing\.json:/);
+  assert.equal(result.stdout, '');
+});
+
+test('attest verify rejects run metadata on non-run-scoped subjects', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  fs.writeFileSync(path.join(target, 'subject.txt'), 'hello\n', 'utf8');
+  const attestation = legitimacy.signAttestation({
+    issuer: 'ci.verify',
+    keyId: 'sample',
+    privateKeyPem,
+    subjectType: 'file',
+    subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'subject.txt'), 'utf8')),
+    claims: ['ci.tests.passed'],
+    payload: {
+      subjectFile: 'subject.txt',
+      runId: 'fake-run'
+    }
+  });
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'non-run-metadata.json'), attestation);
+  const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/non-run-metadata.json', '--trusted-keys', '.ts-quality/keys', '--json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const parsed = JSON.parse(result.stdout);
+  assert.equal(parsed.ok, false);
+  assert.equal(parsed.reason, 'attestation payload runId requires a run-scoped subject path');
+  assert.equal(parsed.subjectFile, 'subject.txt');
+  assert.equal(parsed.runId, undefined);
+  assert.equal(parsed.artifactName, undefined);
+});
+
+test('attest verify rejects control characters in signed subject metadata instead of rendering forged lines', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  const attestation = legitimacy.signAttestation({
+    issuer: 'ci.verify',
+    keyId: 'sample',
+    privateKeyPem,
+    subjectType: 'file',
+    subjectDigest: 'sha256:forged',
+    claims: ['ci.tests.passed'],
+    payload: {
+      subjectFile: 'subject.txt\nRun: injected\nArtifact: forged'
+    }
+  });
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'control-char.json'), attestation);
+  const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/control-char.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^ci\.verify: failed \(attestation payload subjectFile contains unsupported control characters\)$/m);
+  assert.doesNotMatch(result.stdout, /^Run: injected$/m);
+  assert.doesNotMatch(result.stdout, /^Artifact: forged$/m);
+  assert.doesNotMatch(result.stdout, /^Subject:/m);
 });
 
 test('check quarantines malformed attestation files instead of crashing', () => {
@@ -427,6 +580,17 @@ test('check quarantines malformed attestation files instead of crashing', () => 
   const runId = latestRunId(target);
   const verifyText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', runId, 'attestation-verify.txt'), 'utf8');
   assert.match(verifyText, /broken\.json: failed \(invalid JSON:/);
+});
+
+test('check quarantines unreadable attestation files instead of crashing', () => {
+  const target = tempCopyOfFixture('governed-app');
+  fs.mkdirSync(path.join(target, '.ts-quality', 'attestations'), { recursive: true });
+  fs.symlinkSync('missing-target.json', path.join(target, '.ts-quality', 'attestations', 'unreadable.json'));
+  const result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const runId = latestRunId(target);
+  const verifyText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', runId, 'attestation-verify.txt'), 'utf8');
+  assert.match(verifyText, /unreadable\.json: failed \(unreadable attestation file:/);
 });
 
 test('check quarantines schema-invalid attestation files instead of crashing', () => {

@@ -309,6 +309,16 @@ export interface Attestation {
   };
 }
 
+export interface AttestationVerificationRecord {
+  source: string;
+  issuer?: string | undefined;
+  ok: boolean;
+  reason: string;
+  subjectFile?: string | undefined;
+  runId?: string | undefined;
+  artifactName?: string | undefined;
+}
+
 export interface Approval {
   by: string;
   role?: string | undefined;

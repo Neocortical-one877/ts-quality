@@ -5,6 +5,7 @@ import {
   type AnalysisContext,
   type Approval,
   type Attestation,
+  type AttestationVerificationRecord,
   type AuthorizationDecision,
   type FileEntity,
   type OverrideRecord,
@@ -377,8 +378,8 @@ function relativePathInsideRoot(rootDir: string, absolutePath: string): string |
 }
 
 function runScopedArtifactReference(subjectFile: string): { runId: string; artifactName: string } | undefined {
-  const match = /^\.ts-quality\/runs\/([^/]+)\/([^/]+)$/.exec(normalizePath(subjectFile));
-  if (!match) {
+  const match = /^\.ts-quality\/runs\/([^/]+)\/(.+)$/.exec(normalizePath(subjectFile));
+  if (!match || !match[2]) {
     return undefined;
   }
   return {
@@ -395,11 +396,18 @@ function recordSubjectPath(rootDir: string, resolvedSubject: string, originalCan
   throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
 }
 
-function verifyAttestationAtRoot(rootDir: string, attestation: Attestation, trustedKeys: Record<string, string>): { ok: boolean; reason: string } {
-  const signature = verifyAttestation(attestation, trustedKeys);
-  if (!signature.ok) {
-    return signature;
-  }
+function hasUnsafeControlCharacters(value: string): boolean {
+  return /[\x00-\x1F\x7F]/.test(value);
+}
+
+function renderVerificationText(value: string): string {
+  const rendered = JSON.stringify(value);
+  return typeof rendered === 'string' && rendered.startsWith('"') && rendered.endsWith('"')
+    ? rendered.slice(1, -1)
+    : value;
+}
+
+function attestationSubjectContext(attestation: Attestation): { ok: true; context: { subjectFile: string; runId?: string; artifactName?: string } } | { ok: false; reason: string; context?: { subjectFile: string; runId?: string; artifactName?: string } } {
   const subjectFile = typeof attestation.payload?.subjectFile === 'string' ? attestation.payload.subjectFile : undefined;
   if (!subjectFile) {
     return { ok: false, reason: 'subject file missing from attestation payload' };
@@ -407,25 +415,105 @@ function verifyAttestationAtRoot(rootDir: string, attestation: Attestation, trus
   if (path.isAbsolute(subjectFile)) {
     return { ok: false, reason: 'subject file must be repo-relative' };
   }
-  const normalizedSubject = normalizePath(subjectFile);
-  const resolvedSubject = path.resolve(rootDir, normalizedSubject);
-  const relativeSubject = relativePathInsideRoot(rootDir, resolvedSubject);
-  if (!relativeSubject || relativeSubject !== normalizedSubject) {
-    return { ok: false, reason: 'subject file escapes repository root' };
+  if (hasUnsafeControlCharacters(subjectFile)) {
+    return { ok: false, reason: 'attestation payload subjectFile contains unsupported control characters' };
   }
+  const normalizedSubject = normalizePath(subjectFile);
   const scopedSubject = runScopedArtifactReference(normalizedSubject);
   const payloadRunId = typeof attestation.payload?.runId === 'string' ? attestation.payload.runId : undefined;
-  if (payloadRunId && scopedSubject && payloadRunId !== scopedSubject.runId) {
-    return { ok: false, reason: 'attestation payload runId does not match subject path' };
+  const payloadArtifactName = typeof attestation.payload?.artifactName === 'string' ? attestation.payload.artifactName : undefined;
+  if (payloadRunId && hasUnsafeControlCharacters(payloadRunId)) {
+    return { ok: false, reason: 'attestation payload runId contains unsupported control characters', context: { subjectFile: normalizedSubject } };
+  }
+  if (payloadArtifactName && hasUnsafeControlCharacters(payloadArtifactName)) {
+    return { ok: false, reason: 'attestation payload artifactName contains unsupported control characters', context: { subjectFile: normalizedSubject } };
+  }
+  if (!scopedSubject) {
+    if (payloadRunId) {
+      return { ok: false, reason: 'attestation payload runId requires a run-scoped subject path', context: { subjectFile: normalizedSubject } };
+    }
+    if (payloadArtifactName) {
+      return { ok: false, reason: 'attestation payload artifactName requires a run-scoped subject path', context: { subjectFile: normalizedSubject } };
+    }
+    return { ok: true, context: { subjectFile: normalizedSubject } };
+  }
+  const scopedContext = {
+    subjectFile: normalizedSubject,
+    runId: scopedSubject.runId,
+    artifactName: scopedSubject.artifactName
+  };
+  if (payloadRunId && payloadRunId !== scopedSubject.runId) {
+    return { ok: false, reason: 'attestation payload runId does not match subject path', context: scopedContext };
+  }
+  if (payloadArtifactName && payloadArtifactName !== scopedSubject.artifactName) {
+    return { ok: false, reason: 'attestation payload artifactName does not match subject path', context: scopedContext };
+  }
+  return {
+    ok: true,
+    context: scopedContext
+  };
+}
+
+function verifyAttestationRecordAtRoot(rootDir: string, source: string, attestation: Attestation, trustedKeys: Record<string, string>): AttestationVerificationRecord {
+  const context = attestationSubjectContext(attestation);
+  const contextFields = context.context;
+  const record: AttestationVerificationRecord = {
+    source,
+    issuer: attestation.issuer,
+    ok: false,
+    reason: 'verification did not run',
+    ...(contextFields?.subjectFile ? { subjectFile: contextFields.subjectFile } : {}),
+    ...(contextFields?.runId ? { runId: contextFields.runId } : {}),
+    ...(contextFields?.artifactName ? { artifactName: contextFields.artifactName } : {})
+  };
+  const signature = verifyAttestation(attestation, trustedKeys);
+  if (!signature.ok) {
+    return { ...record, reason: signature.reason };
+  }
+  if (!context.ok) {
+    return { ...record, reason: context.reason };
+  }
+  const resolvedSubject = path.resolve(rootDir, context.context.subjectFile);
+  const relativeSubject = relativePathInsideRoot(rootDir, resolvedSubject);
+  if (!relativeSubject || relativeSubject !== context.context.subjectFile) {
+    return { ...record, reason: 'subject file escapes repository root' };
   }
   if (!fs.existsSync(resolvedSubject)) {
-    return { ok: false, reason: `subject file missing: ${subjectFile}` };
+    return { ...record, reason: `subject file missing: ${context.context.subjectFile}` };
   }
   const digest = digestObject(fs.readFileSync(resolvedSubject, 'utf8'));
   if (digest !== attestation.subjectDigest) {
-    return { ok: false, reason: 'subject digest mismatch' };
+    return { ...record, reason: 'subject digest mismatch' };
   }
-  return { ok: true, reason: 'verified' };
+  return { ...record, ok: true, reason: 'verified' };
+}
+
+function renderAttestationVerificationRecord(record: AttestationVerificationRecord): string {
+  const lines = [`${renderVerificationText(record.issuer ?? record.source)}: ${record.ok ? 'verified' : 'failed'} (${renderVerificationText(record.reason)})`];
+  if (record.subjectFile) {
+    lines.push(`Subject: ${renderVerificationText(record.subjectFile)}`);
+  }
+  if (record.runId) {
+    lines.push(`Run: ${renderVerificationText(record.runId)}`);
+  }
+  if (record.artifactName) {
+    lines.push(`Artifact: ${renderVerificationText(record.artifactName)}`);
+  }
+  return lines.join('\n');
+}
+
+function renderAttestationVerificationReport(records: AttestationVerificationRecord[]): string {
+  if (records.length === 0) {
+    return '\n';
+  }
+  return `${records.map((record) => renderAttestationVerificationRecord(record)).join('\n\n')}\n`;
+}
+
+function renderAttestationVerificationJson(records: AttestationVerificationRecord[]): string {
+  if (records.length === 1) {
+    return `${stableStringify(records[0])}\n`;
+  }
+  return `${stableStringify(records)}\n`;
 }
 
 function attestationAppliesToRun(attestation: Attestation, runId: string): boolean {
@@ -537,28 +625,37 @@ export function materializeProject(rootDir: string, options?: { configPath?: str
   };
 }
 
-export function loadVerifiedAttestations(rootDir: string, attestationsDir: string, trustedKeysDir: string): { attestations: Attestation[]; verification: Array<{ issuer: string; ok: boolean; reason: string }> } {
+export function loadVerifiedAttestations(rootDir: string, attestationsDir: string, trustedKeysDir: string): { attestations: Attestation[]; verification: AttestationVerificationRecord[] } {
   const keysDir = resolveRepoLocalPath(rootDir, trustedKeysDir, { allowMissing: true, kind: 'trusted keys dir' }).absolutePath;
   const keys = loadTrustedKeys(keysDir);
-  const verification: Array<{ issuer: string; ok: boolean; reason: string }> = [];
+  const verification: AttestationVerificationRecord[] = [];
   const attestations: Attestation[] = [];
   for (const filePath of attestationFiles(rootDir, attestationsDir)) {
-    let rawAttestation: unknown;
+    const source = path.basename(filePath);
+    let rawText: string;
     try {
-      rawAttestation = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+      rawText = fs.readFileSync(filePath, 'utf8');
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      verification.push({ issuer: path.basename(filePath), ok: false, reason: `invalid JSON: ${message}` });
+      verification.push({ source, ok: false, reason: `unreadable attestation file: ${message}` });
+      continue;
+    }
+    let rawAttestation: unknown;
+    try {
+      rawAttestation = JSON.parse(rawText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      verification.push({ source, ok: false, reason: `invalid JSON: ${message}` });
       continue;
     }
     const parsed = parseAttestationRecord(rawAttestation);
     if (!parsed.ok) {
-      verification.push({ issuer: path.basename(filePath), ok: false, reason: parsed.reason });
+      verification.push({ source, ok: false, reason: parsed.reason });
       continue;
     }
     const attestation = parsed.attestation;
-    const result = verifyAttestationAtRoot(rootDir, attestation, keys);
-    verification.push({ issuer: attestation.issuer, ok: result.ok, reason: result.reason });
+    const result = verifyAttestationRecordAtRoot(rootDir, source, attestation, keys);
+    verification.push(result);
     if (result.ok) {
       attestations.push(attestation);
     }
@@ -768,7 +865,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   fs.writeFileSync(path.join(artifactDir, 'report.md'), `${renderMarkdownReport(run)}\n`, 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'pr-summary.md'), `${renderPrSummary(run)}\n`, 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'explain.txt'), `${renderExplainText(run)}\n`, 'utf8');
-  fs.writeFileSync(path.join(artifactDir, 'attestation-verify.txt'), `${verifiedAttestations.verification.map((item) => `${item.issuer}: ${item.ok ? 'ok' : 'failed'} (${item.reason})`).join('\n')}\n`, 'utf8');
+  fs.writeFileSync(path.join(artifactDir, 'attestation-verify.txt'), renderAttestationVerificationReport(verifiedAttestations.verification), 'utf8');
   fs.writeFileSync(path.join(artifactDir, 'check-summary.txt'), renderCheckSummaryText(run), 'utf8');
   const plan = generateGovernancePlan(run, constitution, agents);
   fs.writeFileSync(path.join(artifactDir, 'plan.txt'), renderPlanArtifactText(run, plan), 'utf8');
@@ -918,16 +1015,35 @@ export function attestSign(rootDir: string, issuer: string, keyId: string, priva
   return resolvedOutput;
 }
 
-export function attestVerify(rootDir: string, attestationFile: string, trustedKeysDir: string): string {
-  const parsed = parseAttestationRecord(JSON.parse(fs.readFileSync(resolveCliPath(rootDir, attestationFile), 'utf8')));
+export function attestVerify(rootDir: string, attestationFile: string, trustedKeysDir: string, format: 'text' | 'json' = 'text'): string {
+  const source = path.basename(attestationFile);
+  const render = (records: AttestationVerificationRecord[]): string => (format === 'json'
+    ? renderAttestationVerificationJson(records)
+    : renderAttestationVerificationReport(records));
+  const resolvedAttestation = resolveCliPath(rootDir, attestationFile);
+  let rawText: string;
+  try {
+    rawText = fs.readFileSync(resolvedAttestation, 'utf8');
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`unable to read attestation file ${attestationFile}: ${message}`);
+  }
+  let rawAttestation: unknown;
+  try {
+    rawAttestation = JSON.parse(rawText);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return render([{ source, ok: false, reason: `invalid JSON: ${message}` }]);
+  }
+  const parsed = parseAttestationRecord(rawAttestation);
   if (!parsed.ok) {
-    return `${path.basename(attestationFile)}: failed (${parsed.reason})\n`;
+    return render([{ source, ok: false, reason: parsed.reason }]);
   }
   const attestation = parsed.attestation;
   const keysDir = resolveRepoLocalPath(rootDir, trustedKeysDir, { allowMissing: true, kind: 'trusted keys dir' }).absolutePath;
   const keys = loadTrustedKeys(keysDir);
-  const result = verifyAttestationAtRoot(rootDir, attestation, keys);
-  return `${attestation.issuer}: ${result.ok ? 'verified' : 'failed'} (${result.reason})\n`;
+  const result = verifyAttestationRecordAtRoot(rootDir, source, attestation, keys);
+  return render([result]);
 }
 
 export function attestGenerateKey(outDir: string, keyId: string): string {

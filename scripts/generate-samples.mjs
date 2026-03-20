@@ -9,6 +9,7 @@ const cli = path.join(root, 'dist', 'packages', 'ts-quality', 'src', 'cli.js');
 const evidenceModel = await import(pathToFileURL(path.join(root, 'dist', 'packages', 'evidence-model', 'src', 'index.js')).href);
 const legitimacy = await import(pathToFileURL(path.join(root, 'dist', 'packages', 'legitimacy', 'src', 'index.js')).href);
 const policyEngine = await import(pathToFileURL(path.join(root, 'dist', 'packages', 'policy-engine', 'src', 'index.js')).href);
+const tsQuality = await import(pathToFileURL(path.join(root, 'dist', 'packages', 'ts-quality', 'src', 'index.js')).href);
 
 const SAMPLE_FIXTURE = 'governed-app';
 const SAMPLE_RUN_ID = 'sample-governed-app-run';
@@ -110,14 +111,16 @@ function writeStableAttestation(target, runDir) {
     subjectType: 'json-artifact',
     subjectDigest: evidenceModel.digestObject(verdictText),
     claims: ['ci.tests.passed'],
-    payload: { subjectFile: `.ts-quality/runs/${SAMPLE_RUN_ID}/verdict.json` },
+    payload: {
+      subjectFile: `.ts-quality/runs/${SAMPLE_RUN_ID}/verdict.json`,
+      runId: SAMPLE_RUN_ID,
+      artifactName: 'verdict.json'
+    },
     issuedAt: SAMPLE_ATTESTED_AT
   });
   const attestationPath = path.join(target, '.ts-quality', 'attestations', 'ci.tests.passed.json');
   legitimacy.saveAttestation(attestationPath, attestation);
-  const trustedKeys = legitimacy.loadTrustedKeys(path.join(target, '.ts-quality', 'keys'));
-  const verification = legitimacy.verifyAttestation(attestation, trustedKeys);
-  const verifyText = `ci.verify: ${verification.ok ? 'verified' : 'failed'} (${verification.reason})\n`;
+  const verifyText = tsQuality.attestVerify(target, '.ts-quality/attestations/ci.tests.passed.json', '.ts-quality/keys');
   fs.writeFileSync(path.join(runDir, 'attestation.verify.txt'), verifyText, 'utf8');
 }
 

@@ -48,3 +48,21 @@ test('authorization sample keeps exact run-bound evidence context', () => {
   const expected = fs.readFileSync(path.join(repoRoot, 'examples', 'artifacts', 'governed-app', 'authorize.release-bot.json'), 'utf8');
   assert.equal(authorize.stdout, expected.endsWith('\n') ? expected : `${expected}\n`);
 });
+
+
+test('attestation verification sample keeps exact signed subject context', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'sample-governed-app-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', '.ts-quality/runs/sample-governed-app-run/verdict.json', '--claims', 'ci.tests.passed', '--out', '.ts-quality/attestations/ci.tests.passed.json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const verify = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/ci.tests.passed.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(verify.status, 0, verify.stderr);
+  result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'sample-governed-app-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const runtimeVerify = fs.readFileSync(path.join(target, '.ts-quality', 'runs', 'sample-governed-app-run', 'attestation-verify.txt'), 'utf8');
+  const expected = fs.readFileSync(path.join(repoRoot, 'examples', 'artifacts', 'governed-app', 'attestation.verify.txt'), 'utf8');
+  const normalizedExpected = expected.endsWith('\n') ? expected : `${expected}\n`;
+  assert.equal(verify.stdout, normalizedExpected);
+  assert.equal(runtimeVerify, normalizedExpected);
+});

@@ -67,7 +67,7 @@ function usage(command?: string, subcommand?: string): string {
     return 'Usage: ts-quality attest sign --issuer <id> --key-id <id> --private-key <file> --subject <file> --out <file> [--claims <a,b>] [--root <dir>]\n';
   }
   if (command === 'attest' && subcommand === 'verify') {
-    return 'Usage: ts-quality attest verify --attestation <file> [--trusted-keys <dir>] [--root <dir>]\n';
+    return 'Usage: ts-quality attest verify --attestation <file> [--trusted-keys <dir>] [--json] [--root <dir>]\n';
   }
   if (command === 'attest' && subcommand === 'keygen') {
     return 'Usage: ts-quality attest keygen [--out-dir <dir>] [--key-id <id>] [--root <dir>]\n';
@@ -191,7 +191,7 @@ function main(): void {
       if (!attestation) {
         throw new Error('attest verify requires --attestation <file>');
       }
-      process.stdout.write(attestVerify(cwd, attestation, trusted));
+      process.stdout.write(attestVerify(cwd, attestation, trusted, hasFlag('--json') ? 'json' : 'text'));
       return;
     }
     if (subcommand === 'keygen') {

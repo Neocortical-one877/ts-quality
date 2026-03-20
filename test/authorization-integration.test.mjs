@@ -44,7 +44,7 @@ test('authorize projects run-bound governance and invariant evidence into the de
   assert.equal(approved.evidenceContext.riskyInvariant.invariantId, 'auth.refresh.validity');
 });
 
-test('attest sign and verify produce a valid signed claim', () => {
+test('attest sign and verify produce a valid signed claim with exact subject context', () => {
   const target = tempCopyOfFixture('governed-app');
   spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
   const runId = latestRunId(target);
@@ -53,7 +53,10 @@ test('attest sign and verify produce a valid signed claim', () => {
   const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
   assert.equal(sign.status, 0);
   const verify = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', output, '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
-  assert.match(verify.stdout, /verified/);
+  assert.match(verify.stdout, /^ci\.verify: verified \(verified\)$/m);
+  assert.match(verify.stdout, new RegExp(`^Subject: \\.ts-quality/runs/${runId}/verdict\\.json$`, 'm'));
+  assert.match(verify.stdout, new RegExp(`^Run: ${runId}$`, 'm'));
+  assert.match(verify.stdout, /^Artifact: verdict\.json$/m);
 });
 
 
