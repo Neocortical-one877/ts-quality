@@ -25,6 +25,12 @@ function importsForFile(filePath, sourceText) {
                 imports.push(argument.text);
             }
         }
+        if (typescript_1.default.isCallExpression(node) && node.expression.kind === typescript_1.default.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
+            const argument = node.arguments[0];
+            if (typescript_1.default.isStringLiteral(argument)) {
+                imports.push(argument.text);
+            }
+        }
         typescript_1.default.forEachChild(node, visit);
     }
     visit(sourceFile);

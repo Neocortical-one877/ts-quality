@@ -205,23 +205,32 @@ function runtimeMirrorCandidates(sourcePath, mirrorRoots = ['dist']) {
     const extension = path_1.default.extname(normalized);
     const compiledExtension = extension === '.ts' || extension === '.tsx' || extension === '.jsx' ? '.js' : extension;
     const candidates = new Set();
-    const sourceSegments = normalized.split('/');
+    const sourceSegments = normalized.split('/').filter(Boolean);
     const srcIndex = sourceSegments.indexOf('src');
-    if (srcIndex < 0) {
-        return [];
-    }
+    const sourceDir = path_1.default.posix.dirname(normalized);
+    const sourceBase = path_1.default.posix.basename(normalized);
     for (const mirrorRoot of mirrorRoots.map((item) => normalizePath(item)).filter(Boolean)) {
         const rootSegments = mirrorRoot.split('/').filter(Boolean);
-        const mirroredSegments = [...sourceSegments];
-        mirroredSegments.splice(srcIndex, 1, ...rootSegments);
-        const candidate = withCompiledExtension(mirroredSegments.join('/'), extension, compiledExtension);
-        if (candidate !== normalized) {
-            candidates.add(candidate);
+        if (srcIndex >= 0) {
+            const mirroredSegments = [...sourceSegments];
+            mirroredSegments.splice(srcIndex, 1, ...rootSegments);
+            const candidate = withCompiledExtension(mirroredSegments.join('/'), extension, compiledExtension);
+            if (candidate !== normalized) {
+                candidates.add(normalizePath(candidate));
+            }
+            if (srcIndex === 0) {
+                const rootCandidate = withCompiledExtension(path_1.default.posix.join(mirrorRoot, normalized.slice(4)), extension, compiledExtension);
+                if (rootCandidate !== normalized) {
+                    candidates.add(normalizePath(rootCandidate));
+                }
+            }
+            continue;
         }
-        if (srcIndex === 0) {
-            const rootCandidate = withCompiledExtension(path_1.default.posix.join(mirrorRoot, normalized.slice(4)), extension, compiledExtension);
-            if (rootCandidate !== normalized) {
-                candidates.add(normalizePath(rootCandidate));
+        const siblingCandidate = withCompiledExtension(path_1.default.posix.join(sourceDir === '.' ? '' : sourceDir, mirrorRoot, sourceBase), extension, compiledExtension);
+        const rootCandidate = withCompiledExtension(path_1.default.posix.join(mirrorRoot, normalized), extension, compiledExtension);
+        for (const candidate of [siblingCandidate, rootCandidate]) {
+            if (candidate !== normalized) {
+                candidates.add(normalizePath(candidate));
             }
         }
     }

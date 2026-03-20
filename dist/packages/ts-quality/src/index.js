@@ -375,10 +375,39 @@ function loadVerifiedAttestations(rootDir, attestationsDir, trustedKeysDir) {
     }
     return { attestations, verification };
 }
+function resolveChangedFileOverride(rootDir, filePath) {
+    return (0, index_1.resolveRepoLocalPath)(rootDir, filePath, { allowMissing: true, kind: 'changed file override' }).relativePath;
+}
+function buildAnalysisManifest(rootDir, options) {
+    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
+    const sourceFiles = (0, index_1.collectSourceFiles)(rootDir, loaded.config.sourcePatterns);
+    const changedRegions = loaded.config.changeSet.diffFile ? (0, config_1.loadChangedRegions)(rootDir, loaded.config.changeSet.diffFile) : [];
+    const configuredChangedFiles = loaded.config.changeSet.files ?? [];
+    const changedFiles = options?.changedFiles
+        ? options.changedFiles.map((item) => resolveChangedFileOverride(rootDir, item))
+        : configuredChangedFiles.length > 0
+            ? [...configuredChangedFiles]
+            : sourceFiles;
+    const coveragePath = loaded.config.coverage.lcovPath ?? 'coverage/lcov.info';
+    const coverageAbsolutePath = path_1.default.join(rootDir, coveragePath);
+    const coverage = fs_1.default.existsSync(coverageAbsolutePath) ? (0, index_2.parseLcov)(fs_1.default.readFileSync(coverageAbsolutePath, 'utf8')) : [];
+    return {
+        loaded,
+        sourceFiles,
+        changedFiles,
+        changedRegions,
+        coveragePath,
+        coverage,
+        runtimeMirrorRoots: [...(loaded.config.mutations.runtimeMirrorRoots ?? ['dist'])]
+    };
+}
 function buildAnalysisContext(input) {
     return {
         runId: input.runId,
         createdAt: input.createdAt,
+        configPath: input.configPath,
+        coverageLcovPath: input.coverageLcovPath,
+        runtimeMirrorRoots: [...input.runtimeMirrorRoots],
         sourceFiles: [...input.sourceFiles],
         changedFiles: [...input.changedFiles],
         changedRegions: [...input.changedRegions],
@@ -386,15 +415,14 @@ function buildAnalysisContext(input) {
     };
 }
 function runCheck(rootDir, options) {
-    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
-    const sourceFiles = (0, index_1.collectSourceFiles)(rootDir, loaded.config.sourcePatterns);
-    const changedRegions = loaded.config.changeSet.diffFile ? (0, config_1.loadChangedRegions)(rootDir, loaded.config.changeSet.diffFile) : [];
-    const configuredChangedFiles = loaded.config.changeSet.files ?? [];
-    const changedFiles = (options?.changedFiles ?? (configuredChangedFiles.length > 0 ? configuredChangedFiles : sourceFiles)).map((item) => (0, index_1.normalizePath)(item));
+    const manifest = buildAnalysisManifest(rootDir, options);
+    const loaded = manifest.loaded;
+    const sourceFiles = manifest.sourceFiles;
+    const changedFiles = manifest.changedFiles.map((item) => (0, index_1.normalizePath)(item));
+    const changedRegions = manifest.changedRegions;
     const runId = (0, index_1.assertSafeRunId)(options?.runId ?? (0, index_1.createRunId)());
     const createdAt = (0, index_1.nowIso)();
-    const lcovPath = path_1.default.join(rootDir, loaded.config.coverage.lcovPath);
-    const coverage = fs_1.default.existsSync(lcovPath) ? (0, index_2.parseLcov)(fs_1.default.readFileSync(lcovPath, 'utf8')) : [];
+    const coverage = manifest.coverage;
     const waivers = (0, config_1.loadWaivers)(rootDir, loaded.config.waiversPath);
     const approvals = (0, config_1.loadApprovals)(rootDir, loaded.config.approvalsPath);
     const overrides = (0, config_1.loadOverrides)(rootDir, loaded.config.overridesPath);
@@ -420,7 +448,7 @@ function runCheck(rootDir, options) {
         manifestPath: path_1.default.join(rootDir, '.ts-quality', 'mutation-manifest.json'),
         timeoutMs: loaded.config.mutations.timeoutMs ?? 15_000,
         maxSites: loaded.config.mutations.maxSites ?? 25,
-        runtimeMirrorRoots: loaded.config.mutations.runtimeMirrorRoots ?? ['dist']
+        runtimeMirrorRoots: manifest.runtimeMirrorRoots
     });
     const claims = (0, index_4.evaluateInvariants)({
         rootDir,
@@ -483,6 +511,9 @@ function runCheck(rootDir, options) {
     const analysis = buildAnalysisContext({
         runId,
         createdAt,
+        configPath: (0, index_1.normalizePath)(path_1.default.relative(rootDir, loaded.configPath)),
+        coverageLcovPath: manifest.coveragePath,
+        runtimeMirrorRoots: manifest.runtimeMirrorRoots,
         sourceFiles,
         changedFiles,
         changedRegions,

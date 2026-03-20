@@ -343,6 +343,9 @@ export interface ExecutionReceipt {
 export interface AnalysisContext {
     runId: string;
     createdAt: string;
+    configPath?: string | undefined;
+    coverageLcovPath?: string | undefined;
+    runtimeMirrorRoots?: string[] | undefined;
     sourceFiles: string[];
     changedFiles: string[];
     changedRegions: ChangedRegion[];

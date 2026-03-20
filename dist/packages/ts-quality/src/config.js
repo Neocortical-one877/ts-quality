@@ -227,6 +227,50 @@ function validateConfig(raw) {
         trustedKeysDir: raw.trustedKeysDir ?? '.ts-quality/keys'
     };
 }
+function canonicalRepoPath(rootDir, candidate, kind) {
+    return (0, index_1.resolveRepoLocalPath)(rootDir, candidate, { allowMissing: true, kind }).relativePath;
+}
+function canonicalRepoPathArray(rootDir, values, kind) {
+    return values.map((value) => canonicalRepoPath(rootDir, value, kind));
+}
+function canonicalizeConfigPaths(rootDir, config) {
+    const coverageLcovPath = config.coverage.lcovPath ?? 'coverage/lcov.info';
+    const runtimeMirrorRoots = config.mutations.runtimeMirrorRoots ?? ['dist'];
+    const changeSetFiles = config.changeSet.files ?? [];
+    const diffFile = config.changeSet.diffFile ?? '';
+    const invariantsPath = config.invariantsPath ?? '.ts-quality/invariants.ts';
+    const constitutionPath = config.constitutionPath ?? '.ts-quality/constitution.ts';
+    const agentsPath = config.agentsPath ?? '.ts-quality/agents.ts';
+    const approvalsPath = config.approvalsPath ?? '.ts-quality/approvals.json';
+    const waiversPath = config.waiversPath ?? '.ts-quality/waivers.json';
+    const overridesPath = config.overridesPath ?? '.ts-quality/overrides.json';
+    const attestationsDir = config.attestationsDir ?? '.ts-quality/attestations';
+    const trustedKeysDir = config.trustedKeysDir ?? '.ts-quality/keys';
+    return {
+        ...config,
+        coverage: {
+            ...config.coverage,
+            lcovPath: canonicalRepoPath(rootDir, coverageLcovPath, 'coverage lcovPath')
+        },
+        mutations: {
+            ...config.mutations,
+            runtimeMirrorRoots: canonicalRepoPathArray(rootDir, runtimeMirrorRoots, 'mutation runtime mirror root')
+        },
+        changeSet: {
+            ...config.changeSet,
+            files: canonicalRepoPathArray(rootDir, changeSetFiles, 'changeSet file'),
+            diffFile: diffFile ? canonicalRepoPath(rootDir, diffFile, 'diff file') : ''
+        },
+        invariantsPath: canonicalRepoPath(rootDir, invariantsPath, 'invariants path'),
+        constitutionPath: canonicalRepoPath(rootDir, constitutionPath, 'constitution path'),
+        agentsPath: canonicalRepoPath(rootDir, agentsPath, 'agents path'),
+        approvalsPath: canonicalRepoPath(rootDir, approvalsPath, 'approvals path'),
+        waiversPath: canonicalRepoPath(rootDir, waiversPath, 'waivers path'),
+        overridesPath: canonicalRepoPath(rootDir, overridesPath, 'overrides path'),
+        attestationsDir: canonicalRepoPath(rootDir, attestationsDir, 'attestations dir'),
+        trustedKeysDir: canonicalRepoPath(rootDir, trustedKeysDir, 'trusted keys dir')
+    };
+}
 function findConfigPath(rootDir) {
     for (const candidate of ['ts-quality.config.ts', 'ts-quality.config.js', 'ts-quality.config.mjs', 'ts-quality.config.cjs', 'ts-quality.config.json']) {
         const filePath = path_1.default.join(rootDir, candidate);
@@ -240,7 +284,7 @@ function loadContext(rootDir, explicitConfigPath) {
     const configPath = explicitConfigPath
         ? (0, index_1.resolveRepoLocalPath)(rootDir, explicitConfigPath, { kind: 'config path' }).absolutePath
         : findConfigPath(rootDir);
-    const config = validateConfig(loadModuleFile(configPath));
+    const config = canonicalizeConfigPaths(rootDir, validateConfig(loadModuleFile(configPath)));
     return { rootDir, configPath, config };
 }
 function loadOptionalRepoModule(rootDir, repoPath, kind) {
