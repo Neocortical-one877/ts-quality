@@ -195,6 +195,32 @@
           ],
           "dod": "Task reaches done in society.db with evidence recorded.",
           "completed_at": "2026-03-18"
+        },
+        {
+          "id": "AK-TASK-0193",
+          "title": "ts-quality: harden config loading to eliminate executable TS/JS module evaluation",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: harden config loading to eliminate executable TS/JS module evaluation (task #193)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-19"
+        },
+        {
+          "id": "AK-TASK-0194",
+          "title": "ts-quality: materialize data-only config/support modules into runtime JSON artifacts",
+          "state": "done",
+          "tasks": [
+            {
+              "text": "ts-quality: materialize data-only config/support modules into runtime JSON artifacts (task #194)",
+              "done": true
+            }
+          ],
+          "dod": "Task reaches done in society.db with evidence recorded.",
+          "completed_at": "2026-03-20"
         }
       ]
     }

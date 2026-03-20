@@ -1,5 +1,5 @@
 ---
-summary: "Operating plan after AK #192; the opening SG2 authorization slice is complete and no follow-on repo-local slice is materialized yet."
+summary: "Operating plan after AK #192, #193, and #194; the opening SG2 authorization slice is complete, config/runtime hardening is materially stronger, and no follow-on repo-local SG2 slice is materialized yet."
 read_when:
   - "When deciding the next bounded implementation slice in ts-quality"
   - "When translating the current tactical state into the repo-local queue"
@@ -48,12 +48,63 @@ Primary files touched:
 - `governance/work-items.json`
 - `diary/2026-03-18--feat-authorization-evidence-context.md`
 
+### M4 — **AK `#193`** — harden config loading to eliminate executable TS/JS module evaluation
+State:
+- completed 2026-03-19
+
+Deliverable now true:
+- `packages/ts-quality/src/config.ts` parses `.ts` / `.js` / `.mjs` / `.cjs` config-like files as data-only modules instead of executing repo code through `vm`
+- repo-local support files loaded through the same path (`.ts-quality/invariants.*`, `.ts-quality/constitution.*`, `.ts-quality/agents.*`, and similar) now obey the same data-only contract
+- executable expressions such as function calls or runtime property access are rejected deterministically during load
+- regression coverage now locks accepted data-only forms and rejected executable forms
+- docs and ADRs now state clearly that this is an intentional alpha-stage breaking change
+
+Primary files touched:
+- `packages/ts-quality/src/config.ts`
+- `test/config-loading.test.mjs`
+- `README.md`
+- `ARCHITECTURE.md`
+- `CHANGELOG.md`
+- `docs/config-reference.md`
+- `docs/decisions/2026-03-19-alpha-breaking-changes-allowed.md`
+- `docs/decisions/2026-03-19-data-only-config-modules.md`
+- `docs/project/strategic_goals.md`
+- `docs/project/tactical_goals.md`
+- `docs/project/operating_plan.md`
+- `next_session_prompt.md`
+- `governance/work-items.json`
+
+### M5 — **AK `#194`** — materialize config/support modules into canonical runtime JSON artifacts
+State:
+- completed 2026-03-20
+
+Deliverable now true:
+- `ts-quality materialize` exports the currently loaded config/support data into `.ts-quality/materialized/`
+- generated `ts-quality.config.json` rewrites support-file paths to exported JSON artifacts so later checks can run from boring materialized runtime inputs
+- one end-to-end regression now proves `check --config .ts-quality/materialized/ts-quality.config.json` yields the same verdict as the source config on the governed fixture
+- docs and example flow now show how to run from materialized runtime artifacts
+
+Primary files touched:
+- `packages/ts-quality/src/index.ts`
+- `packages/ts-quality/src/cli.ts`
+- `test/cli-integration.test.mjs`
+- `README.md`
+- `docs/config-reference.md`
+- `examples/basic/README.md`
+- `ARCHITECTURE.md`
+- `CHANGELOG.md`
+- `next_session_prompt.md`
+- `docs/project/operating_plan.md`
+- `governance/work-items.json`
+
 ## Current ready queue
 Ready now:
 - none repo-local
 
 Completed this session:
 - `#192` — surface run-boundary evidence in authorization decisions
+- `#193` — harden config loading by replacing executable module evaluation with a data-only parser
+- `#194` — materialize config/support modules into canonical runtime JSON artifacts
 
 Deferred this session (authority-bound in AK):
 - `#190` — automate AK-to-handoff projection sync

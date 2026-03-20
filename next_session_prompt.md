@@ -1,5 +1,5 @@
 ---
-summary: "Active handoff: AK #192 is complete; no ready repo-local follow-on SG2 slice is materialized yet, so the next session should decompose amendment/attestation-facing outputs first."
+summary: "Active handoff: AK #192, #193, and #194 are complete; no ready repo-local follow-on SG2 slice is materialized yet, so the next session should decompose amendment/attestation-facing outputs first."
 read_when:
   - "At the start of every work session"
   - "When resuming work in ts-quality after a pause"
@@ -31,6 +31,8 @@ Ready now:
 
 Completed this session:
 - `#192` — surface run-boundary evidence in authorization decisions
+- `#193` — harden config loading by replacing executable module evaluation with a data-only parser
+- `#194` — materialize config/support modules into canonical runtime JSON artifacts
 
 Deferred with AK binding this session:
 - `#190` — automate AK-to-handoff projection sync

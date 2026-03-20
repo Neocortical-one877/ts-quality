@@ -1,5 +1,5 @@
 ---
-summary: "Tactical handoff with the opening SG2 authorization slice complete and no follow-on repo-local slice materialized yet."
+summary: "Tactical handoff with the opening SG2 authorization slice complete, no follow-on repo-local SG2 slice materialized yet, and repo-wide config/runtime hardening complete via AK #193 and #194."
 read_when:
   - "When planning the next sprint/week for ts-quality"
   - "When turning the current strategic state into bounded delivery waves"
@@ -40,6 +40,7 @@ The decision artifact now carries a concise additive projection of the exact run
 - **Active strategic goal:** SG2
 - **Active tactical goal:** none materialized yet
 - **Next required action:** audit amendment-facing and attestation-review outputs, then materialize the next repo-local SG2 slice before coding
+- **Recent repo-wide hardening:** AK `#193` and `#194` are complete; config/support modules now use a data-only contract and can be materialized into canonical runtime JSON artifacts for later runs
 
 ## Tactical guardrails
 - keep `behaviorClaims[].evidenceSummary` as the additive root

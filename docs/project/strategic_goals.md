@@ -1,5 +1,5 @@
 ---
-summary: "Strategic handoff for ts-quality with SG2 active and its first authorization-facing slice now landed."
+summary: "Strategic handoff for ts-quality with SG2 active, its first authorization-facing slice landed, and repo-wide config/runtime hardening now stronger through AK #193 and #194."
 read_when:
   - "When deciding the next quarter-scale direction for ts-quality"
   - "When translating the current repo truth into the next strategic wave"
@@ -22,6 +22,10 @@ SG2 is now the active strategic goal.
 ## Active now vs completed
 - **Active now:** SG2
 - **Just completed:** SG1
+
+## Repo-wide hardening completed alongside SG2 intake
+AK `#193` and `#194` are now complete outside the SG2 tactical line.
+Together they replaced executable config/support-module evaluation with a data-only parser and added a materialized runtime JSON lane, which means config/runtime hardening is materially stronger even though SG2 still governs the active strategic direction.
 
 ## SG1 — Close the remaining concise operator-surface gaps under `behaviorClaims[].evidenceSummary`
 
