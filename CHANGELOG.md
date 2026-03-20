@@ -23,6 +23,9 @@ type: "reference"
 - Clarified docs around deterministic scope, coverage prerequisites, and focused test evidence.
 - Added explicit/inferred/missing provenance modes to invariant evidence sub-signals and rendered report/explain output.
 - Hardened repo-local trust boundaries so configured attestation/key paths and other config-driven artifact paths reject `--root` escapes, including symlink escapes.
+- Hardened the preflight analysis lane so `coverage.lcovPath`, `changeSet.files`, CLI `--changed` overrides, and `mutations.runtimeMirrorRoots` are canonicalized to repo-local paths before execution and rejected when they escape `--root`.
+- Expanded governance boundary detection to catch dynamic `import(...)` calls in addition to static imports and `require(...)`.
+- Extended runtime mirror mapping so built-output mutation runs also mirror root-level sources into configured runtime roots such as `dist/index.js`.
 - Added additive analysis-context and mutation-baseline receipts to run artifacts, exact diff-hunk narrowing inside changed files, deterministic mutation execution fingerprints, explicit blocking for invalid mutation baselines, exact run-id binding for approval rules, ownership-rule enforcement, deeper package attribution, override-scope revalidation, and safe run-id validation to prevent artifact-path traversal.
 
 ## 5.0.0

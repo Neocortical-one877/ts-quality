@@ -34,7 +34,7 @@ Judgment layer. It combines CRAP, mutation outcomes, invariant impact, waivers, 
 
 ### `packages/governance`
 
-Constitution layer. It enforces architectural boundaries, approval rules, rollback evidence, ownership reservations, and domain risk budgets. Boundary checks use repo-aware module resolution, walking from the importer toward the repo root for the nearest `tsconfig.json`, so TS path aliases and extensionless local imports cannot silently bypass the constitution in common nested package layouts. It also produces implementation plans with explicit tradeoffs.
+Constitution layer. It enforces architectural boundaries, approval rules, rollback evidence, ownership reservations, and domain risk budgets. Boundary checks use repo-aware module resolution, walking from the importer toward the repo root for the nearest `tsconfig.json`, so TS path aliases, extensionless local imports, and dynamic `import(...)` calls cannot silently bypass the constitution in common nested package layouts. It also produces implementation plans with explicit tradeoffs.
 
 ### `packages/legitimacy`
 
@@ -42,12 +42,12 @@ Legitimacy layer. It models agents and grants, builds proof-carrying change bund
 
 ### `packages/ts-quality`
 
-Product surface. It loads configuration through a data-only module contract rather than executing repo code, enforces repo-local trust/input paths for config-driven artifacts, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI.
+Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI.
 
 ## Data flow
 
 1. `ts-quality check` loads `ts-quality.config.ts`.
-2. A preallocated analysis context establishes the run id, exact changed-file list, optional diff hunks, source file set, and mutation execution fingerprint.
+2. A canonical preflight manifest resolves repo-local config inputs (coverage path, changed scope, diff path, runtime mirror roots), then a preallocated analysis context establishes the run id, exact changed-file list, optional diff hunks, source file set, and mutation execution fingerprint.
 3. `crap4ts` computes structural risk, with diff hunks narrowing changed scope inside files when present.
 4. `ts-mutate` validates the baseline test command, computes behavioral pressure in a hermetic subprocess context, fingerprints the effective execution environment, and records a baseline execution receipt.
 5. `invariants` interprets evidence against declared system intent using focused test corpora aligned to impacted files or explicit `requiredTestPatterns`, then emits per-invariant evidence summaries with named sub-signals (focused-test alignment, changed-function pressure, coverage pressure, mutation pressure, and scenario support) plus additive provenance modes (`explicit`, `inferred`, `missing`).
