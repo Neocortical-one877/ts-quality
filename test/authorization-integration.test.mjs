@@ -135,6 +135,126 @@ test('authorize ignores attestations that target an older run', () => {
   assert.deepEqual(decision.missingProof, ['ci.tests.passed']);
 });
 
+test('authorize accepts rollback evidence that is bound to the exact evaluated run', () => {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-run-bound-rollback-'));
+  fs.mkdirSync(path.join(target, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(target, 'test'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'src', 'flag.js'), 'function isOne(value) { return value === 1; }\nmodule.exports = { isOne };\n', 'utf8');
+  fs.writeFileSync(path.join(target, 'test', 'flag.test.js'), "const test = require('node:test'); const assert = require('node:assert/strict'); const { isOne } = require('../src/flag.js'); test('isOne', () => { assert.equal(isOne(1), true); assert.equal(isOne(2), false); });\n", 'utf8');
+
+  let result = spawnSync('node', [cli, 'init', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.writeFileSync(path.join(target, 'ts-quality.config.ts'), `export default {
+  sourcePatterns: ['src/**/*.js'],
+  testPatterns: ['test/**/*.js'],
+  coverage: { lcovPath: 'coverage/lcov.info' },
+  mutations: { testCommand: ['node', '--test'], coveredOnly: false, timeoutMs: 10000, maxSites: 5 },
+  policy: { maxChangedCrap: 30, minMutationScore: 0, minMergeConfidence: 0 },
+  changeSet: { files: ['src/flag.js'] },
+  invariantsPath: '.ts-quality/invariants.ts',
+  constitutionPath: '.ts-quality/constitution.ts',
+  agentsPath: '.ts-quality/agents.ts',
+  approvalsPath: '.ts-quality/approvals.json',
+  waiversPath: '.ts-quality/waivers.json',
+  overridesPath: '.ts-quality/overrides.json',
+  attestationsDir: '.ts-quality/attestations',
+  trustedKeysDir: '.ts-quality/keys'
+};
+`, 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'constitution.ts'), `export default [
+  {
+    kind: 'rollback',
+    id: 'need-ci-proof',
+    paths: ['src/**'],
+    message: 'Attach CI rollback evidence before merge.',
+    requireEvidence: ['ci.tests.passed']
+  }
+];
+`, 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'invariants.ts'), 'export default [];\n', 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'agents.ts'), `export default [
+  {
+    id: 'maintainer',
+    kind: 'human',
+    roles: ['maintainer'],
+    grants: [
+      {
+        id: 'maintainer-merge',
+        actions: ['merge'],
+        paths: ['src/**'],
+        minMergeConfidence: 0
+      }
+    ]
+  }
+];
+`, 'utf8');
+
+  result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const runId = latestRunId(target);
+
+  result = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'maintainer'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  let decision = JSON.parse(result.stdout);
+  assert.equal(decision.outcome, 'deny');
+  assert.match(decision.reasons[0], /Governance violations block authorization/);
+
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', path.join('.ts-quality', 'runs', runId, 'verdict.json'), '--claims', 'ci.tests.passed', '--out', path.join('.ts-quality', 'attestations', 'ci.tests.passed.json')], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  result = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'maintainer'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  decision = JSON.parse(result.stdout);
+  assert.equal(decision.outcome, 'approve');
+  assert.deepEqual(decision.evidenceContext.governanceErrors, []);
+});
+
+test('authorize denies repository drift after the evaluated run', () => {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-run-drift-'));
+  fs.mkdirSync(path.join(target, 'src'), { recursive: true });
+  fs.mkdirSync(path.join(target, 'test'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'src', 'flag.js'), 'function isOne(value) { return value === 1; }\nmodule.exports = { isOne };\n', 'utf8');
+  fs.writeFileSync(path.join(target, 'test', 'flag.test.js'), "const test = require('node:test'); const assert = require('node:assert/strict'); const { isOne } = require('../src/flag.js'); test('isOne', () => { assert.equal(isOne(1), true); assert.equal(isOne(2), false); });\n", 'utf8');
+  fs.writeFileSync(path.join(target, 'package.json'), JSON.stringify({ name: 'run-drift-test' }, null, 2));
+  fs.mkdirSync(path.join(target, '.ts-quality'), { recursive: true });
+  fs.writeFileSync(path.join(target, 'ts-quality.config.json'), JSON.stringify({
+    sourcePatterns: ['src/**/*.js'],
+    testPatterns: ['test/**/*.js'],
+    mutations: { testCommand: ['node', '--test'], coveredOnly: false, timeoutMs: 10000, maxSites: 5 },
+    changeSet: { files: ['src/flag.js'] },
+    invariantsPath: '.ts-quality/invariants.json',
+    constitutionPath: '.ts-quality/constitution.json',
+    agentsPath: '.ts-quality/agents.json'
+  }, null, 2));
+  fs.writeFileSync(path.join(target, '.ts-quality', 'invariants.json'), '[]\n', 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'constitution.json'), '[]\n', 'utf8');
+  fs.writeFileSync(path.join(target, '.ts-quality', 'agents.json'), JSON.stringify([
+    {
+      id: 'maintainer',
+      kind: 'human',
+      roles: ['maintainer'],
+      grants: [
+        {
+          id: 'maintainer-merge',
+          actions: ['merge'],
+          paths: ['src/**'],
+          minMergeConfidence: 60
+        }
+      ]
+    }
+  ], null, 2));
+
+  let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.writeFileSync(path.join(target, 'src', 'flag.js'), 'function isOne(value) { return value >= 1; }\nmodule.exports = { isOne };\n', 'utf8');
+
+  result = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'maintainer'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const decision = JSON.parse(result.stdout);
+  assert.equal(decision.outcome, 'deny');
+  assert.match(decision.reasons[0], /Repository changed since run/);
+});
+
 test('authorize denies empty authorization scope instead of matching grants vacuously', () => {
   const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-empty-scope-'));
   let result = spawnSync('node', [cli, 'init', '--root', target], { encoding: 'utf8' });

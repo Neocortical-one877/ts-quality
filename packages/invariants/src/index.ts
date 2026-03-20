@@ -177,9 +177,23 @@ function focusedTestDocuments(testDocuments: TestDocument[], invariant: Invarian
   } satisfies FocusedTestSelection;
 }
 
-function scenarioHasCoverage(corpus: string, keywords: string[]): boolean {
-  const lowered = corpus.toLowerCase();
-  return keywords.every((keyword) => lowered.includes(keyword.toLowerCase()));
+function scenarioHasCoverage(document: TestDocument, keywords: string[]): boolean {
+  return keywords.every((keyword) => document.lowered.includes(keyword.toLowerCase()));
+}
+
+function scenarioSupportAcrossDocuments(documents: TestDocument[], scenario: InvariantSpec['scenarios'][number]): { keywordsMatched: boolean; failurePathKeywordsMatched: boolean; supported: boolean } {
+  const keywordsMatched = documents.some((document) => scenarioHasCoverage(document, scenario.keywords));
+  const failurePathKeywordsMatched = scenario.failurePathKeywords
+    ? documents.some((document) => scenarioHasCoverage(document, scenario.failurePathKeywords ?? []))
+    : true;
+  const supported = documents.some((document) => {
+    const hasKeywords = scenarioHasCoverage(document, scenario.keywords);
+    const hasFailurePath = scenario.failurePathKeywords
+      ? scenarioHasCoverage(document, scenario.failurePathKeywords)
+      : true;
+    return hasKeywords && hasFailurePath;
+  });
+  return { keywordsMatched, failurePathKeywordsMatched, supported };
 }
 
 function pluralize(count: number, singular: string, plural = `${singular}s`): string {
@@ -406,7 +420,6 @@ export function evaluateInvariants(options: InvariantEvaluationOptions): Behavio
     const maxChangedCrap = changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0);
     const focusedTestSelection = focusedTestDocuments(testDocuments, invariant, files);
     const focusedTests = focusedTestSelection.documents;
-    const focusedCorpus = focusedTests.map((document) => document.contents).join('\n');
     const scenarioResults: InvariantScenarioResult[] = [];
 
     if (survivingMutants.length > 0) {
@@ -425,18 +438,18 @@ export function evaluateInvariants(options: InvariantEvaluationOptions): Behavio
     }
 
     for (const scenario of invariant.scenarios) {
-      const hasKeywords = focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.keywords);
-      const hasFailurePath = scenario.failurePathKeywords ? focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.failurePathKeywords) : true;
-      const supported = hasKeywords && hasFailurePath;
+      const support = focusedTests.length > 0
+        ? scenarioSupportAcrossDocuments(focusedTests, scenario)
+        : { keywordsMatched: false, failurePathKeywordsMatched: scenario.failurePathKeywords ? false : true, supported: false };
       scenarioResults.push({
         scenarioId: scenario.id,
         description: scenario.description,
         expected: scenario.expected,
-        keywordsMatched: hasKeywords,
-        failurePathKeywordsMatched: hasFailurePath,
-        supported
+        keywordsMatched: support.keywordsMatched,
+        failurePathKeywordsMatched: support.failurePathKeywordsMatched,
+        supported: support.supported
       });
-      if (!supported) {
+      if (!support.supported) {
         obligations.push({
           id: `${invariant.id}:${scenario.id}`,
           invariantId: invariant.id,

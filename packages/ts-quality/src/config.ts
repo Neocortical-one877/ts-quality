@@ -227,6 +227,9 @@ function validateConfig(raw: TsQualityConfig): Required<TsQualityConfig> {
   const testPatterns = validateStringArray('testPatterns', raw.testPatterns) ?? [...DEFAULT_TEST_PATTERNS];
   const changeFiles = validateStringArray('changeSet.files', raw.changeSet?.files) ?? [];
   const mutationCommand = validateStringArray('mutations.testCommand', raw.mutations?.testCommand) ?? ['node', '--test'];
+  if (mutationCommand.length === 0) {
+    throw new Error('mutations.testCommand must contain at least one executable argument');
+  }
   const runtimeMirrorRoots = validateStringArray('mutations.runtimeMirrorRoots', raw.mutations?.runtimeMirrorRoots) ?? ['dist'];
   return {
     version: raw.version ?? '5',

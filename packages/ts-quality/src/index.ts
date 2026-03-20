@@ -58,6 +58,24 @@ export interface MaterializeResult {
   files: string[];
 }
 
+interface RunDriftEntry {
+  filePath: string;
+  expectedDigest: string;
+  actualDigest: string;
+}
+
+interface RunDecisionContext {
+  loaded: ReturnType<typeof loadContext>;
+  run: RunArtifact;
+  projectedRun: RunArtifact;
+  approvals: ReturnType<typeof loadApprovals>;
+  overrides: ReturnType<typeof loadOverrides>;
+  agents: ReturnType<typeof loadAgents>;
+  constitution: ReturnType<typeof loadConstitution>;
+  runAttestations: Attestation[];
+  drift: RunDriftEntry[];
+}
+
 function fileEntities(rootDir: string, filePaths: string[]): FileEntity[] {
   const repo = buildRepositoryEntity(rootDir, filePaths);
   return filePaths.map((filePath) => {
@@ -222,6 +240,108 @@ function latestRunOrUndefined(rootDir: string): RunArtifact | undefined {
   } catch {
     return undefined;
   }
+}
+
+function expectedRunFileDigest(run: RunArtifact, filePath: string): string | undefined {
+  return run.files.find((item) => item.filePath === normalizePath(filePath))?.digest;
+}
+
+function detectRunDrift(rootDir: string, run: RunArtifact): RunDriftEntry[] {
+  const drift: RunDriftEntry[] = [];
+  for (const filePath of run.changedFiles.map((item) => normalizePath(item))) {
+    const expectedDigest = expectedRunFileDigest(run, filePath);
+    if (!expectedDigest) {
+      continue;
+    }
+    const absolutePath = path.join(rootDir, filePath);
+    const actualDigest = fs.existsSync(absolutePath)
+      ? fileDigest(absolutePath)
+      : 'sha256:missing';
+    if (actualDigest !== expectedDigest) {
+      drift.push({ filePath, expectedDigest, actualDigest });
+    }
+  }
+  return drift;
+}
+
+function policyConfigFromLoadedContext(loaded: ReturnType<typeof loadContext>): ReturnType<typeof defaultPolicy> {
+  return {
+    ...defaultPolicy(),
+    ...loaded.config.policy
+  };
+}
+
+function projectedRunForDecision(rootDir: string, loaded: ReturnType<typeof loadContext>, run: RunArtifact): RunDecisionContext {
+  const approvals = loadApprovals(rootDir, loaded.config.approvalsPath);
+  const overrides = loadOverrides(rootDir, loaded.config.overridesPath);
+  const waivers = loadWaivers(rootDir, loaded.config.waiversPath);
+  const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
+  const agents = loadAgents(rootDir, loaded.config.agentsPath);
+  const { attestations } = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+  const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
+  const policy = policyConfigFromLoadedContext(loaded);
+  const preliminary = evaluatePolicy({
+    nowIso: nowIso(),
+    policy,
+    changedComplexity: run.complexity.filter((item) => item.changed),
+    mutations: run.mutations,
+    ...(run.mutationBaseline ? { mutationBaseline: run.mutationBaseline } : {}),
+    behaviorClaims: run.behaviorClaims,
+    governance: [],
+    waivers
+  });
+  const governance = evaluateGovernance({
+    rootDir,
+    constitution,
+    changedFiles: run.changedFiles,
+    changedRegions: run.changedRegions,
+    approvals,
+    runId: run.runId,
+    attestationsClaims: runAttestations.flatMap((item) => item.claims),
+    run: {
+      complexity: run.complexity,
+      mutations: run.mutations,
+      verdict: preliminary.verdict
+    }
+  });
+  const evaluated = evaluatePolicy({
+    nowIso: nowIso(),
+    policy,
+    changedComplexity: run.complexity.filter((item) => item.changed),
+    mutations: run.mutations,
+    ...(run.mutationBaseline ? { mutationBaseline: run.mutationBaseline } : {}),
+    behaviorClaims: run.behaviorClaims,
+    governance,
+    waivers
+  });
+  const projectedRun: RunArtifact = {
+    ...run,
+    approvals,
+    overrides,
+    attestations: runAttestations,
+    governance,
+    verdict: evaluated.verdict,
+    ...(run.trend ? { trend: run.trend } : {})
+  };
+  return {
+    loaded,
+    run,
+    projectedRun,
+    approvals,
+    overrides,
+    agents,
+    constitution,
+    runAttestations,
+    drift: detectRunDrift(rootDir, run)
+  };
+}
+
+function renderRunDriftNotice(run: Pick<RunArtifact, 'runId'>, drift: RunDriftEntry[]): string {
+  const lines = [
+    `Run drift detected for ${run.runId}. Re-run ts-quality check before trusting downstream decision surfaces.`,
+    ...drift.map((item) => `- ${item.filePath}: expected ${item.expectedDigest}, actual ${item.actualDigest}`)
+  ];
+  return `${lines.join('\n')}\n`;
 }
 
 function portablePath(value: string): string {
@@ -559,13 +679,11 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   });
 
   const verifiedAttestations = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+  const runAttestations = verifiedAttestations.attestations.filter((attestation) => attestationAppliesToRun(attestation, runId));
 
   const preliminaryInput: any = {
     nowIso: nowIso(),
-    policy: {
-      ...defaultPolicy(),
-      ...loaded.config.policy
-    },
+    policy: policyConfigFromLoadedContext(loaded),
     changedComplexity: crapReport.hotspots.filter((item) => item.changed),
     mutations: mutationRun.results,
     mutationBaseline: mutationRun.baseline,
@@ -585,7 +703,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
     changedRegions,
     approvals,
     runId,
-    attestationsClaims: verifiedAttestations.attestations.flatMap((item) => item.claims),
+    attestationsClaims: runAttestations.flatMap((item) => item.claims),
     run: {
       complexity: crapReport.hotspots,
       mutations: mutationRun.results,
@@ -595,10 +713,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
 
   const evaluatedInput: PolicyInput = {
     nowIso: nowIso(),
-    policy: {
-      ...defaultPolicy(),
-      ...loaded.config.policy
-    },
+    policy: policyConfigFromLoadedContext(loaded),
     changedComplexity: crapReport.hotspots.filter((item) => item.changed),
     mutations: mutationRun.results,
     mutationBaseline: mutationRun.baseline,
@@ -639,7 +754,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
     invariants,
     behaviorClaims: claims,
     governance,
-    attestations: verifiedAttestations.attestations,
+    attestations: runAttestations,
     approvals,
     overrides,
     verdict: evaluated.verdict
@@ -732,38 +847,46 @@ export function renderTrend(rootDir: string): string {
 }
 
 export function renderGovernance(rootDir: string, options?: { configPath?: string }): string {
-  const loaded = loadContext(rootDir, options?.configPath);
-  const run = readLatestRun(rootDir);
-  const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
-  const agents = loadAgents(rootDir, loaded.config.agentsPath);
-  const plan = generateGovernancePlan(run, constitution, agents);
-  return renderGovernanceText(run, plan);
+  const context = projectedRunForDecision(rootDir, loadContext(rootDir, options?.configPath), readLatestRun(rootDir));
+  const plan = generateGovernancePlan(context.projectedRun, context.constitution, context.agents);
+  const body = renderGovernanceText(context.projectedRun, plan);
+  if (context.drift.length === 0) {
+    return body;
+  }
+  return `${renderRunDriftNotice(context.run, context.drift)}\n${body}`;
 }
 
 export function renderPlan(rootDir: string, options?: { configPath?: string }): string {
-  const loaded = loadContext(rootDir, options?.configPath);
-  const run = readLatestRun(rootDir);
-  const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
-  const agents = loadAgents(rootDir, loaded.config.agentsPath);
-  const plan = generateGovernancePlan(run, constitution, agents);
-  return renderPlanText(run, plan);
+  const context = projectedRunForDecision(rootDir, loadContext(rootDir, options?.configPath), readLatestRun(rootDir));
+  const plan = generateGovernancePlan(context.projectedRun, context.constitution, context.agents);
+  const body = renderPlanText(context.projectedRun, plan);
+  if (context.drift.length === 0) {
+    return body;
+  }
+  return `${renderRunDriftNotice(context.run, context.drift)}\n${body}`;
 }
 
 export function runAuthorize(rootDir: string, agentId: string, action: string, options?: { configPath?: string }): { decisionPath: string; output: string } {
-  const loaded = loadContext(rootDir, options?.configPath);
-  const run = readLatestRun(rootDir);
-  const agents = loadAgents(rootDir, loaded.config.agentsPath);
-  const constitution = loadConstitution(rootDir, loaded.config.constitutionPath);
-  const overrides = loadOverrides(rootDir, loaded.config.overridesPath);
-  const { attestations } = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
-  const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
-  const bundle = buildChangeBundle(rootDir, run, agentId, action);
-  const baseDecision = authorizeChange(agentId, action, bundle, run, agents, constitution, runAttestations, overrides);
+  const context = projectedRunForDecision(rootDir, loadContext(rootDir, options?.configPath), readLatestRun(rootDir));
+  const bundle = buildChangeBundle(rootDir, context.run, agentId, action);
+  const baseDecision = context.drift.length > 0
+    ? {
+        id: `${context.run.runId}:${agentId}:${action}`,
+        agentId,
+        action,
+        outcome: 'deny' as const,
+        reasons: [`Repository changed since run ${context.run.runId}. Re-run ts-quality check before authorizing ${action}.`],
+        scope: context.run.changedFiles,
+        missingProof: [],
+        requiredApprovers: [],
+        consideredAttestations: context.runAttestations.map((item) => item.issuer)
+      }
+    : authorizeChange(agentId, action, bundle, context.projectedRun, context.agents, context.constitution, context.runAttestations, context.overrides);
   const decision: AuthorizationDecision = {
     ...baseDecision,
-    evidenceContext: buildAuthorizationEvidenceContext(run, agentId, action)
+    evidenceContext: buildAuthorizationEvidenceContext(context.projectedRun, agentId, action)
   };
-  const artifactDir = path.join(rootDir, '.ts-quality', 'runs', run.runId);
+  const artifactDir = path.join(rootDir, '.ts-quality', 'runs', context.run.runId);
   const bundlePath = path.join(artifactDir, `bundle.${agentId}.${action}.json`);
   const decisionPath = path.join(artifactDir, `authorize.${agentId}.${action}.json`);
   writeJson(bundlePath, bundle);

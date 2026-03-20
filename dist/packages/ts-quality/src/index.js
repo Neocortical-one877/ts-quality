@@ -173,6 +173,103 @@ function latestRunOrUndefined(rootDir) {
         return undefined;
     }
 }
+function expectedRunFileDigest(run, filePath) {
+    return run.files.find((item) => item.filePath === (0, index_1.normalizePath)(filePath))?.digest;
+}
+function detectRunDrift(rootDir, run) {
+    const drift = [];
+    for (const filePath of run.changedFiles.map((item) => (0, index_1.normalizePath)(item))) {
+        const expectedDigest = expectedRunFileDigest(run, filePath);
+        if (!expectedDigest) {
+            continue;
+        }
+        const absolutePath = path_1.default.join(rootDir, filePath);
+        const actualDigest = fs_1.default.existsSync(absolutePath)
+            ? (0, index_1.fileDigest)(absolutePath)
+            : 'sha256:missing';
+        if (actualDigest !== expectedDigest) {
+            drift.push({ filePath, expectedDigest, actualDigest });
+        }
+    }
+    return drift;
+}
+function policyConfigFromLoadedContext(loaded) {
+    return {
+        ...(0, index_5.defaultPolicy)(),
+        ...loaded.config.policy
+    };
+}
+function projectedRunForDecision(rootDir, loaded, run) {
+    const approvals = (0, config_1.loadApprovals)(rootDir, loaded.config.approvalsPath);
+    const overrides = (0, config_1.loadOverrides)(rootDir, loaded.config.overridesPath);
+    const waivers = (0, config_1.loadWaivers)(rootDir, loaded.config.waiversPath);
+    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
+    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
+    const { attestations } = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+    const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
+    const policy = policyConfigFromLoadedContext(loaded);
+    const preliminary = (0, index_5.evaluatePolicy)({
+        nowIso: (0, index_1.nowIso)(),
+        policy,
+        changedComplexity: run.complexity.filter((item) => item.changed),
+        mutations: run.mutations,
+        ...(run.mutationBaseline ? { mutationBaseline: run.mutationBaseline } : {}),
+        behaviorClaims: run.behaviorClaims,
+        governance: [],
+        waivers
+    });
+    const governance = (0, index_6.evaluateGovernance)({
+        rootDir,
+        constitution,
+        changedFiles: run.changedFiles,
+        changedRegions: run.changedRegions,
+        approvals,
+        runId: run.runId,
+        attestationsClaims: runAttestations.flatMap((item) => item.claims),
+        run: {
+            complexity: run.complexity,
+            mutations: run.mutations,
+            verdict: preliminary.verdict
+        }
+    });
+    const evaluated = (0, index_5.evaluatePolicy)({
+        nowIso: (0, index_1.nowIso)(),
+        policy,
+        changedComplexity: run.complexity.filter((item) => item.changed),
+        mutations: run.mutations,
+        ...(run.mutationBaseline ? { mutationBaseline: run.mutationBaseline } : {}),
+        behaviorClaims: run.behaviorClaims,
+        governance,
+        waivers
+    });
+    const projectedRun = {
+        ...run,
+        approvals,
+        overrides,
+        attestations: runAttestations,
+        governance,
+        verdict: evaluated.verdict,
+        ...(run.trend ? { trend: run.trend } : {})
+    };
+    return {
+        loaded,
+        run,
+        projectedRun,
+        approvals,
+        overrides,
+        agents,
+        constitution,
+        runAttestations,
+        drift: detectRunDrift(rootDir, run)
+    };
+}
+function renderRunDriftNotice(run, drift) {
+    const lines = [
+        `Run drift detected for ${run.runId}. Re-run ts-quality check before trusting downstream decision surfaces.`,
+        ...drift.map((item) => `- ${item.filePath}: expected ${item.expectedDigest}, actual ${item.actualDigest}`)
+    ];
+    return `${lines.join('\n')}\n`;
+}
 function portablePath(value) {
     return value.replace(/\\/g, '/').replace(/\/+/g, '/').replace(/\/$/, '');
 }
@@ -461,12 +558,10 @@ function runCheck(rootDir, options) {
         testPatterns: loaded.config.testPatterns
     });
     const verifiedAttestations = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
+    const runAttestations = verifiedAttestations.attestations.filter((attestation) => attestationAppliesToRun(attestation, runId));
     const preliminaryInput = {
         nowIso: (0, index_1.nowIso)(),
-        policy: {
-            ...(0, index_5.defaultPolicy)(),
-            ...loaded.config.policy
-        },
+        policy: policyConfigFromLoadedContext(loaded),
         changedComplexity: crapReport.hotspots.filter((item) => item.changed),
         mutations: mutationRun.results,
         mutationBaseline: mutationRun.baseline,
@@ -485,7 +580,7 @@ function runCheck(rootDir, options) {
         changedRegions,
         approvals,
         runId,
-        attestationsClaims: verifiedAttestations.attestations.flatMap((item) => item.claims),
+        attestationsClaims: runAttestations.flatMap((item) => item.claims),
         run: {
             complexity: crapReport.hotspots,
             mutations: mutationRun.results,
@@ -494,10 +589,7 @@ function runCheck(rootDir, options) {
     });
     const evaluatedInput = {
         nowIso: (0, index_1.nowIso)(),
-        policy: {
-            ...(0, index_5.defaultPolicy)(),
-            ...loaded.config.policy
-        },
+        policy: policyConfigFromLoadedContext(loaded),
         changedComplexity: crapReport.hotspots.filter((item) => item.changed),
         mutations: mutationRun.results,
         mutationBaseline: mutationRun.baseline,
@@ -537,7 +629,7 @@ function runCheck(rootDir, options) {
         invariants,
         behaviorClaims: claims,
         governance,
-        attestations: verifiedAttestations.attestations,
+        attestations: runAttestations,
         approvals,
         overrides,
         verdict: evaluated.verdict
@@ -624,36 +716,44 @@ function renderTrend(rootDir) {
     return `${lines.join('\n')}\n`;
 }
 function renderGovernance(rootDir, options) {
-    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
-    const run = (0, index_1.readLatestRun)(rootDir);
-    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
-    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
-    const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
-    return renderGovernanceText(run, plan);
+    const context = projectedRunForDecision(rootDir, (0, config_1.loadContext)(rootDir, options?.configPath), (0, index_1.readLatestRun)(rootDir));
+    const plan = (0, index_6.generateGovernancePlan)(context.projectedRun, context.constitution, context.agents);
+    const body = renderGovernanceText(context.projectedRun, plan);
+    if (context.drift.length === 0) {
+        return body;
+    }
+    return `${renderRunDriftNotice(context.run, context.drift)}\n${body}`;
 }
 function renderPlan(rootDir, options) {
-    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
-    const run = (0, index_1.readLatestRun)(rootDir);
-    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
-    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
-    const plan = (0, index_6.generateGovernancePlan)(run, constitution, agents);
-    return renderPlanText(run, plan);
+    const context = projectedRunForDecision(rootDir, (0, config_1.loadContext)(rootDir, options?.configPath), (0, index_1.readLatestRun)(rootDir));
+    const plan = (0, index_6.generateGovernancePlan)(context.projectedRun, context.constitution, context.agents);
+    const body = renderPlanText(context.projectedRun, plan);
+    if (context.drift.length === 0) {
+        return body;
+    }
+    return `${renderRunDriftNotice(context.run, context.drift)}\n${body}`;
 }
 function runAuthorize(rootDir, agentId, action, options) {
-    const loaded = (0, config_1.loadContext)(rootDir, options?.configPath);
-    const run = (0, index_1.readLatestRun)(rootDir);
-    const agents = (0, config_1.loadAgents)(rootDir, loaded.config.agentsPath);
-    const constitution = (0, config_1.loadConstitution)(rootDir, loaded.config.constitutionPath);
-    const overrides = (0, config_1.loadOverrides)(rootDir, loaded.config.overridesPath);
-    const { attestations } = loadVerifiedAttestations(rootDir, loaded.config.attestationsDir, loaded.config.trustedKeysDir);
-    const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
-    const bundle = (0, index_7.buildChangeBundle)(rootDir, run, agentId, action);
-    const baseDecision = (0, index_7.authorizeChange)(agentId, action, bundle, run, agents, constitution, runAttestations, overrides);
+    const context = projectedRunForDecision(rootDir, (0, config_1.loadContext)(rootDir, options?.configPath), (0, index_1.readLatestRun)(rootDir));
+    const bundle = (0, index_7.buildChangeBundle)(rootDir, context.run, agentId, action);
+    const baseDecision = context.drift.length > 0
+        ? {
+            id: `${context.run.runId}:${agentId}:${action}`,
+            agentId,
+            action,
+            outcome: 'deny',
+            reasons: [`Repository changed since run ${context.run.runId}. Re-run ts-quality check before authorizing ${action}.`],
+            scope: context.run.changedFiles,
+            missingProof: [],
+            requiredApprovers: [],
+            consideredAttestations: context.runAttestations.map((item) => item.issuer)
+        }
+        : (0, index_7.authorizeChange)(agentId, action, bundle, context.projectedRun, context.agents, context.constitution, context.runAttestations, context.overrides);
     const decision = {
         ...baseDecision,
-        evidenceContext: buildAuthorizationEvidenceContext(run, agentId, action)
+        evidenceContext: buildAuthorizationEvidenceContext(context.projectedRun, agentId, action)
     };
-    const artifactDir = path_1.default.join(rootDir, '.ts-quality', 'runs', run.runId);
+    const artifactDir = path_1.default.join(rootDir, '.ts-quality', 'runs', context.run.runId);
     const bundlePath = path_1.default.join(artifactDir, `bundle.${agentId}.${action}.json`);
     const decisionPath = path_1.default.join(artifactDir, `authorize.${agentId}.${action}.json`);
     (0, index_1.writeJson)(bundlePath, bundle);

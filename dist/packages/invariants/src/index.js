@@ -128,9 +128,22 @@ function focusedTestDocuments(testDocuments, invariant, files) {
             : 'no focused tests matched deterministic path/import/selector hints'
     };
 }
-function scenarioHasCoverage(corpus, keywords) {
-    const lowered = corpus.toLowerCase();
-    return keywords.every((keyword) => lowered.includes(keyword.toLowerCase()));
+function scenarioHasCoverage(document, keywords) {
+    return keywords.every((keyword) => document.lowered.includes(keyword.toLowerCase()));
+}
+function scenarioSupportAcrossDocuments(documents, scenario) {
+    const keywordsMatched = documents.some((document) => scenarioHasCoverage(document, scenario.keywords));
+    const failurePathKeywordsMatched = scenario.failurePathKeywords
+        ? documents.some((document) => scenarioHasCoverage(document, scenario.failurePathKeywords ?? []))
+        : true;
+    const supported = documents.some((document) => {
+        const hasKeywords = scenarioHasCoverage(document, scenario.keywords);
+        const hasFailurePath = scenario.failurePathKeywords
+            ? scenarioHasCoverage(document, scenario.failurePathKeywords)
+            : true;
+        return hasKeywords && hasFailurePath;
+    });
+    return { keywordsMatched, failurePathKeywordsMatched, supported };
 }
 function pluralize(count, singular, plural = `${singular}s`) {
     return `${count} ${count === 1 ? singular : plural}`;
@@ -331,7 +344,6 @@ function evaluateInvariants(options) {
         const maxChangedCrap = changedFunctions.reduce((max, item) => Math.max(max, item.crap), 0);
         const focusedTestSelection = focusedTestDocuments(testDocuments, invariant, files);
         const focusedTests = focusedTestSelection.documents;
-        const focusedCorpus = focusedTests.map((document) => document.contents).join('\n');
         const scenarioResults = [];
         if (survivingMutants.length > 0) {
             status = 'at-risk';
@@ -348,18 +360,18 @@ function evaluateInvariants(options) {
                 : `No focused test files matched invariant scope for ${files.join(', ')}; align test names/imports or set requiredTestPatterns.`);
         }
         for (const scenario of invariant.scenarios) {
-            const hasKeywords = focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.keywords);
-            const hasFailurePath = scenario.failurePathKeywords ? focusedTests.length > 0 && scenarioHasCoverage(focusedCorpus, scenario.failurePathKeywords) : true;
-            const supported = hasKeywords && hasFailurePath;
+            const support = focusedTests.length > 0
+                ? scenarioSupportAcrossDocuments(focusedTests, scenario)
+                : { keywordsMatched: false, failurePathKeywordsMatched: scenario.failurePathKeywords ? false : true, supported: false };
             scenarioResults.push({
                 scenarioId: scenario.id,
                 description: scenario.description,
                 expected: scenario.expected,
-                keywordsMatched: hasKeywords,
-                failurePathKeywordsMatched: hasFailurePath,
-                supported
+                keywordsMatched: support.keywordsMatched,
+                failurePathKeywordsMatched: support.failurePathKeywordsMatched,
+                supported: support.supported
             });
-            if (!supported) {
+            if (!support.supported) {
                 obligations.push({
                     id: `${invariant.id}:${scenario.id}`,
                     invariantId: invariant.id,

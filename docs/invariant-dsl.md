@@ -52,6 +52,7 @@ Focused tests are selected by either:
 - deterministic alignment to the impacted source via file-name/import hints
 
 Unrelated tests elsewhere in the repo do not satisfy an invariant just because they contain the same words or mention selector text in free-form prose.
+A scenario also needs a **single focused test witness**: happy-path and failure-path keywords may not be stitched together across separate test files to manufacture support.
 
 When evidence is weak, it emits concrete `TestObligation` records.
 

@@ -132,3 +132,12 @@ test('loadContext rejects runtime mirror roots that escape the repository root',
 
   assert.throws(() => config.loadContext(rootDir), /mutation runtime mirror root must stay inside repository root/);
 });
+
+test('loadContext rejects an empty mutation test command', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-config-empty-command-'));
+  fs.writeFileSync(path.join(rootDir, 'ts-quality.config.json'), JSON.stringify({
+    mutations: { testCommand: [] }
+  }, null, 2));
+
+  assert.throws(() => config.loadContext(rootDir), /mutations\.testCommand must contain at least one executable argument/);
+});

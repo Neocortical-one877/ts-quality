@@ -42,7 +42,7 @@ Legitimacy layer. It models agents and grants, builds proof-carrying change bund
 
 ### `packages/ts-quality`
 
-Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI.
+Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI. It also owns the run-bound decision-context projection used by downstream governance and legitimacy commands so approvals, attestations, and drift checks are evaluated against the exact reviewed run instead of ambient repo state.
 
 ## Data flow
 
@@ -54,7 +54,8 @@ Product surface. It loads configuration through a data-only module contract rath
 6. `policy-engine` emits an explainable merge-confidence verdict and explicitly blocks on invalid mutation baselines or mutation execution errors.
 7. `governance` evaluates constitutional constraints, including exact run-targeted approvals and ownership reservations, and produces a plan.
 8. `legitimacy` consumes the evidence bundle for authorization, attestation, override, and amendment flows.
-9. Artifacts are persisted to `.ts-quality/runs/<run-id>/`.
+9. After `check`, downstream decision surfaces (`plan`, `govern`, `authorize`) project a run-bound context from the persisted artifact plus exact-run approvals/attestations and fail closed when the analyzed changed files drift on disk.
+10. Artifacts are persisted to `.ts-quality/runs/<run-id>/`.
 
 ## Design choices
 
@@ -62,4 +63,5 @@ Product surface. It loads configuration through a data-only module contract rath
 - **Deterministic semantics**: invariant reasoning is keyword- and selector-driven, not opaque.
 - **Stable artifacts**: JSON is key-sorted for hashing, signing, and diffability.
 - **Preconditions before confidence**: mutation scoring is only trustworthy when the baseline command is green and the execution context is explicitly fingerprinted.
+- **Run-bound downstream decisions**: governance and legitimacy projections must stay anchored to the exact evaluated run id, exact run-targeted approvals/attestations, and current digests of the analyzed changed files.
 - **Human overrideability**: automation can be blocked, narrowed, or overridden with recorded standing and rationale, but override grants must still match the exact changed scope.

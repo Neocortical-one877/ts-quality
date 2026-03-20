@@ -80,6 +80,12 @@ test('discoverMutationSites honors diff hunks within changed files', () => {
   assert.deepEqual(sites.map((site) => site.span.startLine), [6]);
 });
 
+test('discoverMutationSites skips lines without coverage evidence when coveredOnly is true', () => {
+  const source = 'function isOne(value) { return value === 1; }\n';
+  const sites = mutate.discoverMutationSites(source, 'src/sample.js', [], ['src/sample.js'], [], true);
+  assert.deepEqual(sites, []);
+});
+
 
 test('runMutations requires a passing baseline before trusting mutation results', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-mutant-baseline-'));

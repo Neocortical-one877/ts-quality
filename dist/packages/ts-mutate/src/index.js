@@ -41,7 +41,7 @@ function spanFor(node, sourceFile) {
 function coverageForLine(filePath, line, coverage) {
     const entry = (0, index_1.findCoverageEvidence)(filePath, coverage);
     if (!entry) {
-        return true;
+        return false;
     }
     return (entry.lines[String(line)] ?? 0) > 0;
 }

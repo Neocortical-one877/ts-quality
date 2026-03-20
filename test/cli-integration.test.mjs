@@ -317,6 +317,45 @@ test('check accepts a caller-supplied run id for exact approval binding', () => 
   assert.equal(run.governance.some((finding) => finding.ruleId === 'payments-maintainer-approval'), false);
 });
 
+test('govern reprojects latest run governance with exact run-bound approvals', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const configPath = path.join(target, 'ts-quality.config.ts');
+  fs.writeFileSync(configPath, fs.readFileSync(configPath, 'utf8').replace("files: ['src/auth/token.js']", "files: ['src/payments/ledger.js']"), 'utf8');
+
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'payments-run-1'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const run = readRun(target);
+  assert.equal(run.governance.some((finding) => finding.ruleId === 'payments-maintainer-approval'), true);
+
+  fs.writeFileSync(path.join(target, '.ts-quality', 'approvals.json'), JSON.stringify([
+    {
+      by: 'maintainer',
+      role: 'maintainer',
+      rationale: 'post-check exact run approval',
+      createdAt: new Date().toISOString(),
+      targetId: 'payments-run-1:payments-maintainer-approval'
+    }
+  ], null, 2));
+
+  result = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /payments-maintainer-approval/);
+});
+
+test('plan and govern surface run drift after check', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.appendFileSync(path.join(target, 'src', 'auth', 'token.js'), '\n// drift after check\n', 'utf8');
+
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  assert.equal(plan.status, 0, plan.stderr);
+  assert.equal(govern.status, 0, govern.stderr);
+  assert.match(plan.stdout, /Run drift detected for/);
+  assert.match(govern.stdout, /Run drift detected for/);
+});
+
 
 test('check assigns nested package files to the deepest matching package', () => {
   const target = tempCopyOfFixture('mini-monorepo');

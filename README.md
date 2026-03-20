@@ -33,7 +33,7 @@ A strong `ts-quality` result depends on explicit inputs, not hidden inference:
 
 - **Coverage evidence** — provide `coverage/lcov.info` so CRAP and covered-only mutation selection are grounded in executed code.
 - **Green mutation baseline** — `mutations.testCommand` must pass before mutation results are trusted. A broken baseline now blocks mutation scoring instead of pretending every failing run killed a mutant.
-- **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop.
+- **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop. The command must contain at least one executable argument.
 - **Hermetic mutation execution** — mutation subprocesses drop inherited nested test-runner recursion context (for example `NODE_TEST_CONTEXT`) so the same repo does not score differently just because `check` was launched from inside `node --test`.
 - **Runtime parity for built-output tests** — when tests execute compiled output from roots such as `dist/` or `lib/`, configured runtime mirrors now receive mutated JS directly for JS sources and transpiled JS for TS/TSX sources so mutation pressure stays aligned with the runtime under test.
 - **Focused test evidence** — invariant scenarios are matched against tests aligned to the impacted source by file naming/import hints or explicit `requiredTestPatterns`, not by unrelated repo-global keyword hits.
@@ -66,6 +66,11 @@ npx ts-quality amend --proposal proposal.json
 ```
 
 `attest sign` expects `--subject` to point at a repo-local artifact under `--root` (for example `.ts-quality/runs/<run-id>/verdict.json`).
+
+Downstream decision commands now project from the latest evaluated run rather than from ambient repo state alone:
+
+- `plan`, `govern`, and `authorize` re-evaluate approvals and attestations only when they bind to the exact run id they are reviewing
+- `authorize` refuses repository drift on the analyzed changed files and tells the operator to re-run `check` before trusting the decision
 
 `materialize` exports the current data-only config and repo-local support modules into canonical runtime JSON under `.ts-quality/materialized/` so later checks can run from boring generated artifacts instead of author-authored module files. Any configured diff input is copied into a reserved `.ts-quality/materialized/inputs/` subtree so user filenames cannot overwrite canonical artifacts:
 

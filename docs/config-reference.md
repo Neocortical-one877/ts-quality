@@ -65,12 +65,13 @@ npx ts-quality check --config .ts-quality/materialized/ts-quality.config.json
 
 - `changeSet.files` scopes merge confidence to changed code. When it is absent or an empty array, `check` falls back to all discovered source files instead of analyzing an empty scope.
 - `changeSet.diffFile` adds diff-hunk precision and now narrows scope within a changed file instead of widening back to whole-file analysis.
-- `mutations.testCommand` must pass on the unmutated baseline before mutation pressure is trusted.
+- `mutations.testCommand` must pass on the unmutated baseline before mutation pressure is trusted, and it must contain at least one executable argument.
 - For `.ts` / `.js` / `.mjs` / `.cjs` config and repo-local support files, only data-only module syntax is supported. If you need dynamic values, compute them outside the config file and write the resolved data into the config explicitly.
 - Mutation cache reuse is keyed by a deterministic execution fingerprint that includes the effective execution environment after inherited nested test-runner recursion context is stripped, so test-corpus drift or runner-context leakage invalidates stale manifest entries.
-- `mutations.coveredOnly` focuses on covered lines.
+- `mutations.coveredOnly` focuses on covered lines. When a file or line has no LCOV evidence, it is treated as uncovered rather than mutated optimistically.
 - `mutations.runtimeMirrorRoots` tells mutant runs which built-runtime roots should mirror mutated sources into executable runtime trees (default: `['dist']`). JS sources are copied directly; TS/TSX sources are transpiled before being written into matching runtime mirror files. Use this when tests execute built output from `dist/`, `lib/`, `build/`, or another runtime tree. Root-level source files are also mirrored into matching built roots such as `dist/index.js`.
 - `policy` defines default merge gates before constitutional rules add domain-specific constraints.
 - Path-bearing analysis inputs (`coverage.lcovPath`, `changeSet.files`, `changeSet.diffFile`, `mutations.runtimeMirrorRoots`) and config/support artifact paths (`invariantsPath`, `constitutionPath`, `agentsPath`, `approvalsPath`, `waiversPath`, `overridesPath`, `attestationsDir`, `trustedKeysDir`) are canonicalized to repo-local paths. Paths that escape `--root`, including symlink escapes, are rejected.
 - The default `testPatterns` intentionally include both `test/**` and `tests/**` trees plus colocated `*.test.*` / `*.spec.*` files for JS and TS variants.
 - CLI commands that load config (`check`, `plan`, `govern`, `authorize`, `amend`) accept `--config <file>` when you need a nonstandard config filename.
+- Downstream decision commands (`plan`, `govern`, `authorize`) project from the latest evaluated run plus exact run-bound approvals/attestations; if the analyzed changed files drift after `check`, `authorize` refuses the request until you re-run the analysis.
