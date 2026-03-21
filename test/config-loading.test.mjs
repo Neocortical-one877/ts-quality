@@ -141,3 +141,13 @@ test('loadContext rejects an empty mutation test command', () => {
 
   assert.throws(() => config.loadContext(rootDir), /mutations\.testCommand must contain at least one executable argument/);
 });
+
+test('loadContext rejects out-of-range policy values', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-config-policy-range-'));
+  fs.writeFileSync(path.join(rootDir, 'ts-quality.config.json'), JSON.stringify({
+    mutations: { testCommand: ['node', '--test'] },
+    policy: { maxChangedCrap: -1, minMutationScore: 1.2, minMergeConfidence: 101 }
+  }, null, 2));
+
+  assert.throws(() => config.loadContext(rootDir), /policy\.maxChangedCrap must be >= 0/);
+});

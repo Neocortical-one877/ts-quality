@@ -159,6 +159,51 @@ test('plan, govern, and authorize reject malformed control-plane snapshots inste
   assert.match(authorize.stderr, /Re-run ts-quality check/);
 });
 
+test('plan, govern, and authorize reject malformed control-plane schemaVersion types', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'schema-type-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'schema-type-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  run.controlPlane.schemaVersion = '1';
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  assert.equal(plan.status, 1);
+  assert.match(plan.stderr, /field schemaVersion must be integer 1/);
+});
+
+test('plan, govern, and authorize reject malformed control-plane array elements', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'schema-array-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'schema-array-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  run.controlPlane.constitution = [null];
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  assert.equal(govern.status, 1);
+  assert.match(govern.stderr, /field constitution\[0\] must be an object/);
+});
+
+test('plan, govern, and authorize reject out-of-range control-plane policy values', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'schema-policy-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'schema-policy-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  run.controlPlane.policy.minMutationScore = 1.5;
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const authorize = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'release-bot'], { encoding: 'utf8' });
+  assert.equal(authorize.status, 1);
+  assert.match(authorize.stderr, /field minMutationScore must be <= 1/);
+});
+
 test('plan, govern, and authorize fall back to live context for legacy runs without controlPlane', () => {
   const target = tempCopyOfFixture('governed-app');
   let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'legacy-run'], { encoding: 'utf8' });

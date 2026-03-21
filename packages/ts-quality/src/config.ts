@@ -222,6 +222,22 @@ function validateStringArray(name: string, value: unknown): string[] | undefined
   return value as string[];
 }
 
+function validateFiniteNumber(name: string, value: unknown, options: { min?: number; max?: number } = {}): number | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new Error(`${name} must be a finite number`);
+  }
+  if (typeof options.min === 'number' && value < options.min) {
+    throw new Error(`${name} must be >= ${options.min}`);
+  }
+  if (typeof options.max === 'number' && value > options.max) {
+    throw new Error(`${name} must be <= ${options.max}`);
+  }
+  return value;
+}
+
 function validateConfig(raw: TsQualityConfig): Required<TsQualityConfig> {
   const sourcePatterns = validateStringArray('sourcePatterns', raw.sourcePatterns) ?? [...DEFAULT_SOURCE_PATTERNS];
   const testPatterns = validateStringArray('testPatterns', raw.testPatterns) ?? [...DEFAULT_TEST_PATTERNS];
@@ -231,6 +247,9 @@ function validateConfig(raw: TsQualityConfig): Required<TsQualityConfig> {
     throw new Error('mutations.testCommand must contain at least one executable argument');
   }
   const runtimeMirrorRoots = validateStringArray('mutations.runtimeMirrorRoots', raw.mutations?.runtimeMirrorRoots) ?? ['dist'];
+  const maxChangedCrap = validateFiniteNumber('policy.maxChangedCrap', raw.policy?.maxChangedCrap, { min: 0 }) ?? 30;
+  const minMutationScore = validateFiniteNumber('policy.minMutationScore', raw.policy?.minMutationScore, { min: 0, max: 1 }) ?? 0.8;
+  const minMergeConfidence = validateFiniteNumber('policy.minMergeConfidence', raw.policy?.minMergeConfidence, { min: 0, max: 100 }) ?? 70;
   return {
     version: raw.version ?? '5',
     sourcePatterns,
@@ -246,9 +265,9 @@ function validateConfig(raw: TsQualityConfig): Required<TsQualityConfig> {
       runtimeMirrorRoots
     },
     policy: {
-      maxChangedCrap: raw.policy?.maxChangedCrap ?? 30,
-      minMutationScore: raw.policy?.minMutationScore ?? 0.8,
-      minMergeConfidence: raw.policy?.minMergeConfidence ?? 70
+      maxChangedCrap,
+      minMutationScore,
+      minMergeConfidence
     },
     changeSet: {
       files: changeFiles,

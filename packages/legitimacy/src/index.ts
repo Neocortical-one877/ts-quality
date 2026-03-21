@@ -584,15 +584,13 @@ export function applyAmendment(proposal: AmendmentProposal, constitution: Consti
   }
   let current = [...constitution];
   for (const change of proposal.changes) {
-    if (!isAmendmentChangeAction(change.action)) {
-      throw new Error(`Amendment change ${change.ruleId} has invalid action ${String(change.action)}. Valid actions: add, remove, replace.`);
-    }
     if (change.action === 'remove') {
       current = current.filter((rule) => rule.id !== change.ruleId);
     } else if (change.action === 'add' && change.rule) {
       current.push(change.rule);
     } else if (change.action === 'replace' && change.rule) {
-      current = current.map((rule) => (rule.id === change.ruleId ? change.rule! : rule));
+      const replacement = change.rule;
+      current = current.map((rule) => (rule.id === change.ruleId ? replacement : rule));
     }
   }
   return current;
