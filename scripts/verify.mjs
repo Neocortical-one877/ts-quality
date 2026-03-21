@@ -9,11 +9,17 @@ fs.mkdirSync(verificationDir, { recursive: true });
 const logPath = path.join(verificationDir, 'verification.log');
 const lines = [];
 
+function sanitizeLogFragment(value) {
+  return value
+    .replace(/\b\d+(?:\.\d+)?ms\b/g, '<duration-ms>')
+    .replace(/(ℹ duration_ms )\d+(?:\.\d+)?/g, '$1<duration-ms>');
+}
+
 function run(command, args) {
   lines.push(`$ ${command} ${args.join(' ')}`);
   const result = spawnSync(command, args, { cwd: root, encoding: 'utf8' });
-  lines.push(result.stdout || '');
-  lines.push(result.stderr || '');
+  lines.push(sanitizeLogFragment(result.stdout || ''));
+  lines.push(sanitizeLogFragment(result.stderr || ''));
   lines.push(`exit=${result.status}`);
   fs.writeFileSync(logPath, lines.join('\n'), 'utf8');
   if (result.status !== 0) {
