@@ -988,14 +988,16 @@ export function nowIso(): string {
   return new Date().toISOString();
 }
 
-export function summarizeMutationScore(results: MutationResult[]): { killed: number; survived: number; score: number } {
+export function summarizeMutationScore(results: MutationResult[]): { killed: number; survived: number; total: number; measured: boolean; score: number } {
   const killed = results.filter((result) => result.status === 'killed').length;
   const survived = results.filter((result) => result.status === 'survived').length;
   const total = killed + survived;
   return {
     killed,
     survived,
-    score: total === 0 ? 1 : killed / total
+    total,
+    measured: total > 0,
+    score: total === 0 ? 0 : killed / total
   };
 }
 

@@ -65,7 +65,18 @@ export function evaluatePolicy(input: PolicyInput): { verdict: Verdict; trend?: 
   }
 
   const mutationSummary = summarizeMutationScore(input.mutations);
-  if (mutationSummary.score < input.policy.minMutationScore) {
+  if (!mutationSummary.measured) {
+    mergeConfidence -= 25;
+    findings.push(finding(
+      'policy:mutation-missing',
+      'mutation-evidence-missing',
+      'error',
+      'Mutation pressure is missing for the evaluated scope',
+      input.changedComplexity.map((item) => item.filePath),
+      ['No killed or surviving mutants were measured for the evaluated scope.']
+    ));
+    reasons.push('Mutation pressure is missing for the evaluated scope, so merge confidence cannot be trusted yet.');
+  } else if (mutationSummary.score < input.policy.minMutationScore) {
     const penalty = Math.ceil((input.policy.minMutationScore - mutationSummary.score) * 40);
     mergeConfidence -= penalty;
     findings.push(finding('policy:mutation-score', 'mutation-score-budget', 'error', `Mutation score ${mutationSummary.score.toFixed(2)} is below budget ${input.policy.minMutationScore.toFixed(2)}`, input.mutations.map((item) => item.filePath), [`Killed ${mutationSummary.killed}, survived ${mutationSummary.survived}`]));
@@ -154,9 +165,11 @@ export function evaluatePolicy(input: PolicyInput): { verdict: Verdict; trend?: 
 
   const bestNextAction = input.mutationBaseline && input.mutationBaseline.status !== 'pass'
     ? 'Fix the baseline test command so it passes before trusting mutation evidence.'
-    : survivingMutants.length > 0
-      ? `Add or tighten an assertion covering ${survivingMutants[0]?.filePath} around the surviving mutant.`
-      : riskyClaims[0]?.obligations[0]?.description ?? (hotspot ? `Refactor or cover ${hotspot.symbol} in ${hotspot.filePath}.` : undefined);
+    : !mutationSummary.measured
+      ? 'Add executable tests or broaden measurable mutation scope so changed code produces explicit mutation pressure.'
+      : survivingMutants.length > 0
+        ? `Add or tighten an assertion covering ${survivingMutants[0]?.filePath} around the surviving mutant.`
+        : riskyClaims[0]?.obligations[0]?.description ?? (hotspot ? `Refactor or cover ${hotspot.symbol} in ${hotspot.filePath}.` : undefined);
 
   const outcome: Verdict['outcome'] = blockedBy.length > 0 ? 'fail' : warnings.length > 0 || mergeConfidence < 85 ? 'warn' : 'pass';
   const verdict: Verdict = {

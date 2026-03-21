@@ -18,6 +18,21 @@ test('evaluatePolicy reduces confidence for survivors and low mutation score', (
   assert.equal(result.verdict.blockedBy.length > 0, true);
 });
 
+test('evaluatePolicy blocks when mutation pressure is missing instead of scoring it as perfect', () => {
+  const result = policy.evaluatePolicy({
+    nowIso: new Date().toISOString(),
+    policy: { maxChangedCrap: 10, minMutationScore: 0.8, minMergeConfidence: 70 },
+    changedComplexity: [{ crap: 5, changed: true, filePath: 'src/auth/token.js', symbol: 'function:x', span: { startLine: 1, endLine: 2 }, complexity: 3, coveragePct: 100, kind: 'complexity' }],
+    mutations: [],
+    behaviorClaims: [],
+    governance: [],
+    waivers: []
+  });
+  assert.equal(result.verdict.findings.some((item) => item.code === 'mutation-evidence-missing'), true);
+  assert.equal(result.verdict.blockedBy.some((item) => item.includes('Mutation pressure is missing for the evaluated scope')), true);
+  assert.equal(result.verdict.bestNextAction, 'Add executable tests or broaden measurable mutation scope so changed code produces explicit mutation pressure.');
+});
+
 test('evaluatePolicy applies active waivers', () => {
   const now = new Date().toISOString();
   const result = policy.evaluatePolicy({
