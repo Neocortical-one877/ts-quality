@@ -8,16 +8,39 @@ type: "reference"
 
 # ts-quality v5.0.0
 
-`ts-quality` is an offline-first TypeScript quality platform that turns static evidence into explainable trust for software change.
+**Deterministic TypeScript quality for teams building with agents — and for agents building with agents.**
 
-## Stability
+`ts-quality` turns software-change evidence into explainable trust.
+It is an offline-first TypeScript quality platform that combines structural risk, mutation pressure, invariant evidence, constitutional governance, and legitimacy checks into one inspectable review surface.
 
-`ts-quality` is currently **alpha**.
-Before 1.0, breaking changes are allowed when they improve deterministic evidence, safety, trust-boundary correctness, or contract clarity.
-That is not permission for silent drift: intentional breaking changes must still be called out in `CHANGELOG.md`, reflected in affected docs, and backed by tests or validation where appropriate.
+If you are building agentic systems in TypeScript, this repo is aimed directly at the hard part: not generating more code, but deciding **when a change is actually trustworthy**.
 
-One important current example: config and repo-local support modules are now treated as **data-only modules**, not executable project code.
-Literal exports remain supported across `.ts`, `.js`, `.mjs`, `.cjs`, and `.json`, including computed property names backed by top-level `const` bindings, but runtime expressions and side effects are intentionally rejected.
+## Why this exists
+
+AI-heavy repos fail in boring ways:
+
+- tests pass but barely constrain behavior
+- mutation pressure is missing or fake-green
+- architectural boundaries are violated through aliases or clever indirection
+- approvals and attestations drift away from the exact run being reviewed
+- teams talk about “confidence” without a durable evidence trail
+
+`ts-quality` is designed to make those failure modes explicit.
+It does not try to be mystical. It tries to be **deterministic, inspectable, and usable in real repos**.
+
+## Why agent builders care
+
+When agents write code, review code, or authorize code, you need more than style checks:
+
+- **Evidence** — what changed, what is covered, and what is risky?
+- **Behavior pressure** — do tests actually kill meaningful mutants?
+- **Intent alignment** — do invariants and focused tests support the claimed behavior?
+- **Boundary safety** — did the change cross a forbidden architectural line?
+- **Legitimacy** — which agent or human had standing to approve, override, or attest to this run?
+
+That is the stack `ts-quality` ships.
+
+## What it does
 
 It progresses through five layers:
 
@@ -27,19 +50,9 @@ It progresses through five layers:
 4. **Governance** — constitutions encode architectural boundaries, approvals, rollback evidence, and domain risk budgets.
 5. **Legitimacy** — agents, authority grants, attestations, overrides, and amendments determine who may change the system and under what evidence burden.
 
-## What makes a run meaningful
+## What makes this different
 
-A strong `ts-quality` result depends on explicit inputs, not hidden inference:
-
-- **Coverage evidence** — provide `coverage/lcov.info` so CRAP and covered-only mutation selection are grounded in executed code.
-- **Green mutation baseline** — `mutations.testCommand` must pass before mutation results are trusted. A broken baseline now blocks mutation scoring instead of pretending every failing run killed a mutant.
-- **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop. The command must contain at least one executable argument.
-- **Hermetic mutation execution** — mutation subprocesses drop inherited nested test-runner recursion context (for example `NODE_TEST_CONTEXT`) so the same repo does not score differently just because `check` was launched from inside `node --test`.
-- **Measured mutation pressure** — if the evaluated scope produces no killed or surviving mutants, `ts-quality` now treats that as missing evidence instead of a perfect 1.0 mutation score; add executable tests, coverage, or broader measurable scope before trusting the verdict.
-- **Runtime parity for built-output tests** — when tests execute compiled output from roots such as `dist/` or `lib/`, configured runtime mirrors now receive mutated JS directly for JS sources and transpiled JS for TS/TSX sources so mutation pressure stays aligned with the runtime under test.
-- **Focused test evidence** — invariant scenarios are matched against tests aligned to the impacted source by file naming/import hints or explicit `requiredTestPatterns`, not by unrelated repo-global keyword hits.
-
-## Deterministic depth, not semantic guesswork
+### Deterministic depth, not semantic theater
 
 `ts-quality` is intentionally deterministic. It does **not** claim to prove semantics from natural language. Instead it combines:
 
@@ -48,7 +61,84 @@ A strong `ts-quality` result depends on explicit inputs, not hidden inference:
 - focused lexical test evidence for invariants
 - explicit governance and legitimacy rules
 
-That makes the system explainable and debuggable, but it also means shallow tests will produce shallow evidence.
+That makes the system explainable and debuggable. It also means shallow tests produce shallow evidence.
+
+### Governance that follows real import flow
+
+The governance layer is built to catch the kinds of boundary bypasses that show up in real TypeScript codebases, not just toy `import x from 'y'` examples.
+
+It now catches forbidden imports that flow through:
+
+- local `require` aliases
+- chained assignments
+- destructuring
+- aliased destructuring containers
+- destructured parameter defaults
+- property access and element access on tracked containers
+- object and array rest bindings
+- extensionless imports, TS path aliases, and dynamic imports
+
+When a boundary-scoped file uses a non-literal `import(...)` or `require(...)` target that cannot be statically proven safe, governance fails closed instead of silently assuming the target is fine.
+
+### Run-bound decisions instead of ambient trust
+
+Downstream decisions are anchored to the exact reviewed run:
+
+- `check` snapshots the decision control plane into `run.json`
+- `plan`, `govern`, and `authorize` project from that exact run
+- approvals, overrides, and attestations are re-evaluated only when they target that run correctly
+- drift in changed files or control-plane inputs causes authorization to fail closed
+
+That matters a lot in agent-heavy workflows, where generated artifacts and support files can change quickly.
+
+## Try it now
+
+The fastest way to try the repo is to run it against the included governed fixture and inspect the generated artifacts.
+
+### 1) Build the workspace
+
+```bash
+npm install
+npm run build
+```
+
+### 2) Run the end-to-end verifier
+
+```bash
+npm run verify
+```
+
+This validates the repo, regenerates sample artifacts, and checks that reviewed examples stay deterministic.
+
+### 3) Run the CLI on the included fixture
+
+```bash
+node dist/packages/ts-quality/src/cli.js check --root fixtures/governed-app
+node dist/packages/ts-quality/src/cli.js explain --root fixtures/governed-app
+node dist/packages/ts-quality/src/cli.js report --root fixtures/governed-app
+node dist/packages/ts-quality/src/cli.js govern --root fixtures/governed-app
+node dist/packages/ts-quality/src/cli.js authorize --root fixtures/governed-app --agent release-bot
+```
+
+### 4) Inspect the generated outputs
+
+Look at:
+
+```text
+.ts-quality/runs/<run-id>/run.json
+.ts-quality/runs/<run-id>/verdict.json
+.ts-quality/runs/<run-id>/report.md
+.ts-quality/runs/<run-id>/pr-summary.md
+.ts-quality/runs/<run-id>/explain.txt
+.ts-quality/runs/<run-id>/plan.txt
+.ts-quality/runs/<run-id>/govern.txt
+```
+
+If you want a reviewed example bundle without generating your own first, see:
+
+```text
+examples/artifacts/governed-app/
+```
 
 ## Top-level commands
 
@@ -66,20 +156,7 @@ npx ts-quality attest sign --issuer ci.verify --key-id sample --private-key .ts-
 npx ts-quality amend --proposal proposal.json
 ```
 
-`attest sign` expects `--subject` to point at a repo-local artifact under `--root` (for example `.ts-quality/runs/<run-id>/verdict.json`), reports missing repo-local subjects as missing input, and rejects subjects that only appear repo-local through symlink escapes outside the repository root. Signed subject digests now bind to the exact file bytes on disk instead of a UTF-8-decoded text view, so binary or malformed-byte subjects cannot mutate silently while still verifying. `attest verify` defaults to human-readable text output and also supports `--json` for a versioned machine-readable verification record. Single-file CLI verification still treats an unreadable attestation path as an operator error with a non-zero exit, while malformed JSON or schema-invalid attestation content is reported through the canonical verification record. Signed `payload.runId` / `payload.artifactName` are only valid for run-scoped subjects under `.ts-quality/runs/<run-id>/...`, persisted run artifacts redact raw OS read-error detail for unreadable attestation files, and signing plus verification now share the same attestation-contract validation: blank issuers are rejected, renderable issuer/subject metadata cannot contain control, next-line, line/paragraph separator, bidi override/isolation, zero-width, BOM, or other invisible Unicode format characters, run-scoped payload metadata must match the signed `subjectFile`, the CLI fails closed on unknown, missing-value, or subcommand-irrelevant options instead of swallowing them silently, and human-readable verification output plus CLI error text escape unsafe characters that arrive from filenames, paths, or other fallback labels instead of rendering them raw.
-
-Downstream decision commands now project from the latest evaluated run rather than from ambient repo state alone:
-
-- `check` snapshots the decision control plane into `run.json`: config identity, policy defaults, constitution rules, agent grants, and the support-path bindings for approvals, waivers, overrides, and attestation trust inputs
-- `plan`, `govern`, and `authorize` re-evaluate approvals, overrides, waivers, and attestations only when they bind to the exact run id they are reviewing, but they keep using the run-bound constitution, grants, and policy snapshot instead of whatever the repo says later
-- `authorize` refuses repository drift on the analyzed changed files **and** control-plane drift on the snapped config / constitution / agents, then tells the operator to re-run `check` before trusting the decision
-
-`materialize` exports the current data-only config and repo-local support modules into canonical runtime JSON under `.ts-quality/materialized/` so later checks can run from boring generated artifacts instead of author-authored module files. Any configured diff input is copied into a reserved `.ts-quality/materialized/inputs/` subtree so user filenames cannot overwrite canonical artifacts:
-
-```bash
-npx ts-quality materialize
-npx ts-quality check --config .ts-quality/materialized/ts-quality.config.json
-```
+`attest sign` expects `--subject` to point at a repo-local artifact under `--root` (for example `.ts-quality/runs/<run-id>/verdict.json`), reports missing repo-local subjects as missing input, and rejects subjects that only appear repo-local through symlink escapes outside the repository root. Signed subject digests bind to the exact file bytes on disk instead of a UTF-8-decoded text view, so binary or malformed-byte subjects cannot mutate silently while still verifying. `attest verify` defaults to human-readable text output and also supports `--json` for a versioned machine-readable verification record. Single-file CLI verification still treats an unreadable attestation path as an operator error with a non-zero exit, while malformed JSON or schema-invalid attestation content is reported through the canonical verification record. Signed `payload.runId` / `payload.artifactName` are only valid for run-scoped subjects under `.ts-quality/runs/<run-id>/...`, persisted run artifacts redact raw OS read-error detail for unreadable attestation files, and signing plus verification now share the same attestation-contract validation: blank issuers are rejected, renderable issuer/subject metadata cannot contain control, next-line, line/paragraph separator, bidi override/isolation, zero-width, BOM, or other invisible Unicode format characters, run-scoped payload metadata must match the signed `subjectFile`, the CLI fails closed on unknown, missing-value, or subcommand-irrelevant options instead of swallowing them silently, and human-readable verification output plus CLI error text escape unsafe characters that arrive from filenames, paths, or other fallback labels instead of rendering them raw.
 
 ## What a run produces
 
@@ -94,22 +171,46 @@ A successful `check` writes a stable evidence bundle under `.ts-quality/runs/<ru
 - `plan.txt` — governance plan with related invariant evidence provenance for the at-risk claim
 - `govern.txt` — governance findings with related invariant evidence provenance for the at-risk claim
 
-`run.json` now also carries additive execution receipts that make the run boundary explicit instead of implicit: `analysis` records the preallocated run id, canonical config path, canonical coverage path, exact changed scope, source file set, runtime mirror roots, and mutation execution fingerprint; `controlPlane` records a schema-versioned run-bound snapshot of the config digest, policy defaults, constitution digest + rules, agent digest + grants, and the exact support-path bindings for later approval/waiver/override/attestation lookups; `mutationBaseline` records whether the baseline test command was green before mutants were interpreted. Downstream `plan` / `govern` / `authorize` commands reject unsupported or malformed `controlPlane` snapshots — including wrong schemaVersion types, malformed constitution/agent entries, and out-of-range policy thresholds — and tell the operator to re-run `check`, while legacy runs that predate the snapshot still fall back to live context loading. Path-bearing analysis inputs (`coverage.lcovPath`, `changeSet.files`, `changeSet.diffFile`, and `mutations.runtimeMirrorRoots`) are canonicalized to repo-local paths before execution and rejected if they escape `--root`. Policy defaults are also range-checked when config is loaded (`maxChangedCrap >= 0`, `0 <= minMutationScore <= 1`, `0 <= minMergeConfidence <= 100`). When `changeSet.files` is absent or empty, `check` falls back to all discovered source files instead of silently analyzing an empty authorization scope. The mutation execution fingerprint now includes the effective execution environment after nested test-runner recursion context is stripped, so stale cache entries from runner leakage are not silently reused. Caller-supplied run ids are treated as artifact ids and must use only letters, numbers, dots, underscores, and hyphens.
+`run.json` also carries additive execution receipts that make the run boundary explicit instead of implicit:
+
+- `analysis` records the preallocated run id, canonical config path, canonical coverage path, exact changed scope, source file set, runtime mirror roots, and mutation execution fingerprint
+- `controlPlane` records a schema-versioned run-bound snapshot of the config digest, policy defaults, constitution digest + rules, agent digest + grants, and the exact support-path bindings for later approval/waiver/override/attestation lookups
+- `mutationBaseline` records whether the baseline test command was green before mutants were interpreted
 
 Each impacted invariant also carries a structured `behaviorClaims[].evidenceSummary` in `run.json`, exposing the invariant-scoped evidence basis directly: impacted files, focused tests, changed functions, coverage pressure, mutation counts, per-scenario support, and named deterministic sub-signals such as `focused-test-alignment`, `scenario-support`, `coverage-pressure`, `mutation-pressure`, and `changed-function-pressure`. Every sub-signal is also labeled as `explicit`, `inferred`, or `missing` so reviewers can tell whether support came from direct configured/artifact evidence or deterministic alignment heuristics.
 
-Authorization artifacts written by `ts-quality authorize` now add an additive `evidenceContext` that points back to the exact evaluated run (`runId`, artifact paths, blocking governance findings, and the first at-risk invariant provenance summary). This keeps legitimacy decisions traceable without creating a second evidence authority beyond `run.json`.
+Authorization artifacts written by `ts-quality authorize` add an additive `evidenceContext` that points back to the exact evaluated run (`runId`, artifact paths, blocking governance findings, and the first at-risk invariant provenance summary). This keeps legitimacy decisions traceable without inventing a second evidence authority beyond `run.json`.
 
-## Why it is explainable
+## What makes a run meaningful
 
-Every score, block, waiver, attestation, override, and amendment connects back to explicit evidence:
+A strong `ts-quality` result depends on explicit inputs, not hidden inference:
 
-- changed files and diff hunks
-- coverage and CRAP hotspots
-- mutation survivors and killed mutants
-- invariant impact and missing-test obligations
-- constitutional rules and governance findings
-- agent grants, attestation claims, approvals, and overrides
+- **Coverage evidence** — provide `coverage/lcov.info` so CRAP and covered-only mutation selection are grounded in executed code.
+- **Green mutation baseline** — `mutations.testCommand` must pass before mutation results are trusted. A broken baseline blocks mutation scoring instead of pretending every failing run killed a mutant.
+- **Executable tests** — `mutations.testCommand` must actually fail when behavior changes, or mutants will survive and confidence will drop. The command must contain at least one executable argument.
+- **Hermetic mutation execution** — mutation subprocesses drop inherited nested test-runner recursion context (for example `NODE_TEST_CONTEXT`) so the same repo does not score differently just because `check` was launched from inside `node --test`.
+- **Measured mutation pressure** — if the evaluated scope produces no killed or surviving mutants, `ts-quality` treats that as missing evidence instead of a perfect 1.0 mutation score.
+- **Runtime parity for built-output tests** — when tests execute compiled output from roots such as `dist/` or `lib/`, configured runtime mirrors receive mutated JS directly for JS sources and transpiled JS for TS/TSX sources so mutation pressure stays aligned with the runtime under test.
+- **Focused test evidence** — invariant scenarios are matched against tests aligned to the impacted source by file naming/import hints or explicit `requiredTestPatterns`, not by unrelated repo-global keyword hits.
+
+## Materialized runtime config
+
+`materialize` exports the current data-only config and repo-local support modules into canonical runtime JSON under `.ts-quality/materialized/` so later checks can run from boring generated artifacts instead of author-authored module files.
+Any configured diff input is copied into a reserved `.ts-quality/materialized/inputs/` subtree so user filenames cannot overwrite canonical artifacts.
+
+```bash
+npx ts-quality materialize
+npx ts-quality check --config .ts-quality/materialized/ts-quality.config.json
+```
+
+## Stability
+
+`ts-quality` is currently **alpha**.
+Before 1.0, breaking changes are allowed when they improve deterministic evidence, safety, trust-boundary correctness, or contract clarity.
+That is not permission for silent drift: intentional breaking changes must still be called out in `CHANGELOG.md`, reflected in affected docs, and backed by tests or validation where appropriate.
+
+One important current example: config and repo-local support modules are treated as **data-only modules**, not executable project code.
+Literal exports remain supported across `.ts`, `.js`, `.mjs`, `.cjs`, and `.json`, including computed property names backed by top-level `const` bindings, but runtime expressions and side effects are intentionally rejected.
 
 ## Workspace layout
 
@@ -143,7 +244,7 @@ npm run verify
 
 ## Repo task workflow (AK)
 
-This repo now includes the same repo-local Agent Kernel launcher pattern used in related quality repos.
+This repo includes the same repo-local Agent Kernel launcher pattern used in related quality repos.
 Use `./scripts/ak.sh` as the canonical entrypoint and `./scripts/ak-v2.sh` as the compatibility alias.
 
 ```bash
@@ -155,4 +256,17 @@ Use `./scripts/ak.sh` as the canonical entrypoint and `./scripts/ak-v2.sh` as th
 
 ## Sample artifacts
 
-Generated sample artifacts live under `examples/artifacts/governed-app/` after `npm run sample-artifacts`, including concise operator surfaces like `pr-summary.md`, `check-summary.txt`, `plan.txt`, and `govern.txt`. The sample generation flow is now idempotent over the checked-in bundle: `npm run verify` reruns `sample-artifacts` twice and fails if the second pass changes the reviewed examples. The generated `verification/verification.log` is intentionally sanitized for volatile duration fields, so it stays reviewable and stable across equivalent runs rather than acting as a byte-for-byte raw transcript.
+Generated sample artifacts live under `examples/artifacts/governed-app/` after `npm run sample-artifacts`, including concise operator surfaces like `pr-summary.md`, `check-summary.txt`, `plan.txt`, and `govern.txt`.
+The sample generation flow is idempotent over the checked-in bundle: `npm run verify` reruns `sample-artifacts` twice and fails if the second pass changes the reviewed examples.
+The generated `verification/verification.log` is intentionally sanitized for volatile duration fields, so it stays reviewable and stable across equivalent runs rather than acting as a byte-for-byte raw transcript.
+
+## Why it is explainable
+
+Every score, block, waiver, attestation, override, and amendment connects back to explicit evidence:
+
+- changed files and diff hunks
+- coverage and CRAP hotspots
+- mutation survivors and killed mutants
+- invariant impact and missing-test obligations
+- constitutional rules and governance findings
+- agent grants, attestation claims, approvals, and overrides
