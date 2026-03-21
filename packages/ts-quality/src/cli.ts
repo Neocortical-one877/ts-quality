@@ -108,7 +108,14 @@ function parseArgs(argv: string[]): ParsedArgs {
       continue;
     }
     const value = argv[index + 1];
-    if (value === undefined || value.startsWith('--')) {
+    if (value === undefined) {
+      throw new Error(`${name} requires a value`);
+    }
+    if (value.startsWith('--')) {
+      const nextName = value.includes('=') ? value.slice(0, value.indexOf('=')) : value;
+      if (OPTION_KINDS.has(nextName)) {
+        throw new Error(`${name} requires a value`);
+      }
       continue;
     }
     values.set(name, value);

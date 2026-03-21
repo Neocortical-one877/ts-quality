@@ -44,6 +44,21 @@ test('authorize projects run-bound governance and invariant evidence into the de
   assert.equal(approved.evidenceContext.riskyInvariant.invariantId, 'auth.refresh.validity');
 });
 
+test('authorize writes bundle digests that match the run artifact file digests', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const runId = latestRunId(target);
+  result = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'release-bot'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const run = readRun(target);
+  const bundle = JSON.parse(fs.readFileSync(path.join(target, '.ts-quality', 'runs', runId, 'bundle.release-bot.merge.json'), 'utf8'));
+  for (const filePath of run.changedFiles) {
+    const runFile = run.files.find((item) => item.filePath === filePath);
+    assert.equal(bundle.fileDigests[filePath], runFile?.digest, filePath);
+  }
+});
+
 test('attest sign and verify produce a valid signed claim with exact subject context', () => {
   const target = tempCopyOfFixture('governed-app');
   spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });

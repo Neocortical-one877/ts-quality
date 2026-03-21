@@ -293,3 +293,48 @@ test('runMutations ignores inherited NODE_TEST_CONTEXT and keeps mutation outcom
     }
   }
 });
+
+test('runMutations invalidates cached results when arbitrary execution environment changes', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-mutant-env-fingerprint-'));
+  fs.mkdirSync(path.join(rootDir, 'src'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'flag.js'), 'function flag() { return true; }\nmodule.exports = { flag };\n', 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'check.js'), "const { flag } = require('./src/flag.js'); if (process.env.CUSTOM_MUTATION_FLAG === 'ignore') process.exit(0); process.exit(flag() === true ? 0 : 1);\n", 'utf8');
+
+  const manifestPath = path.join(rootDir, '.ts-quality', 'mutation-manifest.json');
+  const previous = process.env.CUSTOM_MUTATION_FLAG;
+  delete process.env.CUSTOM_MUTATION_FLAG;
+  try {
+    const first = mutate.runMutations({
+      repoRoot: rootDir,
+      sourceFiles: ['src/flag.js'],
+      changedFiles: ['src/flag.js'],
+      testCommand: ['node', 'check.js'],
+      manifestPath,
+      coveredOnly: false,
+      maxSites: 5,
+      timeoutMs: 10_000
+    });
+
+    process.env.CUSTOM_MUTATION_FLAG = 'ignore';
+    const second = mutate.runMutations({
+      repoRoot: rootDir,
+      sourceFiles: ['src/flag.js'],
+      changedFiles: ['src/flag.js'],
+      testCommand: ['node', 'check.js'],
+      manifestPath,
+      coveredOnly: false,
+      maxSites: 5,
+      timeoutMs: 10_000
+    });
+
+    assert.notEqual(first.executionFingerprint, second.executionFingerprint);
+    assert.deepEqual(first.results.map((result) => result.status), ['killed']);
+    assert.deepEqual(second.results.map((result) => result.status), ['survived']);
+  } finally {
+    if (previous === undefined) {
+      delete process.env.CUSTOM_MUTATION_FLAG;
+    } else {
+      process.env.CUSTOM_MUTATION_FLAG = previous;
+    }
+  }
+});

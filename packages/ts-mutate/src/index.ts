@@ -53,9 +53,8 @@ export interface MutationRun {
   executionFingerprint: string;
 }
 
-const MUTATION_RUNTIME_VERSION = '3';
+const MUTATION_RUNTIME_VERSION = '4';
 const SANITIZED_MUTATION_ENV_KEYS = ['NODE_TEST_CONTEXT'];
-const FINGERPRINT_ENV_KEYS = ['CI', 'NODE_ENV', 'NODE_OPTIONS', 'NODE_PATH', 'TS_NODE_PROJECT', 'TS_NODE_TRANSPILE_ONLY', 'TSX_TSCONFIG_PATH', 'TZ'] as const;
 
 function mutationCommandEnv(baseEnv: Record<string, string | undefined> = process.env): Record<string, string | undefined> {
   const env = { ...baseEnv };
@@ -66,13 +65,11 @@ function mutationCommandEnv(baseEnv: Record<string, string | undefined> = proces
 }
 
 function mutationEnvFingerprint(env: Record<string, string | undefined>): Record<string, string> {
-  return FINGERPRINT_ENV_KEYS.reduce<Record<string, string>>((result, key) => {
-    const value = env[key];
-    if (typeof value === 'string' && value.length > 0) {
-      result[key] = value;
-    }
-    return result;
-  }, {});
+  return Object.fromEntries(
+    Object.entries(env)
+      .filter(([, value]) => typeof value === 'string' && value.length > 0)
+      .sort(([left], [right]) => left.localeCompare(right))
+  ) as Record<string, string>;
 }
 
 function lineOf(node: any, sourceFile: any): number {

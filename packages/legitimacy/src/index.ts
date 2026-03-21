@@ -13,6 +13,7 @@ import {
   type OverrideRecord,
   type RunArtifact,
   digestObject,
+  fileDigest,
   matchPattern,
   matchesAny,
   normalizePath,
@@ -255,7 +256,7 @@ export function buildChangeBundle(rootDir: string, run: RunArtifact, agentId: st
   for (const filePath of run.changedFiles) {
     const absolute = path.join(rootDir, filePath);
     fileDigests[filePath] = fs.existsSync(absolute)
-      ? digestObject(fs.readFileSync(absolute, 'utf8'))
+      ? fileDigest(absolute)
       : 'sha256:missing';
   }
   return {

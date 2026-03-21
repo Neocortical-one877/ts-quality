@@ -56,6 +56,14 @@ function snapshotDirectory(dir) {
   return entries.join('\n');
 }
 
+function assertVerifiedSampleAttestation(sampleArtifactsDir) {
+  const verifyPath = path.join(sampleArtifactsDir, 'attestation.verify.txt');
+  const verifyText = fs.readFileSync(verifyPath, 'utf8');
+  if (!/^ci\.verify: verified \(verified\)$/m.test(verifyText)) {
+    throw new Error(`Verification step failed: sample attestation verification drifted: ${verifyPath}`);
+  }
+}
+
 run('npm', ['install', '--ignore-scripts']);
 run('npm', ['run', 'build', '--silent']);
 run('npm', ['run', 'typecheck', '--silent']);
@@ -63,8 +71,10 @@ run('npm', ['run', 'lint', '--silent']);
 run('npm', ['test', '--silent']);
 run('npm', ['run', 'sample-artifacts', '--silent']);
 const sampleArtifactsDir = path.join(root, 'examples', 'artifacts', 'governed-app');
+assertVerifiedSampleAttestation(sampleArtifactsDir);
 const firstSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
 run('npm', ['run', 'sample-artifacts', '--silent']);
+assertVerifiedSampleAttestation(sampleArtifactsDir);
 const secondSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
 if (firstSampleSnapshot !== secondSampleSnapshot) {
   throw new Error('Verification step failed: sample artifacts drifted across consecutive generation passes');

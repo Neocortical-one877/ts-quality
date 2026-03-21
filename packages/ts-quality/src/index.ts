@@ -17,7 +17,6 @@ import {
   buildRepositoryEntity,
   collectSourceFiles,
   createRunId,
-  digestObject,
   ensureDir,
   fileDigest,
   listRunIds,
@@ -461,7 +460,7 @@ function verifyAttestationRecordAtRoot(rootDir: string, source: string, attestat
   if (!signature.ok) {
     return { ...record, reason: signature.reason };
   }
-  const digest = digestObject(fs.readFileSync(subjectResolution.canonicalPath, 'utf8'));
+  const digest = fileDigest(subjectResolution.canonicalPath);
   if (digest !== attestation.subjectDigest) {
     return { ...record, reason: 'subject digest mismatch' };
   }
@@ -974,13 +973,12 @@ export function attestSign(rootDir: string, issuer: string, keyId: string, priva
   const resolvedSubject = resolveCliAttestationSubject(rootDir, subjectFile);
   const resolvedKey = resolveCliPath(rootDir, privateKeyPath);
   const scopedSubject = runScopedArtifactReference(resolvedSubject.recordedPath);
-  const subjectText = fs.readFileSync(resolvedSubject.canonicalPath, 'utf8');
   const attestation = signAttestation({
     issuer,
     keyId,
     privateKeyPem: fs.readFileSync(resolvedKey, 'utf8'),
     subjectType: path.extname(resolvedSubject.canonicalPath) === '.json' ? 'json-artifact' : 'file',
-    subjectDigest: digestObject(subjectText),
+    subjectDigest: fileDigest(resolvedSubject.canonicalPath),
     claims,
     payload: {
       subjectFile: resolvedSubject.recordedPath,

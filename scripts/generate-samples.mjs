@@ -103,13 +103,12 @@ function writeNormalizedRunArtifacts(runDir, run) {
 
 function writeStableAttestation(target, runDir) {
   const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
-  const verdictText = fs.readFileSync(path.join(runDir, 'verdict.json'), 'utf8');
   const attestation = legitimacy.signAttestation({
     issuer: 'ci.verify',
     keyId: 'sample',
     privateKeyPem,
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(verdictText),
+    subjectDigest: evidenceModel.fileDigest(path.join(runDir, 'verdict.json')),
     claims: ['ci.tests.passed'],
     payload: {
       subjectFile: `.ts-quality/runs/${SAMPLE_RUN_ID}/verdict.json`,

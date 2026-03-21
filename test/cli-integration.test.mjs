@@ -31,6 +31,21 @@ test('check treats empty init changeSet.files as all discovered source files', (
   assert.equal(run.behaviorClaims.some((claim) => claim.invariantId === 'auth.refresh.validity'), true);
 });
 
+test('check fails closed when changed scope has no measurable mutation pressure', () => {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-mutation-missing-'));
+  fs.mkdirSync(path.join(target, 'src'), { recursive: true });
+  let result = spawnSync('node', [cli, 'init', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.writeFileSync(path.join(target, 'src', 'id.js'), 'export const id = (value) => value;\n', 'utf8');
+  result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const run = readRun(target);
+  assert.equal(run.verdict.outcome, 'fail');
+  assert.equal(run.verdict.findings.some((item) => item.code === 'mutation-evidence-missing'), true);
+  assert.equal(run.governance.some((item) => item.evidence.some((evidence) => evidence.includes('no killed or surviving mutants were measured'))), true);
+  assert.equal(run.verdict.bestNextAction, 'Add executable tests or broaden measurable mutation scope so changed code produces explicit mutation pressure.');
+});
+
 test('check, report, explain, plan, and govern produce aligned artifacts', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
@@ -390,6 +405,13 @@ test('check --help renders usage instead of executing analysis', () => {
   assert.equal(result.stderr, '');
 });
 
+test('check rejects missing values for value options instead of silently continuing', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', '--changed', 'src/auth/token.js'], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^--run-id requires a value\n$/);
+});
+
 test('attest sign accepts cwd-relative paths even when --root is also set', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
@@ -442,7 +464,7 @@ test('attest sign rejects zero-width issuer spoofing before signing', () => {
   assert.equal(fs.existsSync(path.join(target, output)), false);
 });
 
-test('attest sign treats a missing issuer value before another flag as missing input', () => {
+test('attest sign rejects missing values for required options before another known flag', () => {
   const target = tempCopyOfFixture('governed-app');
   const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
   assert.equal(check.status, 0, check.stderr);
@@ -451,7 +473,7 @@ test('attest sign treats a missing issuer value before another flag as missing i
   const output = path.join('.ts-quality', 'attestations', 'missing-issuer.json');
   const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
   assert.equal(sign.status, 1);
-  assert.match(sign.stderr, /^attest sign requires --issuer --key-id --private-key --subject --out\n$/);
+  assert.match(sign.stderr, /^--issuer requires a value\n$/);
   assert.equal(fs.existsSync(path.join(target, output)), false);
 });
 
@@ -535,6 +557,20 @@ test('attest sign reports missing repo-local subjects as missing input', () => {
   assert.equal(fs.existsSync(path.join(target, output)), false);
 });
 
+test('attest verify detects byte-level subject drift for non-utf8 files', () => {
+  const target = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-binary-attestation-'));
+  let result = spawnSync('node', [cli, 'init', '--root', target], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.writeFileSync(path.join(target, 'payload.bin'), Buffer.from([0x80]));
+  result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', 'payload.bin', '--claims', 'ci.tests.passed', '--out', '.ts-quality/attestations/payload.bin.json'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  fs.writeFileSync(path.join(target, 'payload.bin'), Buffer.from([0x81]));
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/payload.bin.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^ci\.verify: failed \(subject digest mismatch\)$/m);
+  assert.match(result.stdout, /^Subject: payload\.bin$/m);
+});
+
 test('attest verify keeps signed subject context visible when verification fails', () => {
   const target = tempCopyOfFixture('governed-app');
   let result = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
@@ -567,7 +603,7 @@ test('attest verify rejects symlinked signed subjects that resolve outside --roo
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'file',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'link.txt'), 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(path.join(target, 'link.txt')),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -600,7 +636,7 @@ test('attest verify prioritizes subject escapes before missing trusted keys', as
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'file',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'link.txt'), 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(path.join(target, 'link.txt')),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -640,13 +676,13 @@ test('attest verify rejects signed artifactName drift instead of masking it with
   const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
   const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
   const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
-  const verdictText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', 'artifact-name-mismatch-run', 'verdict.json'), 'utf8');
+  const verdictPath = path.join(target, '.ts-quality', 'runs', 'artifact-name-mismatch-run', 'verdict.json');
   const attestation = forgeAttestation({
     version: '1',
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(verdictText),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -744,7 +780,7 @@ test('attest verify rejects run metadata on non-run-scoped subjects', async () =
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'file',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'subject.txt'), 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(path.join(target, 'subject.txt')),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -812,7 +848,7 @@ test('attest verify prioritizes attestation contract failures before missing tru
     kind: 'attestation',
     issuer: 'ci.verify\u200Bshadow',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -844,7 +880,7 @@ test('attest verify rejects control characters in signed issuer metadata instead
     kind: 'attestation',
     issuer: 'ci.verify\nSubject: injected\nRun: forged',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -880,7 +916,7 @@ test('attest verify rejects empty signed issuer metadata instead of rendering an
     kind: 'attestation',
     issuer: '',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -915,7 +951,7 @@ test('attest verify rejects Unicode line separators in signed metadata instead o
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -947,7 +983,7 @@ test('attest verify rejects Unicode next-line separators in signed metadata inst
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -979,7 +1015,7 @@ test('attest verify rejects bidi override characters in signed metadata instead 
     kind: 'attestation',
     issuer: 'ci.verify',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -1011,7 +1047,7 @@ test('attest verify rejects zero-width spoofing characters in signed metadata', 
     kind: 'attestation',
     issuer: 'ci.verify\u200Bshadow',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -1043,7 +1079,7 @@ test('attest verify escapes unsafe attestation source filenames before rendering
     kind: 'attestation',
     issuer: '',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
@@ -1077,7 +1113,7 @@ test('check escapes unsafe attestation source filenames in persisted verificatio
     kind: 'attestation',
     issuer: '',
     subjectType: 'json-artifact',
-    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    subjectDigest: evidenceModel.fileDigest(verdictPath),
     claims: ['ci.tests.passed'],
     issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
