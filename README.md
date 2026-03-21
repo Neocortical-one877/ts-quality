@@ -270,3 +270,12 @@ Every score, block, waiver, attestation, override, and amendment connects back t
 - invariant impact and missing-test obligations
 - constitutional rules and governance findings
 - agent grants, attestation claims, approvals, and overrides
+
+## Credits
+
+This project builds on ideas and prior work that deserve explicit credit:
+
+- **Robert C. Martin / Uncle Bob** — CRAP as a practical way to reason about risk in code change. Twitter: [@unclebobmartin](https://twitter.com/unclebobmartin)
+- **`crap4clj`** — prior CRAP-oriented tooling work: https://github.com/unclebob/crap4clj
+- **`clj-mutate`** — prior mutation-testing tooling work: https://github.com/unclebob/clj-mutate
+- **`pi-mono` by badlogic** — agent tooling and operating-model influence: https://github.com/badlogic/pi-mono
