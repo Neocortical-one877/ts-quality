@@ -163,6 +163,58 @@ test('evaluateGovernance catches forbidden require calls that flow through local
   assert.match(findings[0].evidence[0], /\.\.\/identity\/store -> src\/identity\/store\.ts/);
 });
 
+test('evaluateGovernance catches forbidden require calls that flow through chained assignments', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-governance-require-chain-'));
+  fs.mkdirSync(path.join(rootDir, 'src', 'shared'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, 'src', 'identity'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'shared', 'audit.ts'), "export function readIdentity() {\n  let primary;\n  let fallback;\n  fallback = primary = require;\n  return fallback('../identity/store');\n}\n", 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'src', 'identity', 'store.ts'), 'export const currentUser = () => ({ id: 1 });\n', 'utf8');
+
+  const findings = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'boundary',
+      id: 'shared-no-identity',
+      from: ['src/shared/**'],
+      to: ['src/identity/**'],
+      mode: 'forbid',
+      message: 'Shared code must not require identity state.'
+    }],
+    changedFiles: ['src/shared/audit.ts'],
+    changedRegions: []
+  });
+
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].evidence[0], /\.\.\/identity\/store -> src\/identity\/store\.ts/);
+});
+
+test('evaluateGovernance catches forbidden require calls that flow through destructuring', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-governance-require-destructure-'));
+  fs.mkdirSync(path.join(rootDir, 'src', 'shared'), { recursive: true });
+  fs.mkdirSync(path.join(rootDir, 'src', 'identity'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'shared', 'audit.ts'), "export function readIdentity() {\n  const [loadFromArray] = [require];\n  const { loadFromObject } = { loadFromObject: require };\n  const { require: renamedRequire } = { require };\n  let loadFromArrayAssignment;\n  [loadFromArrayAssignment] = [require];\n  let loadFromObjectAssignment;\n  ({ loadFromObjectAssignment } = { loadFromObjectAssignment: require });\n  loadFromArray('../identity/store');\n  loadFromObject('../identity/store');\n  renamedRequire('../identity/store');\n  loadFromArrayAssignment('../identity/store');\n  return loadFromObjectAssignment('../identity/store');\n}\n", 'utf8');
+  fs.writeFileSync(path.join(rootDir, 'src', 'identity', 'store.ts'), 'export const currentUser = () => ({ id: 1 });\n', 'utf8');
+
+  const findings = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'boundary',
+      id: 'shared-no-identity',
+      from: ['src/shared/**'],
+      to: ['src/identity/**'],
+      mode: 'forbid',
+      message: 'Shared code must not require identity state.'
+    }],
+    changedFiles: ['src/shared/audit.ts'],
+    changedRegions: []
+  });
+
+  assert.equal(findings.length, 5);
+  for (const finding of findings) {
+    assert.match(finding.evidence[0], /\.\.\/identity\/store -> src\/identity\/store\.ts/);
+  }
+});
+
 test('evaluateGovernance does not mistake shadowed require parameters for the global loader', () => {
   const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-governance-shadowed-require-'));
   fs.mkdirSync(path.join(rootDir, 'src', 'shared'), { recursive: true });
