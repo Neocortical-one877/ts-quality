@@ -25,22 +25,33 @@ function importsForFile(filePath, sourceText) {
         if (typescript_1.default.isImportDeclaration(node) || typescript_1.default.isExportDeclaration(node)) {
             const specifier = stringLikeModuleSpecifier(node.moduleSpecifier);
             if (typeof specifier === 'string') {
-                imports.push(specifier);
+                imports.push({
+                    kind: 'static',
+                    specifier,
+                    expressionText: node.moduleSpecifier.getText(sourceFile),
+                    resolvable: true
+                });
             }
         }
         if (typescript_1.default.isCallExpression(node) && node.expression?.getText(sourceFile) === 'require' && node.arguments.length === 1) {
             const argument = node.arguments[0];
             const specifier = stringLikeModuleSpecifier(argument);
-            if (typeof specifier === 'string') {
-                imports.push(specifier);
-            }
+            imports.push({
+                kind: 'require',
+                ...(typeof specifier === 'string' ? { specifier } : {}),
+                expressionText: argument.getText(sourceFile),
+                resolvable: typeof specifier === 'string'
+            });
         }
         if (typescript_1.default.isCallExpression(node) && node.expression.kind === typescript_1.default.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
             const argument = node.arguments[0];
             const specifier = stringLikeModuleSpecifier(argument);
-            if (typeof specifier === 'string') {
-                imports.push(specifier);
-            }
+            imports.push({
+                kind: 'dynamic-import',
+                ...(typeof specifier === 'string' ? { specifier } : {}),
+                expressionText: argument.getText(sourceFile),
+                resolvable: typeof specifier === 'string'
+            });
         }
         typescript_1.default.forEachChild(node, visit);
     }
@@ -64,15 +75,26 @@ function evaluateBoundaryRule(rootDir, rule, changedFiles) {
             continue;
         }
         const imports = importsForFile(filePath, fs_1.default.readFileSync(absolutePath, 'utf8'));
-        for (const specifier of imports) {
-            const resolved = resolveImport(filePath, specifier, rootDir);
+        for (const reference of imports) {
+            if (!reference.resolvable) {
+                findings.push({
+                    id: `${rule.id}:${filePath}:opaque:${reference.kind}:${reference.expressionText}`,
+                    ruleId: rule.id,
+                    level: rule.severity ?? 'error',
+                    message: rule.message,
+                    evidence: [`${filePath} uses ${reference.kind} with non-literal specifier ${reference.expressionText}; governance cannot prove the target stays outside ${rule.to.join(', ')}.`],
+                    scope: [filePath]
+                });
+                continue;
+            }
+            const resolved = resolveImport(filePath, reference.specifier, rootDir);
             if (resolved && (0, index_1.matchesAny)(rule.to, resolved)) {
                 findings.push({
                     id: `${rule.id}:${filePath}:${resolved}`,
                     ruleId: rule.id,
                     level: rule.severity ?? 'error',
                     message: rule.message,
-                    evidence: [`${filePath} imports ${specifier} -> ${resolved}`],
+                    evidence: [`${filePath} imports ${reference.specifier} -> ${resolved}`],
                     scope: [filePath, resolved]
                 });
             }

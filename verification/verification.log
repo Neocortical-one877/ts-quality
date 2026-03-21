@@ -24,6 +24,7 @@ $ npm test --silent
 ✔ amend --apply writes a loadable constitution module (<duration-ms>)
 ✔ amend --apply preserves json constitution format when configured (<duration-ms>)
 ✔ amend --apply preserves commonjs constitution modules when configured (<duration-ms>)
+✔ amend denies invalid action values instead of silently ignoring them (<duration-ms>)
 ✔ amend denies duplicate constitution rule ids instead of silently applying them (<duration-ms>)
 ✔ amend denies replace operations that target no existing rule (<duration-ms>)
 ✔ authorize projects run-bound governance and invariant evidence into the decision artifact (<duration-ms>)
@@ -40,6 +41,9 @@ $ npm test --silent
 ✔ check fails closed when changed scope has no measurable mutation pressure (<duration-ms>)
 ✔ check, report, explain, plan, and govern produce aligned artifacts (<duration-ms>)
 ✔ check persists analysis context, mutation baseline receipts, and a run-bound control plane snapshot (<duration-ms>)
+✔ plan, govern, and authorize reject unsupported control-plane snapshot schemas (<duration-ms>)
+✔ plan, govern, and authorize reject malformed control-plane snapshots instead of falling back (<duration-ms>)
+✔ plan, govern, and authorize fall back to live context for legacy runs without controlPlane (<duration-ms>)
 ✔ trend keeps deltas visible while surfacing the latest risky invariant provenance (<duration-ms>)
 ✔ trend orders runs by createdAt rather than lexical run id sort (<duration-ms>)
 ✔ check, plan, govern, and authorize accept --config for a nonstandard config file name (<duration-ms>)
@@ -126,6 +130,7 @@ $ npm test --silent
 ✔ evaluateGovernance resolves aliases from the nearest package tsconfig in nested repos (<duration-ms>)
 ✔ evaluateGovernance catches forbidden dynamic imports (<duration-ms>)
 ✔ evaluateGovernance catches forbidden dynamic imports expressed as no-substitution template literals (<duration-ms>)
+✔ evaluateGovernance fails closed on non-literal dynamic imports in boundary-scoped files (<duration-ms>)
 ✔ approval rules count only unique targeted approvals (<duration-ms>)
 ✔ approval rules accept exact run-targeted approvals when runId is provided (<duration-ms>)
 ✔ ownership rules require owner approval or an allowed agent approval (<duration-ms>)
@@ -139,6 +144,7 @@ $ npm test --silent
 ✔ authorizeChange requires override grants to match the overridden scope (<duration-ms>)
 ✔ evaluateAmendment enforces maintainer approvals and evidence (<duration-ms>)
 ✔ evaluateAmendment counts only unique approvers targeting the proposal id (<duration-ms>)
+✔ evaluateAmendment denies invalid runtime action values (<duration-ms>)
 ✔ evaluatePolicy reduces confidence for survivors and low mutation score (<duration-ms>)
 ✔ evaluatePolicy blocks when mutation pressure is missing instead of scoring it as perfect (<duration-ms>)
 ✔ evaluatePolicy applies active waivers (<duration-ms>)
@@ -166,9 +172,9 @@ $ npm test --silent
 ✔ runMutations mirrors root-level sources into configured built runtime roots (<duration-ms>)
 ✔ runMutations ignores inherited NODE_TEST_CONTEXT and keeps mutation outcomes deterministic (<duration-ms>)
 ✔ runMutations invalidates cached results when arbitrary execution environment changes (<duration-ms>)
-ℹ tests 146
+ℹ tests 152
 ℹ suites 0
-ℹ pass 146
+ℹ pass 152
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0

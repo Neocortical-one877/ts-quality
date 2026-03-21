@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_TEST_PATTERNS = exports.DEFAULT_SOURCE_PATTERNS = void 0;
+exports.DEFAULT_TEST_PATTERNS = exports.DEFAULT_SOURCE_PATTERNS = exports.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION = void 0;
 exports.resolveRepoLocalPath = resolveRepoLocalPath;
 exports.compilerOptionsForRepoFile = compilerOptionsForRepoFile;
 exports.resolveRepoImport = resolveRepoImport;
@@ -52,6 +52,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const crypto_1 = __importDefault(require("crypto"));
 const typescript_1 = __importDefault(require("typescript"));
+exports.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION = 1;
 exports.DEFAULT_SOURCE_PATTERNS = ['src/**/*.ts', 'src/**/*.tsx', 'src/**/*.js', 'src/**/*.jsx', 'src/**/*.mjs', 'src/**/*.cjs'];
 exports.DEFAULT_TEST_PATTERNS = [
     'test/**/*.js',

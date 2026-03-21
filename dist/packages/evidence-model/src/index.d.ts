@@ -361,7 +361,9 @@ export interface AnalysisContext {
     changedRegions: ChangedRegion[];
     executionFingerprint: string;
 }
+export declare const CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION = 1;
 export interface ControlPlaneSnapshot {
+    schemaVersion: typeof CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION;
     configPath: string;
     configDigest: string;
     policy: {

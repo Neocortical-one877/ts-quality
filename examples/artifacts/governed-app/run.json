@@ -370,6 +370,7 @@
       "minMergeConfidence": 65,
       "minMutationScore": 0.75
     },
+    "schemaVersion": 1,
     "trustedKeysDir": ".ts-quality/keys",
     "waiversPath": ".ts-quality/waivers.json"
   },

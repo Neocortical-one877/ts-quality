@@ -224,8 +224,61 @@ function policyConfigFromSnapshot(snapshot) {
         ...snapshot.policy
     };
 }
+function snapshotStringField(snapshot, field, runId) {
+    if (typeof snapshot[field] !== 'string' || snapshot[field].length === 0) {
+        throw new Error(`Run ${runId} carries malformed control-plane snapshot schema ${index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION}: field ${field} must be a non-empty string. Re-run ts-quality check before trusting downstream decision surfaces.`);
+    }
+    return snapshot[field];
+}
+function snapshotNumberField(snapshot, field, runId) {
+    if (typeof snapshot[field] !== 'number' || !Number.isFinite(snapshot[field])) {
+        throw new Error(`Run ${runId} carries malformed control-plane snapshot schema ${index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION}: field ${field} must be a finite number. Re-run ts-quality check before trusting downstream decision surfaces.`);
+    }
+    return snapshot[field];
+}
+function snapshotArrayField(snapshot, field, runId) {
+    if (!Array.isArray(snapshot[field])) {
+        throw new Error(`Run ${runId} carries malformed control-plane snapshot schema ${index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION}: field ${field} must be an array. Re-run ts-quality check before trusting downstream decision surfaces.`);
+    }
+    return snapshot[field];
+}
+function validatedControlPlaneSnapshot(run) {
+    const snapshot = run.controlPlane;
+    if (!snapshot) {
+        return undefined;
+    }
+    if (snapshot.schemaVersion !== index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION) {
+        throw new Error(`Run ${run.runId} carries unsupported control-plane snapshot schema ${String(snapshot.schemaVersion)}. `
+            + `Expected ${index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION}. Re-run ts-quality check before trusting downstream decision surfaces.`);
+    }
+    const record = snapshot;
+    const policy = (typeof record.policy === 'object' && record.policy !== null)
+        ? record.policy
+        : undefined;
+    if (!policy) {
+        throw new Error(`Run ${run.runId} carries malformed control-plane snapshot schema ${index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION}: field policy must be an object. Re-run ts-quality check before trusting downstream decision surfaces.`);
+    }
+    snapshotStringField(record, 'configPath', run.runId);
+    snapshotStringField(record, 'configDigest', run.runId);
+    snapshotNumberField(policy, 'maxChangedCrap', run.runId);
+    snapshotNumberField(policy, 'minMutationScore', run.runId);
+    snapshotNumberField(policy, 'minMergeConfidence', run.runId);
+    snapshotStringField(record, 'constitutionPath', run.runId);
+    snapshotStringField(record, 'constitutionDigest', run.runId);
+    snapshotArrayField(record, 'constitution', run.runId);
+    snapshotStringField(record, 'agentsPath', run.runId);
+    snapshotStringField(record, 'agentsDigest', run.runId);
+    snapshotArrayField(record, 'agents', run.runId);
+    snapshotStringField(record, 'approvalsPath', run.runId);
+    snapshotStringField(record, 'waiversPath', run.runId);
+    snapshotStringField(record, 'overridesPath', run.runId);
+    snapshotStringField(record, 'attestationsDir', run.runId);
+    snapshotStringField(record, 'trustedKeysDir', run.runId);
+    return snapshot;
+}
 function buildControlPlaneSnapshot(rootDir, loaded, constitution, agents) {
     return {
+        schemaVersion: index_1.CONTROL_PLANE_SNAPSHOT_SCHEMA_VERSION,
         configPath: (0, index_1.normalizePath)(path_1.default.relative(rootDir, loaded.configPath)),
         configDigest: digestOrMissing(loaded.configPath),
         policy: policyConfigFromLoadedContext(loaded),
@@ -243,17 +296,18 @@ function buildControlPlaneSnapshot(rootDir, loaded, constitution, agents) {
     };
 }
 function projectedRunForDecision(rootDir, run, options) {
-    const loaded = run.controlPlane
+    const snapshot = validatedControlPlaneSnapshot(run);
+    const loaded = snapshot
         ? undefined
         : (0, config_1.loadContext)(rootDir, options?.configPath);
-    const approvals = (0, config_1.loadApprovals)(rootDir, run.controlPlane?.approvalsPath ?? loaded?.config.approvalsPath ?? '.ts-quality/approvals.json');
-    const overrides = (0, config_1.loadOverrides)(rootDir, run.controlPlane?.overridesPath ?? loaded?.config.overridesPath ?? '.ts-quality/overrides.json');
-    const waivers = (0, config_1.loadWaivers)(rootDir, run.controlPlane?.waiversPath ?? loaded?.config.waiversPath ?? '.ts-quality/waivers.json');
-    const constitution = run.controlPlane?.constitution ?? (0, config_1.loadConstitution)(rootDir, loaded?.config.constitutionPath ?? '.ts-quality/constitution.ts');
-    const agents = run.controlPlane?.agents ?? (0, config_1.loadAgents)(rootDir, loaded?.config.agentsPath ?? '.ts-quality/agents.ts');
-    const { attestations } = loadVerifiedAttestations(rootDir, run.controlPlane?.attestationsDir ?? loaded?.config.attestationsDir ?? '.ts-quality/attestations', run.controlPlane?.trustedKeysDir ?? loaded?.config.trustedKeysDir ?? '.ts-quality/keys');
+    const approvals = (0, config_1.loadApprovals)(rootDir, snapshot?.approvalsPath ?? loaded?.config.approvalsPath ?? '.ts-quality/approvals.json');
+    const overrides = (0, config_1.loadOverrides)(rootDir, snapshot?.overridesPath ?? loaded?.config.overridesPath ?? '.ts-quality/overrides.json');
+    const waivers = (0, config_1.loadWaivers)(rootDir, snapshot?.waiversPath ?? loaded?.config.waiversPath ?? '.ts-quality/waivers.json');
+    const constitution = snapshot?.constitution ?? (0, config_1.loadConstitution)(rootDir, loaded?.config.constitutionPath ?? '.ts-quality/constitution.ts');
+    const agents = snapshot?.agents ?? (0, config_1.loadAgents)(rootDir, loaded?.config.agentsPath ?? '.ts-quality/agents.ts');
+    const { attestations } = loadVerifiedAttestations(rootDir, snapshot?.attestationsDir ?? loaded?.config.attestationsDir ?? '.ts-quality/attestations', snapshot?.trustedKeysDir ?? loaded?.config.trustedKeysDir ?? '.ts-quality/keys');
     const runAttestations = attestations.filter((attestation) => attestationAppliesToRun(attestation, run.runId));
-    const policy = run.controlPlane ? policyConfigFromSnapshot(run.controlPlane) : policyConfigFromLoadedContext(loaded);
+    const policy = snapshot ? policyConfigFromSnapshot(snapshot) : policyConfigFromLoadedContext(loaded);
     const preliminary = (0, index_5.evaluatePolicy)({
         nowIso: (0, index_1.nowIso)(),
         policy,
