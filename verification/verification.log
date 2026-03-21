@@ -137,6 +137,11 @@ $ npm test --silent
 ✔ evaluateGovernance catches forbidden require calls that flow through local aliases (<duration-ms>)
 ✔ evaluateGovernance catches forbidden require calls that flow through chained assignments (<duration-ms>)
 ✔ evaluateGovernance catches forbidden require calls that flow through destructuring (<duration-ms>)
+✔ evaluateGovernance catches forbidden require calls that flow through aliased destructuring containers (<duration-ms>)
+✔ evaluateGovernance catches forbidden require calls that flow through destructured parameter defaults (<duration-ms>)
+✔ evaluateGovernance catches forbidden require calls that flow through property and element access on tracked containers (<duration-ms>)
+✔ evaluateGovernance catches forbidden require calls that flow through rest bindings on tracked containers (<duration-ms>)
+✔ evaluateGovernance does not treat unreachable conditional require aliases as active imports (<duration-ms>)
 ✔ evaluateGovernance does not mistake shadowed require parameters for the global loader (<duration-ms>)
 ✔ evaluateGovernance fails closed on non-literal dynamic imports in boundary-scoped files (<duration-ms>)
 ✔ approval rules count only unique targeted approvals (<duration-ms>)
@@ -180,9 +185,9 @@ $ npm test --silent
 ✔ runMutations mirrors root-level sources into configured built runtime roots (<duration-ms>)
 ✔ runMutations ignores inherited NODE_TEST_CONTEXT and keeps mutation outcomes deterministic (<duration-ms>)
 ✔ runMutations invalidates cached results when arbitrary execution environment changes (<duration-ms>)
-ℹ tests 160
+ℹ tests 165
 ℹ suites 0
-ℹ pass 160
+ℹ pass 165
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0

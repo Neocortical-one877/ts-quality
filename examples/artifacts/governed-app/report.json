@@ -7,7 +7,7 @@
     "configPath": "ts-quality.config.ts",
     "coverageLcovPath": "coverage/lcov.info",
     "createdAt": "2026-01-01T00:00:00.000Z",
-    "executionFingerprint": "sha256:d05a2da4d99e426fb24fd913c63ca7309a2b4c2d8b15230e63be5a972f038c27",
+    "executionFingerprint": "sha256:sample-governed-app",
     "runId": "sample-governed-app-run",
     "runtimeMirrorRoots": [
       "dist"

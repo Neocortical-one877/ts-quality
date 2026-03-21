@@ -32,7 +32,48 @@ function unwrapExpression(expression) {
     }
     return current;
 }
-function lookupRequireLike(scope, name) {
+function provenance(state, extra = {}) {
+    return { state, ...extra };
+}
+function joinRequireLikeState(left, right) {
+    if (left === right) {
+        return left;
+    }
+    if (left === 'maybe' || right === 'maybe') {
+        return 'maybe';
+    }
+    return 'maybe';
+}
+function mergeProvenance(left, right) {
+    const merged = {
+        state: joinRequireLikeState(left.state, right.state)
+    };
+    if (left.objectProperties || right.objectProperties || left.objectDynamic || right.objectDynamic) {
+        const objectProperties = new Map();
+        const propertyNames = new Set([
+            ...Array.from(left.objectProperties?.keys() ?? []),
+            ...Array.from(right.objectProperties?.keys() ?? [])
+        ]);
+        for (const propertyName of propertyNames) {
+            const leftProperty = left.objectProperties?.get(propertyName) ?? (left.objectDynamic ? provenance('maybe') : provenance('never'));
+            const rightProperty = right.objectProperties?.get(propertyName) ?? (right.objectDynamic ? provenance('maybe') : provenance('never'));
+            objectProperties.set(propertyName, mergeProvenance(leftProperty, rightProperty));
+        }
+        merged.objectProperties = objectProperties;
+        if (left.objectDynamic || right.objectDynamic) {
+            merged.objectDynamic = true;
+        }
+    }
+    if (left.arrayElements || right.arrayElements || left.arrayDynamic || right.arrayDynamic) {
+        const length = Math.max(left.arrayElements?.length ?? 0, right.arrayElements?.length ?? 0);
+        merged.arrayElements = Array.from({ length }, (_, index) => mergeProvenance(left.arrayElements?.[index] ?? (left.arrayDynamic ? provenance('maybe') : provenance('never')), right.arrayElements?.[index] ?? (right.arrayDynamic ? provenance('maybe') : provenance('never'))));
+        if (left.arrayDynamic || right.arrayDynamic) {
+            merged.arrayDynamic = true;
+        }
+    }
+    return merged;
+}
+function lookupBindingProvenance(scope, name) {
     let current = scope;
     while (current) {
         if (current.bindings.has(name)) {
@@ -40,19 +81,19 @@ function lookupRequireLike(scope, name) {
         }
         current = current.parent;
     }
-    return name === 'require';
+    return name === 'require' ? provenance('always') : provenance('never');
 }
-function assignBinding(scope, name, requireLike) {
+function assignBinding(scope, name, value) {
     let current = scope;
     while (current) {
         if (current.bindings.has(name)) {
-            current.bindings.set(name, requireLike);
+            current.bindings.set(name, value);
             return;
         }
         current = current.parent;
     }
     if (name !== 'require') {
-        scope.bindings.set(name, requireLike);
+        scope.bindings.set(name, value);
     }
 }
 function propertyNameText(name) {
@@ -67,108 +108,252 @@ function propertyNameText(name) {
     }
     return undefined;
 }
-function propertyValueForObjectLiteral(initializer, target) {
-    const candidate = unwrapExpression(initializer);
-    if (!candidate || !typescript_1.default.isObjectLiteralExpression(candidate)) {
-        return undefined;
+function objectPropertyName(target) {
+    if (typescript_1.default.isBindingElement(target)) {
+        return propertyNameText(target.propertyName ?? (typescript_1.default.isIdentifier(target.name) ? target.name : undefined));
     }
-    const propertyName = typescript_1.default.isBindingElement(target)
-        ? propertyNameText(target.propertyName ?? (typescript_1.default.isIdentifier(target.name) ? target.name : undefined))
-        : typescript_1.default.isShorthandPropertyAssignment(target)
-            ? target.name.text
-            : typescript_1.default.isPropertyAssignment(target)
-                ? propertyNameText(target.name)
-                : undefined;
-    if (typeof propertyName !== 'string') {
-        return undefined;
+    if (typescript_1.default.isShorthandPropertyAssignment(target)) {
+        return target.name.text;
     }
-    for (let index = candidate.properties.length - 1; index >= 0; index -= 1) {
-        const property = candidate.properties[index];
-        if (typescript_1.default.isSpreadAssignment(property)) {
-            return undefined;
-        }
-        if (typescript_1.default.isShorthandPropertyAssignment(property) && property.name.text === propertyName) {
-            return property.name;
-        }
-        if (typescript_1.default.isPropertyAssignment(property) && propertyNameText(property.name) === propertyName) {
-            return property.initializer;
-        }
+    if (typescript_1.default.isPropertyAssignment(target)) {
+        return propertyNameText(target.name);
     }
     return undefined;
 }
-function expressionIsRequireLike(expression, scope) {
+function objectPropertyProvenance(value, propertyName) {
+    if (value.objectProperties?.has(propertyName)) {
+        return value.objectProperties.get(propertyName);
+    }
+    if (value.objectProperties || value.objectDynamic) {
+        return value.objectDynamic ? provenance('maybe') : undefined;
+    }
+    return undefined;
+}
+function arrayElementProvenance(value, index) {
+    if (value.arrayElements && index < value.arrayElements.length) {
+        return value.arrayElements[index];
+    }
+    if (value.arrayElements || value.arrayDynamic) {
+        return value.arrayDynamic ? provenance('maybe') : undefined;
+    }
+    return undefined;
+}
+function elementAccessKey(argumentExpression) {
+    const candidate = unwrapExpression(argumentExpression);
+    if (!candidate) {
+        return undefined;
+    }
+    if (typescript_1.default.isStringLiteral(candidate) || typescript_1.default.isNoSubstitutionTemplateLiteral(candidate)) {
+        return candidate.text;
+    }
+    if (typescript_1.default.isNumericLiteral(candidate)) {
+        return Number(candidate.text);
+    }
+    return undefined;
+}
+function numericKeyFromText(text) {
+    return /^(0|[1-9]\d*)$/u.test(text) ? Number(text) : undefined;
+}
+function arrayRestProvenance(value, startIndex) {
+    return provenance('never', {
+        ...(value.arrayElements ? { arrayElements: value.arrayElements.slice(startIndex) } : {}),
+        ...(value.arrayDynamic ? { arrayDynamic: true } : {})
+    });
+}
+function objectRestProvenance(value, excludedKeys) {
+    const objectProperties = value.objectProperties
+        ? new Map(Array.from(value.objectProperties.entries()).filter(([propertyName]) => !excludedKeys.has(propertyName)))
+        : undefined;
+    return provenance('never', {
+        ...(objectProperties ? { objectProperties } : {}),
+        ...(value.objectDynamic ? { objectDynamic: true } : {})
+    });
+}
+function explicitObjectKeys(elements) {
+    const keys = new Set();
+    for (const element of elements) {
+        if (typescript_1.default.isBindingElement(element)) {
+            if (element.dotDotDotToken) {
+                continue;
+            }
+            const propertyName = objectPropertyName(element);
+            if (typeof propertyName === 'string') {
+                keys.add(propertyName);
+            }
+            continue;
+        }
+        if (typescript_1.default.isShorthandPropertyAssignment(element)) {
+            keys.add(element.name.text);
+            continue;
+        }
+        if (typescript_1.default.isPropertyAssignment(element)) {
+            const propertyName = propertyNameText(element.name);
+            if (typeof propertyName === 'string') {
+                keys.add(propertyName);
+            }
+        }
+    }
+    return keys;
+}
+function propertyAccessProvenance(value, key) {
+    if (typeof key === 'number') {
+        return arrayElementProvenance(value, key)
+            ?? objectPropertyProvenance(value, String(key));
+    }
+    const numericKey = numericKeyFromText(key);
+    if (typeof numericKey === 'number') {
+        return arrayElementProvenance(value, numericKey)
+            ?? objectPropertyProvenance(value, key);
+    }
+    return objectPropertyProvenance(value, key);
+}
+function expressionProvenance(expression, scope) {
     const candidate = unwrapExpression(expression);
     if (!candidate) {
-        return false;
+        return provenance('never');
     }
     if (typescript_1.default.isIdentifier(candidate)) {
-        return lookupRequireLike(scope, candidate.text);
+        return lookupBindingProvenance(scope, candidate.text);
     }
     if (typescript_1.default.isBinaryExpression(candidate) && candidate.operatorToken.kind === typescript_1.default.SyntaxKind.EqualsToken) {
-        return expressionIsRequireLike(candidate.right, scope);
+        return expressionProvenance(candidate.right, scope);
     }
     if (typescript_1.default.isConditionalExpression(candidate)) {
-        return expressionIsRequireLike(candidate.whenTrue, scope) || expressionIsRequireLike(candidate.whenFalse, scope);
+        return mergeProvenance(expressionProvenance(candidate.whenTrue, scope), expressionProvenance(candidate.whenFalse, scope));
     }
-    return false;
+    if (typescript_1.default.isPropertyAccessExpression(candidate)) {
+        return propertyAccessProvenance(expressionProvenance(candidate.expression, scope), candidate.name.text) ?? provenance('never');
+    }
+    if (typescript_1.default.isElementAccessExpression(candidate)) {
+        const key = elementAccessKey(candidate.argumentExpression);
+        return typeof key === 'undefined'
+            ? provenance('never')
+            : propertyAccessProvenance(expressionProvenance(candidate.expression, scope), key) ?? provenance('never');
+    }
+    if (typescript_1.default.isObjectLiteralExpression(candidate)) {
+        const objectProperties = new Map();
+        let objectDynamic = false;
+        for (const property of candidate.properties) {
+            if (typescript_1.default.isSpreadAssignment(property)) {
+                objectDynamic = true;
+                continue;
+            }
+            if (typescript_1.default.isShorthandPropertyAssignment(property)) {
+                objectProperties.set(property.name.text, expressionProvenance(property.name, scope));
+                continue;
+            }
+            if (typescript_1.default.isPropertyAssignment(property)) {
+                const propertyName = propertyNameText(property.name);
+                if (typeof propertyName === 'string') {
+                    objectProperties.set(propertyName, expressionProvenance(property.initializer, scope));
+                }
+                else {
+                    objectDynamic = true;
+                }
+                continue;
+            }
+            const propertyName = propertyNameText(property.name);
+            if (typeof propertyName === 'string') {
+                objectProperties.set(propertyName, provenance('never'));
+            }
+            else {
+                objectDynamic = true;
+            }
+        }
+        return provenance('never', {
+            objectProperties,
+            ...(objectDynamic ? { objectDynamic: true } : {})
+        });
+    }
+    if (typescript_1.default.isArrayLiteralExpression(candidate)) {
+        const arrayElements = [];
+        let arrayDynamic = false;
+        for (const element of candidate.elements) {
+            if (typescript_1.default.isOmittedExpression(element)) {
+                arrayElements.push(provenance('never'));
+                continue;
+            }
+            if (typescript_1.default.isSpreadElement(element)) {
+                arrayDynamic = true;
+                arrayElements.push(provenance('maybe'));
+                continue;
+            }
+            arrayElements.push(expressionProvenance(element, scope));
+        }
+        return provenance('never', {
+            arrayElements,
+            ...(arrayDynamic ? { arrayDynamic: true } : {})
+        });
+    }
+    return provenance('never');
 }
-function declareBindingName(name, initializer, scope) {
+function expressionIsRequireLike(expression, scope) {
+    return expressionProvenance(expression, scope).state === 'always';
+}
+function declareBindingName(name, value, scope) {
     if (typescript_1.default.isIdentifier(name)) {
-        scope.bindings.set(name.text, initializer ? expressionIsRequireLike(initializer, scope) : false);
+        scope.bindings.set(name.text, value);
         return;
     }
     if (typescript_1.default.isArrayBindingPattern(name)) {
-        const candidate = unwrapExpression(initializer);
-        const elements = candidate && typescript_1.default.isArrayLiteralExpression(candidate) ? candidate.elements : [];
         for (let index = 0; index < name.elements.length; index += 1) {
             const element = name.elements[index];
             if (!typescript_1.default.isBindingElement(element)) {
                 continue;
             }
-            const matchedInitializer = elements[index];
-            declareBindingName(element.name, matchedInitializer ?? element.initializer, scope);
+            const matchedValue = element.dotDotDotToken
+                ? arrayRestProvenance(value, index)
+                : arrayElementProvenance(value, index);
+            declareBindingName(element.name, matchedValue ?? (element.initializer ? expressionProvenance(element.initializer, scope) : provenance('never')), scope);
         }
         return;
     }
+    const excludedKeys = explicitObjectKeys(name.elements);
     for (const element of name.elements) {
         if (typescript_1.default.isBindingElement(element)) {
-            declareBindingName(element.name, propertyValueForObjectLiteral(initializer, element) ?? element.initializer, scope);
+            const matchedValue = element.dotDotDotToken
+                ? objectRestProvenance(value, excludedKeys)
+                : (() => {
+                    const propertyName = objectPropertyName(element);
+                    return typeof propertyName === 'string' ? objectPropertyProvenance(value, propertyName) : undefined;
+                })();
+            declareBindingName(element.name, matchedValue ?? (element.initializer ? expressionProvenance(element.initializer, scope) : provenance('never')), scope);
         }
     }
 }
-function assignBindingTarget(target, initializer, scope) {
+function assignBindingTarget(target, value, scope) {
     if (typescript_1.default.isIdentifier(target)) {
-        assignBinding(scope, target.text, initializer ? expressionIsRequireLike(initializer, scope) : false);
+        assignBinding(scope, target.text, value);
         return;
     }
     if (typescript_1.default.isArrayLiteralExpression(target)) {
-        const candidate = unwrapExpression(initializer);
-        const elements = candidate && typescript_1.default.isArrayLiteralExpression(candidate) ? candidate.elements : [];
         for (let index = 0; index < target.elements.length; index += 1) {
             const element = target.elements[index];
             if (typescript_1.default.isOmittedExpression(element)) {
                 continue;
             }
             if (typescript_1.default.isSpreadElement(element)) {
-                assignBindingTarget(element.expression, undefined, scope);
+                assignBindingTarget(element.expression, arrayRestProvenance(value, index), scope);
                 continue;
             }
-            assignBindingTarget(element, elements[index], scope);
+            assignBindingTarget(element, arrayElementProvenance(value, index) ?? provenance('never'), scope);
         }
         return;
     }
     if (typescript_1.default.isObjectLiteralExpression(target)) {
+        const excludedKeys = explicitObjectKeys(target.properties);
         for (const property of target.properties) {
             if (typescript_1.default.isShorthandPropertyAssignment(property)) {
-                assignBindingTarget(property.name, propertyValueForObjectLiteral(initializer, property), scope);
+                assignBindingTarget(property.name, objectPropertyProvenance(value, property.name.text) ?? provenance('never'), scope);
                 continue;
             }
             if (typescript_1.default.isPropertyAssignment(property)) {
-                assignBindingTarget(property.initializer, propertyValueForObjectLiteral(initializer, property), scope);
+                const propertyName = propertyNameText(property.name);
+                assignBindingTarget(property.initializer, typeof propertyName === 'string' ? objectPropertyProvenance(value, propertyName) ?? provenance('never') : provenance('maybe'), scope);
                 continue;
             }
             if (typescript_1.default.isSpreadAssignment(property)) {
-                assignBindingTarget(property.expression, undefined, scope);
+                assignBindingTarget(property.expression, objectRestProvenance(value, excludedKeys), scope);
             }
         }
     }
@@ -179,17 +364,17 @@ function declareImportBindings(node, scope) {
         return;
     }
     if (clause.name) {
-        scope.bindings.set(clause.name.text, false);
+        scope.bindings.set(clause.name.text, provenance('never'));
     }
     if (!clause.namedBindings) {
         return;
     }
     if (typescript_1.default.isNamespaceImport(clause.namedBindings)) {
-        scope.bindings.set(clause.namedBindings.name.text, false);
+        scope.bindings.set(clause.namedBindings.name.text, provenance('never'));
         return;
     }
     for (const specifier of clause.namedBindings.elements) {
-        scope.bindings.set(specifier.name.text, false);
+        scope.bindings.set(specifier.name.text, provenance('never'));
     }
 }
 function importsForFile(filePath, sourceText) {
@@ -203,14 +388,15 @@ function importsForFile(filePath, sourceText) {
     function visitFunctionLike(node, scope) {
         const functionScope = createBindingScope(scope);
         if (node.name && typescript_1.default.isIdentifier(node.name)) {
-            functionScope.bindings.set(node.name.text, false);
+            functionScope.bindings.set(node.name.text, provenance('never'));
         }
         for (const parameter of node.parameters ?? []) {
-            declareBindingName(parameter.name, undefined, functionScope);
+            declareBindingName(parameter.name, provenance('never'), functionScope);
         }
         for (const parameter of node.parameters ?? []) {
             if (parameter.initializer) {
                 visit(parameter.initializer, functionScope);
+                declareBindingName(parameter.name, expressionProvenance(parameter.initializer, functionScope), functionScope);
             }
         }
         if (node.body) {
@@ -221,7 +407,7 @@ function importsForFile(filePath, sourceText) {
         if (node.initializer) {
             visit(node.initializer, scope);
         }
-        declareBindingName(node.name, node.initializer, scope);
+        declareBindingName(node.name, expressionProvenance(node.initializer, scope), scope);
     }
     function visit(node, scope) {
         if (!node) {
@@ -265,7 +451,7 @@ function importsForFile(filePath, sourceText) {
             return;
         }
         if (typescript_1.default.isImportEqualsDeclaration(node)) {
-            scope.bindings.set(node.name.text, false);
+            scope.bindings.set(node.name.text, provenance('never'));
             if (typescript_1.default.isExternalModuleReference(node.moduleReference)) {
                 const specifier = stringLikeModuleSpecifier(node.moduleReference.expression);
                 if (typeof specifier === 'string') {
@@ -293,7 +479,7 @@ function importsForFile(filePath, sourceText) {
         }
         if (typescript_1.default.isFunctionDeclaration(node)) {
             if (node.name) {
-                scope.bindings.set(node.name.text, false);
+                scope.bindings.set(node.name.text, provenance('never'));
             }
             visitFunctionLike(node, scope);
             return;
@@ -309,7 +495,7 @@ function importsForFile(filePath, sourceText) {
         }
         if (typescript_1.default.isClassDeclaration(node)) {
             if (node.name) {
-                scope.bindings.set(node.name.text, false);
+                scope.bindings.set(node.name.text, provenance('never'));
             }
             typescript_1.default.forEachChild(node, (child) => visit(child, scope));
             return;
@@ -342,14 +528,14 @@ function importsForFile(filePath, sourceText) {
         if (typescript_1.default.isCatchClause(node)) {
             const catchScope = createBindingScope(scope);
             if (node.variableDeclaration) {
-                declareBindingName(node.variableDeclaration.name, undefined, catchScope);
+                declareBindingName(node.variableDeclaration.name, provenance('never'), catchScope);
             }
             visit(node.block, catchScope);
             return;
         }
         if (typescript_1.default.isBinaryExpression(node) && node.operatorToken.kind === typescript_1.default.SyntaxKind.EqualsToken) {
             visit(node.right, scope);
-            assignBindingTarget(node.left, node.right, scope);
+            assignBindingTarget(node.left, expressionProvenance(node.right, scope), scope);
             return;
         }
         if (typescript_1.default.isCallExpression(node)) {
