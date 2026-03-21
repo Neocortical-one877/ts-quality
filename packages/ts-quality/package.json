@@ -1,7 +1,27 @@
 {
   "name": "ts-quality",
   "version": "5.0.0",
+  "description": "Deterministic trust for TypeScript changes in agent-built systems: mutation testing, invariants, governance, and attestable authorization.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tryingET/ts-quality.git"
+  },
+  "homepage": "https://github.com/tryingET/ts-quality#readme",
+  "bugs": {
+    "url": "https://github.com/tryingET/ts-quality/issues"
+  },
+  "keywords": [
+    "typescript",
+    "code-quality",
+    "mutation-testing",
+    "static-analysis",
+    "ai-agents",
+    "agentic-systems",
+    "governance",
+    "attestation",
+    "developer-tools"
+  ],
   "main": "dist/packages/ts-quality/src/index.js",
   "types": "dist/packages/ts-quality/src/index.d.ts",
   "bin": {
