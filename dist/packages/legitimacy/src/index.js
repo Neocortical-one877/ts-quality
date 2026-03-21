@@ -5,6 +5,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.parseAttestationRecord = parseAttestationRecord;
 exports.generateKeyPair = generateKeyPair;
+exports.runScopedArtifactReference = runScopedArtifactReference;
 exports.validateRenderableAttestationContract = validateRenderableAttestationContract;
 exports.signCanonicalAttestation = signCanonicalAttestation;
 exports.signAttestation = signAttestation;

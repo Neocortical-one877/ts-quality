@@ -46,7 +46,7 @@ import {
   renderPrSummary
 } from '../../policy-engine/src/index';
 import { evaluateGovernance, generateGovernancePlan } from '../../governance/src/index';
-import { applyAmendment, authorizeChange, buildChangeBundle, evaluateAmendment, generateKeyPair, loadTrustedKeys, parseAttestationRecord, saveAttestation, signAttestation, validateRenderableAttestationContract, verifyAttestation } from '../../legitimacy/src/index';
+import { applyAmendment, authorizeChange, buildChangeBundle, evaluateAmendment, generateKeyPair, loadTrustedKeys, parseAttestationRecord, runScopedArtifactReference, saveAttestation, signAttestation, validateRenderableAttestationContract, verifyAttestation } from '../../legitimacy/src/index';
 import { loadAgents, loadApprovals, loadChangedRegions, loadConstitution, loadContext, loadInvariants, loadOverrides, loadWaivers } from './config';
 
 export interface CheckResult {
@@ -370,7 +370,7 @@ function resolveCliPath(rootDir: string, candidate: string, options?: { preferRo
   return options?.preferRoot === false ? cwdResolved : rootResolved;
 }
 
-function relativePathInsideRoot(rootDir: string, absolutePath: string): string | undefined {
+function lexicalRelativePathInsideRoot(rootDir: string, absolutePath: string): string | undefined {
   const relative = portablePath(path.relative(rootDir, absolutePath));
   if (!relative || relative === '..' || relative.startsWith('../') || path.isAbsolute(relative)) {
     return undefined;
@@ -378,19 +378,13 @@ function relativePathInsideRoot(rootDir: string, absolutePath: string): string |
   return normalizePath(relative);
 }
 
-function runScopedArtifactReference(subjectFile: string): { runId: string; artifactName: string } | undefined {
-  const match = /^\.ts-quality\/runs\/([^/]+)\/(.+)$/.exec(normalizePath(subjectFile));
-  if (!match || !match[2]) {
-    return undefined;
-  }
-  return {
-    runId: match[1] ?? '',
-    artifactName: match[2] ?? ''
-  };
-}
-
 function recordSubjectPath(rootDir: string, resolvedSubject: string, originalCandidate: string): string {
-  const relative = relativePathInsideRoot(rootDir, resolvedSubject);
+  try {
+    resolveRepoLocalPath(rootDir, resolvedSubject, { kind: 'attestation subject' });
+  } catch {
+    throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
+  }
+  const relative = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
   if (relative) {
     return relative;
   }
@@ -414,19 +408,26 @@ function verifyAttestationRecordAtRoot(rootDir: string, source: string, attestat
     ...(contextFields.runId ? { runId: contextFields.runId } : {}),
     ...(contextFields.artifactName ? { artifactName: contextFields.artifactName } : {})
   };
+  if (!contract.ok) {
+    return { ...record, reason: contract.reason };
+  }
   const signature = verifyAttestation(attestation, trustedKeys);
   if (!signature.ok) {
     return { ...record, reason: signature.reason };
-  }
-  if (!contract.ok) {
-    return { ...record, reason: contract.reason };
   }
   const subjectFile = contextFields.subjectFile;
   if (!subjectFile) {
     return { ...record, reason: 'subject file missing from attestation payload' };
   }
-  const resolvedSubject = path.resolve(rootDir, subjectFile);
-  const relativeSubject = relativePathInsideRoot(rootDir, resolvedSubject);
+  let resolvedSubject: string;
+  let relativeSubject: string | undefined;
+  try {
+    const subjectResolution = resolveRepoLocalPath(rootDir, subjectFile, { allowMissing: true, kind: 'attestation subject' });
+    resolvedSubject = subjectResolution.absolutePath;
+    relativeSubject = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
+  } catch {
+    return { ...record, reason: 'subject file escapes repository root' };
+  }
   if (!relativeSubject || relativeSubject !== subjectFile) {
     return { ...record, reason: 'subject file escapes repository root' };
   }

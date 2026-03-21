@@ -468,6 +468,19 @@ test('attest sign accepts issuer values that begin with dashes via --option=valu
   assert.equal(saved.issuer, '--bot');
 });
 
+test('attest sign rejects unknown flags instead of swallowing them as option values', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const runId = latestRunId(target);
+  const subject = path.join('.ts-quality', 'runs', runId, 'verdict.json');
+  const output = path.join('.ts-quality', 'attestations', 'unknown-flag.json');
+  const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', '--bogus', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
+  assert.equal(sign.status, 1);
+  assert.match(sign.stderr, /^unknown option --bogus\n$/);
+  assert.equal(fs.existsSync(path.join(target, output)), false);
+});
+
 test('attest sign escapes unsafe subject paths in operator-facing errors', () => {
   const target = tempCopyOfFixture('governed-app');
   const foreignRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-foreign-subject-'));
@@ -478,6 +491,19 @@ test('attest sign escapes unsafe subject paths in operator-facing errors', () =>
   assert.equal(result.status, 1);
   assert.match(result.stderr, /^attestation subject must be inside --root: .*bad\\u000aSubject: injected\.json\n$/);
   assert.doesNotMatch(result.stderr, /^Subject: injected\.json$/m);
+});
+
+test('attest sign rejects symlinked subjects that resolve outside --root', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-outside-subject-'));
+  const outsideSubject = path.join(outsideRoot, 'outside.txt');
+  fs.writeFileSync(outsideSubject, 'outside\n', 'utf8');
+  fs.symlinkSync(outsideSubject, path.join(target, 'link.txt'));
+  const output = path.join('.ts-quality', 'attestations', 'symlink-outside.json');
+  const result = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', 'link.txt', '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^attestation subject must be inside --root: link\.txt\n$/);
+  assert.equal(fs.existsSync(path.join(target, output)), false);
 });
 
 test('attest verify keeps signed subject context visible when verification fails', () => {
@@ -496,6 +522,39 @@ test('attest verify keeps signed subject context visible when verification fails
   assert.match(result.stdout, new RegExp(`^Subject: \\.ts-quality/runs/${runId}/verdict\\.json$`, 'm'));
   assert.match(result.stdout, new RegExp(`^Run: ${runId}$`, 'm'));
   assert.match(result.stdout, /^Artifact: verdict\.json$/m);
+});
+
+test('attest verify rejects symlinked signed subjects that resolve outside --root', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
+  const outsideRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-verify-symlink-'));
+  const outsideSubject = path.join(outsideRoot, 'outside.txt');
+  fs.writeFileSync(outsideSubject, 'outside\n', 'utf8');
+  fs.symlinkSync(outsideSubject, path.join(target, 'link.txt'));
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  const attestation = forgeAttestation({
+    version: '1',
+    kind: 'attestation',
+    issuer: 'ci.verify',
+    subjectType: 'file',
+    subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'link.txt'), 'utf8')),
+    claims: ['ci.tests.passed'],
+    issuedAt: '2026-03-20T00:00:00.000Z',
+    payload: {
+      subjectFile: 'link.txt'
+    },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'sample',
+      value: ''
+    }
+  }, privateKeyPem);
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'symlink-outside.json'), attestation);
+  const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/symlink-outside.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^ci\.verify: failed \(subject file escapes repository root\)$/m);
+  assert.match(result.stdout, /^Subject: link\.txt$/m);
 });
 
 test('check writes the same attestation verification framing used by the CLI verify path', () => {
@@ -676,6 +735,38 @@ test('attest verify rejects control characters in signed subject metadata instea
   assert.doesNotMatch(result.stdout, /^Run: injected$/m);
   assert.doesNotMatch(result.stdout, /^Artifact: forged$/m);
   assert.doesNotMatch(result.stdout, /^Subject:/m);
+});
+
+test('attest verify prioritizes attestation contract failures before missing trusted keys', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'issuer-priority-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  const verdictPath = path.join(target, '.ts-quality', 'runs', 'issuer-priority-run', 'verdict.json');
+  const attestation = forgeAttestation({
+    version: '1',
+    kind: 'attestation',
+    issuer: 'ci.verify\u200Bshadow',
+    subjectType: 'json-artifact',
+    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    claims: ['ci.tests.passed'],
+    issuedAt: '2026-03-20T00:00:00.000Z',
+    payload: {
+      subjectFile: '.ts-quality/runs/issuer-priority-run/verdict.json'
+    },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'missing-key',
+      value: ''
+    }
+  }, privateKeyPem);
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'issuer-priority.json'), attestation);
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/issuer-priority.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^issuer-priority\.json: failed \(attestation issuer contains unsupported control characters\)$/m);
+  assert.doesNotMatch(result.stdout, /^issuer-priority\.json: failed \(Missing trusted public key/m);
 });
 
 test('attest verify rejects control characters in signed issuer metadata instead of rendering forged lines', async () => {

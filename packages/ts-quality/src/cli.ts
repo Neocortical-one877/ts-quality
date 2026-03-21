@@ -21,44 +21,90 @@ function args(): string[] {
   return process.argv.slice(2);
 }
 
-const OPTION_NAMES = new Set([
-  '--root',
-  '--changed',
-  '--run-id',
-  '--config',
-  '--out-dir',
-  '--agent',
-  '--action',
-  '--issuer',
-  '--key-id',
-  '--private-key',
-  '--subject',
-  '--out',
-  '--claims',
-  '--attestation',
-  '--trusted-keys',
-  '--proposal',
-  '--json',
-  '--help',
-  '--apply'
+type OptionKind = 'value' | 'flag';
+
+interface ParsedArgs {
+  positionals: string[];
+  values: Map<string, string>;
+  flags: Set<string>;
+}
+
+const OPTION_KINDS = new Map<string, OptionKind>([
+  ['--root', 'value'],
+  ['--changed', 'value'],
+  ['--run-id', 'value'],
+  ['--config', 'value'],
+  ['--out-dir', 'value'],
+  ['--agent', 'value'],
+  ['--action', 'value'],
+  ['--issuer', 'value'],
+  ['--key-id', 'value'],
+  ['--private-key', 'value'],
+  ['--subject', 'value'],
+  ['--out', 'value'],
+  ['--claims', 'value'],
+  ['--attestation', 'value'],
+  ['--trusted-keys', 'value'],
+  ['--proposal', 'value'],
+  ['--json', 'flag'],
+  ['--help', 'flag'],
+  ['--apply', 'flag']
 ]);
 
+function parseArgs(argv: string[]): ParsedArgs {
+  const positionals: string[] = [];
+  const values = new Map<string, string>();
+  const flags = new Set<string>();
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === undefined) {
+      break;
+    }
+    if (token === '--') {
+      positionals.push(...argv.slice(index + 1));
+      break;
+    }
+    if (!token.startsWith('--')) {
+      positionals.push(token);
+      continue;
+    }
+    const equalsIndex = token.indexOf('=');
+    const name = equalsIndex >= 0 ? token.slice(0, equalsIndex) : token;
+    const optionKind = OPTION_KINDS.get(name);
+    if (!optionKind) {
+      throw new Error(`unknown option ${name}`);
+    }
+    if (equalsIndex >= 0) {
+      if (optionKind === 'flag') {
+        throw new Error(`${name} does not take a value`);
+      }
+      values.set(name, token.slice(equalsIndex + 1));
+      continue;
+    }
+    if (optionKind === 'flag') {
+      flags.add(name);
+      continue;
+    }
+    const value = argv[index + 1];
+    if (value === undefined || value.startsWith('--')) {
+      continue;
+    }
+    values.set(name, value);
+    index += 1;
+  }
+  return { positionals, values, flags };
+}
+
+function parsedArgs(): ParsedArgs {
+  return parseArgs(args());
+}
+
 function takeOption(name: string): string | undefined {
-  const argv = args();
-  const inline = argv.find((item) => item.startsWith(`${name}=`));
-  if (inline) {
-    return inline.slice(name.length + 1);
-  }
-  const index = argv.indexOf(name);
-  if (index < 0) {
-    return undefined;
-  }
-  const value = argv[index + 1];
-  return value !== undefined && !OPTION_NAMES.has(value) ? value : undefined;
+  return parsedArgs().values.get(name);
 }
 
 function hasFlag(name: string): boolean {
-  return args().includes(name);
+  return parsedArgs().flags.has(name);
 }
 
 function rootDir(): string {
@@ -111,7 +157,8 @@ function usage(command?: string, subcommand?: string): string {
 }
 
 function main(): void {
-  const [command, subcommand] = args();
+  const parsed = parsedArgs();
+  const [command, subcommand] = parsed.positionals;
   const cwd = rootDir();
 
   if (!command || command === 'help' || command === '--help') {

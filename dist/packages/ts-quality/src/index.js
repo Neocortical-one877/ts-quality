@@ -292,25 +292,21 @@ function resolveCliPath(rootDir, candidate, options) {
     }
     return options?.preferRoot === false ? cwdResolved : rootResolved;
 }
-function relativePathInsideRoot(rootDir, absolutePath) {
+function lexicalRelativePathInsideRoot(rootDir, absolutePath) {
     const relative = portablePath(path_1.default.relative(rootDir, absolutePath));
     if (!relative || relative === '..' || relative.startsWith('../') || path_1.default.isAbsolute(relative)) {
         return undefined;
     }
     return (0, index_1.normalizePath)(relative);
 }
-function runScopedArtifactReference(subjectFile) {
-    const match = /^\.ts-quality\/runs\/([^/]+)\/(.+)$/.exec((0, index_1.normalizePath)(subjectFile));
-    if (!match || !match[2]) {
-        return undefined;
-    }
-    return {
-        runId: match[1] ?? '',
-        artifactName: match[2] ?? ''
-    };
-}
 function recordSubjectPath(rootDir, resolvedSubject, originalCandidate) {
-    const relative = relativePathInsideRoot(rootDir, resolvedSubject);
+    try {
+        (0, index_1.resolveRepoLocalPath)(rootDir, resolvedSubject, { kind: 'attestation subject' });
+    }
+    catch {
+        throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
+    }
+    const relative = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
     if (relative) {
         return relative;
     }
@@ -332,19 +328,27 @@ function verifyAttestationRecordAtRoot(rootDir, source, attestation, trustedKeys
         ...(contextFields.runId ? { runId: contextFields.runId } : {}),
         ...(contextFields.artifactName ? { artifactName: contextFields.artifactName } : {})
     };
+    if (!contract.ok) {
+        return { ...record, reason: contract.reason };
+    }
     const signature = (0, index_7.verifyAttestation)(attestation, trustedKeys);
     if (!signature.ok) {
         return { ...record, reason: signature.reason };
-    }
-    if (!contract.ok) {
-        return { ...record, reason: contract.reason };
     }
     const subjectFile = contextFields.subjectFile;
     if (!subjectFile) {
         return { ...record, reason: 'subject file missing from attestation payload' };
     }
-    const resolvedSubject = path_1.default.resolve(rootDir, subjectFile);
-    const relativeSubject = relativePathInsideRoot(rootDir, resolvedSubject);
+    let resolvedSubject;
+    let relativeSubject;
+    try {
+        const subjectResolution = (0, index_1.resolveRepoLocalPath)(rootDir, subjectFile, { allowMissing: true, kind: 'attestation subject' });
+        resolvedSubject = subjectResolution.absolutePath;
+        relativeSubject = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
+    }
+    catch {
+        return { ...record, reason: 'subject file escapes repository root' };
+    }
     if (!relativeSubject || relativeSubject !== subjectFile) {
         return { ...record, reason: 'subject file escapes repository root' };
     }
@@ -387,7 +391,7 @@ function attestationAppliesToRun(attestation, runId) {
     if (!subjectFile || path_1.default.isAbsolute(subjectFile)) {
         return false;
     }
-    const scopedSubject = runScopedArtifactReference(subjectFile);
+    const scopedSubject = (0, index_7.runScopedArtifactReference)(subjectFile);
     if (!scopedSubject || scopedSubject.runId !== runId) {
         return false;
     }
@@ -807,7 +811,7 @@ function attestSign(rootDir, issuer, keyId, privateKeyPath, subjectFile, claims,
     const resolvedSubject = resolveCliPath(rootDir, subjectFile);
     const resolvedKey = resolveCliPath(rootDir, privateKeyPath);
     const recordedSubjectPath = recordSubjectPath(rootDir, resolvedSubject, subjectFile);
-    const scopedSubject = runScopedArtifactReference(recordedSubjectPath);
+    const scopedSubject = (0, index_7.runScopedArtifactReference)(recordedSubjectPath);
     const subjectText = fs_1.default.readFileSync(resolvedSubject, 'utf8');
     const attestation = (0, index_7.signAttestation)({
         issuer,

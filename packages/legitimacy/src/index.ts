@@ -74,7 +74,7 @@ export function generateKeyPair(): { publicKeyPem: string; privateKeyPem: string
   };
 }
 
-function runScopedArtifactReference(subjectFile: string): { runId: string; artifactName: string } | undefined {
+export function runScopedArtifactReference(subjectFile: string): { runId: string; artifactName: string } | undefined {
   const match = /^\.ts-quality\/runs\/([^/]+)\/(.+)$/.exec(normalizePath(subjectFile));
   if (!match || !match[2]) {
     return undefined;

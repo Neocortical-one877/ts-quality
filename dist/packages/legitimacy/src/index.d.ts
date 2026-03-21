@@ -21,6 +21,10 @@ export declare function generateKeyPair(): {
     publicKeyPem: string;
     privateKeyPem: string;
 };
+export declare function runScopedArtifactReference(subjectFile: string): {
+    runId: string;
+    artifactName: string;
+} | undefined;
 export declare function validateRenderableAttestationContract(attestation: {
     issuer: string;
     payload?: Record<string, unknown> | undefined;
