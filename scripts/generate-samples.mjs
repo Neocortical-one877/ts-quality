@@ -17,6 +17,7 @@ const SAMPLE_CREATED_AT = '2026-01-01T00:00:00.000Z';
 const SAMPLE_ATTESTED_AT = '2026-01-01T00:05:00.000Z';
 const SAMPLE_OVERRIDE_AT = '2026-01-01T00:10:00.000Z';
 const SAMPLE_APPROVAL_AT = '2026-01-01T00:15:00.000Z';
+const SAMPLE_EXECUTION_FINGERPRINT = 'sha256:sample-governed-app';
 const SAMPLE_REPO_DIR = path.join(os.tmpdir(), 'tsq-samples-governed-app');
 
 function sampleRootRelative(rootDir) {
@@ -62,7 +63,8 @@ function normalizeRunArtifact(run, target) {
       ? {
           ...run.analysis,
           runId: SAMPLE_RUN_ID,
-          createdAt: SAMPLE_CREATED_AT
+          createdAt: SAMPLE_CREATED_AT,
+          executionFingerprint: SAMPLE_EXECUTION_FINGERPRINT
         }
       : run.analysis,
     repo: {
