@@ -31,6 +31,21 @@ const OPTION_KINDS = new Map([
     ['--help', 'flag'],
     ['--apply', 'flag']
 ]);
+const COMMAND_CONTRACTS = new Map([
+    ['init', { allowedValues: ['--root'], allowedFlags: [], maxPositionals: 1 }],
+    ['materialize', { allowedValues: ['--root', '--config', '--out-dir'], allowedFlags: [], maxPositionals: 1 }],
+    ['check', { allowedValues: ['--root', '--config', '--changed', '--run-id'], allowedFlags: [], maxPositionals: 1 }],
+    ['explain', { allowedValues: ['--root'], allowedFlags: [], maxPositionals: 1 }],
+    ['report', { allowedValues: ['--root'], allowedFlags: ['--json'], maxPositionals: 1 }],
+    ['trend', { allowedValues: ['--root'], allowedFlags: [], maxPositionals: 1 }],
+    ['plan', { allowedValues: ['--root', '--config'], allowedFlags: [], maxPositionals: 1 }],
+    ['govern', { allowedValues: ['--root', '--config'], allowedFlags: [], maxPositionals: 1 }],
+    ['authorize', { allowedValues: ['--root', '--config', '--agent', '--action'], allowedFlags: [], maxPositionals: 1 }],
+    ['attest sign', { allowedValues: ['--root', '--issuer', '--key-id', '--private-key', '--subject', '--out', '--claims'], allowedFlags: [], maxPositionals: 2 }],
+    ['attest verify', { allowedValues: ['--root', '--attestation', '--trusted-keys'], allowedFlags: ['--json'], maxPositionals: 2 }],
+    ['attest keygen', { allowedValues: ['--root', '--out-dir', '--key-id'], allowedFlags: [], maxPositionals: 2 }],
+    ['amend', { allowedValues: ['--root', '--proposal', '--config'], allowedFlags: ['--apply'], maxPositionals: 1 }]
+]);
 function parseArgs(argv) {
     const positionals = [];
     const values = new Map();
@@ -74,30 +89,70 @@ function parseArgs(argv) {
     }
     return { positionals, values, flags };
 }
-function parsedArgs() {
-    return parseArgs(args());
+function commandContractKey(command, subcommand) {
+    if (!command) {
+        return undefined;
+    }
+    if (command === 'attest') {
+        return subcommand ? `${command} ${subcommand}` : command;
+    }
+    return command;
 }
-function takeOption(name) {
-    return parsedArgs().values.get(name);
+function commandLabel(command, subcommand) {
+    if (!command) {
+        return 'ts-quality';
+    }
+    return command === 'attest' && subcommand ? `${command} ${subcommand}` : command;
 }
-function hasFlag(name) {
-    return parsedArgs().flags.has(name);
+function validateParsedArgs(parsed) {
+    const [command, subcommand] = parsed.positionals;
+    if (!command || command === 'help' || command === '--help') {
+        return;
+    }
+    if (parsed.flags.has('--help') || subcommand === 'help') {
+        return;
+    }
+    const contract = COMMAND_CONTRACTS.get(commandContractKey(command, subcommand) ?? '');
+    if (!contract) {
+        return;
+    }
+    if (parsed.positionals.length > contract.maxPositionals) {
+        throw new Error(`unexpected positional arguments for ${commandLabel(command, subcommand)}`);
+    }
+    const allowedValues = new Set(contract.allowedValues);
+    for (const name of parsed.values.keys()) {
+        if (!allowedValues.has(name)) {
+            throw new Error(`unexpected option ${name} for ${commandLabel(command, subcommand)}`);
+        }
+    }
+    const allowedFlags = new Set(contract.allowedFlags);
+    for (const name of parsed.flags) {
+        if (!allowedFlags.has(name)) {
+            throw new Error(`unexpected option ${name} for ${commandLabel(command, subcommand)}`);
+        }
+    }
 }
-function rootDir() {
-    return path_1.default.resolve(takeOption('--root') ?? process.cwd());
+function takeOption(parsed, name) {
+    return parsed.values.get(name);
 }
-function changedFiles() {
-    const value = takeOption('--changed');
+function hasFlag(parsed, name) {
+    return parsed.flags.has(name);
+}
+function rootDir(parsed) {
+    return path_1.default.resolve(takeOption(parsed, '--root') ?? process.cwd());
+}
+function changedFiles(parsed) {
+    const value = takeOption(parsed, '--changed');
     return value ? value.split(',').filter(Boolean) : undefined;
 }
-function runId() {
-    return takeOption('--run-id');
+function runId(parsed) {
+    return takeOption(parsed, '--run-id');
 }
-function configPath() {
-    return takeOption('--config');
+function configPath(parsed) {
+    return takeOption(parsed, '--config');
 }
-function outDir() {
-    return takeOption('--out-dir');
+function outDir(parsed) {
+    return takeOption(parsed, '--out-dir');
 }
 function usage(command, subcommand) {
     if (!command) {
@@ -122,30 +177,31 @@ function usage(command, subcommand) {
         return 'Usage: ts-quality attest keygen [--out-dir <dir>] [--key-id <id>] [--root <dir>]\n';
     }
     if (command === 'amend') {
-        return 'Usage: ts-quality amend --proposal <file> [--apply] [--root <dir>]\n';
+        return 'Usage: ts-quality amend --proposal <file> [--apply] [--root <dir>] [--config <file>]\n';
     }
     return `Usage: ts-quality ${command} [--root <dir>]\n`;
 }
 function main() {
-    const parsed = parsedArgs();
+    const parsed = parseArgs(args());
     const [command, subcommand] = parsed.positionals;
-    const cwd = rootDir();
     if (!command || command === 'help' || command === '--help') {
         process.stdout.write(usage());
         return;
     }
-    if (hasFlag('--help') || subcommand === 'help') {
+    if (hasFlag(parsed, '--help') || subcommand === 'help') {
         process.stdout.write(usage(command, subcommand === 'help' ? undefined : subcommand));
         return;
     }
+    validateParsedArgs(parsed);
+    const cwd = rootDir(parsed);
     if (command === 'init') {
         (0, index_2.initProject)(cwd);
         process.stdout.write(`Initialized ts-quality in ${cwd}\n`);
         return;
     }
     if (command === 'materialize') {
-        const explicitConfigPath = configPath();
-        const requestedOutDir = outDir();
+        const explicitConfigPath = configPath(parsed);
+        const requestedOutDir = outDir(parsed);
         const materializeOptions = {};
         if (explicitConfigPath) {
             materializeOptions.configPath = explicitConfigPath;
@@ -158,13 +214,13 @@ function main() {
         return;
     }
     if (command === 'check') {
-        const changed = changedFiles();
-        const explicitConfigPath = configPath();
+        const changed = changedFiles(parsed);
+        const explicitConfigPath = configPath(parsed);
         const checkOptions = {};
         if (changed) {
             checkOptions.changedFiles = changed;
         }
-        const requestedRunId = runId();
+        const requestedRunId = runId(parsed);
         if (requestedRunId) {
             checkOptions.runId = requestedRunId;
         }
@@ -180,7 +236,7 @@ function main() {
         return;
     }
     if (command === 'report') {
-        process.stdout.write((0, index_2.renderLatestReport)(cwd, hasFlag('--json') ? 'json' : 'markdown'));
+        process.stdout.write((0, index_2.renderLatestReport)(cwd, hasFlag(parsed, '--json') ? 'json' : 'markdown'));
         return;
     }
     if (command === 'trend') {
@@ -188,34 +244,34 @@ function main() {
         return;
     }
     if (command === 'plan') {
-        const explicitConfigPath = configPath();
+        const explicitConfigPath = configPath(parsed);
         process.stdout.write((0, index_2.renderPlan)(cwd, explicitConfigPath ? { configPath: explicitConfigPath } : undefined));
         return;
     }
     if (command === 'govern') {
-        const explicitConfigPath = configPath();
+        const explicitConfigPath = configPath(parsed);
         process.stdout.write((0, index_2.renderGovernance)(cwd, explicitConfigPath ? { configPath: explicitConfigPath } : undefined));
         return;
     }
     if (command === 'authorize') {
-        const agentId = takeOption('--agent');
+        const agentId = takeOption(parsed, '--agent');
         if (!agentId) {
             throw new Error('authorize requires --agent <id>');
         }
-        const action = takeOption('--action') ?? 'merge';
-        const explicitConfigPath = configPath();
+        const action = takeOption(parsed, '--action') ?? 'merge';
+        const explicitConfigPath = configPath(parsed);
         const result = (0, index_2.runAuthorize)(cwd, agentId, action, explicitConfigPath ? { configPath: explicitConfigPath } : undefined);
         process.stdout.write(result.output);
         return;
     }
     if (command === 'attest') {
         if (subcommand === 'sign') {
-            const issuer = takeOption('--issuer');
-            const keyId = takeOption('--key-id');
-            const privateKey = takeOption('--private-key');
-            const subject = takeOption('--subject');
-            const output = takeOption('--out');
-            const claims = (takeOption('--claims') ?? '').split(',').filter(Boolean);
+            const issuer = takeOption(parsed, '--issuer');
+            const keyId = takeOption(parsed, '--key-id');
+            const privateKey = takeOption(parsed, '--private-key');
+            const subject = takeOption(parsed, '--subject');
+            const output = takeOption(parsed, '--out');
+            const claims = (takeOption(parsed, '--claims') ?? '').split(',').filter(Boolean);
             if (issuer === undefined || !keyId || !privateKey || !subject || !output) {
                 throw new Error('attest sign requires --issuer --key-id --private-key --subject --out');
             }
@@ -223,29 +279,29 @@ function main() {
             return;
         }
         if (subcommand === 'verify') {
-            const attestation = takeOption('--attestation');
-            const trusted = takeOption('--trusted-keys') ?? '.ts-quality/keys';
+            const attestation = takeOption(parsed, '--attestation');
+            const trusted = takeOption(parsed, '--trusted-keys') ?? '.ts-quality/keys';
             if (!attestation) {
                 throw new Error('attest verify requires --attestation <file>');
             }
-            process.stdout.write((0, index_2.attestVerify)(cwd, attestation, trusted, hasFlag('--json') ? 'json' : 'text'));
+            process.stdout.write((0, index_2.attestVerify)(cwd, attestation, trusted, hasFlag(parsed, '--json') ? 'json' : 'text'));
             return;
         }
         if (subcommand === 'keygen') {
-            const out = path_1.default.resolve(cwd, takeOption('--out-dir') ?? path_1.default.join('.ts-quality', 'keys'));
-            const keyId = takeOption('--key-id') ?? 'generated';
+            const out = path_1.default.resolve(cwd, takeOption(parsed, '--out-dir') ?? path_1.default.join('.ts-quality', 'keys'));
+            const keyId = takeOption(parsed, '--key-id') ?? 'generated';
             process.stdout.write((0, index_2.attestGenerateKey)(out, keyId));
             return;
         }
         throw new Error('attest requires subcommand sign|verify|keygen');
     }
     if (command === 'amend') {
-        const proposal = takeOption('--proposal');
+        const proposal = takeOption(parsed, '--proposal');
         if (!proposal) {
             throw new Error('amend requires --proposal <file>');
         }
-        const explicitConfigPath = configPath();
-        process.stdout.write((0, index_2.runAmend)(cwd, proposal, hasFlag('--apply'), explicitConfigPath ? { configPath: explicitConfigPath } : undefined));
+        const explicitConfigPath = configPath(parsed);
+        process.stdout.write((0, index_2.runAmend)(cwd, proposal, hasFlag(parsed, '--apply'), explicitConfigPath ? { configPath: explicitConfigPath } : undefined));
         return;
     }
     throw new Error(`Unknown command ${command}`);

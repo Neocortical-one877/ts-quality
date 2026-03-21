@@ -405,6 +405,7 @@ export declare function resolveRepoLocalPath(rootDir: string, candidate: string,
 }): {
     absolutePath: string;
     relativePath: string;
+    canonicalPath: string;
 };
 export declare function compilerOptionsForRepoFile(rootDir: string, filePath: string): ReturnType<typeof ts.parseJsonConfigFileContent>['options'] | undefined;
 export declare function resolveRepoImport(rootDir: string, importerPath: string, specifier: string): string | undefined;

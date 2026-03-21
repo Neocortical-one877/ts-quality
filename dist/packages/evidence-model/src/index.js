@@ -115,7 +115,7 @@ function resolveRepoLocalPath(rootDir, candidate, options) {
     if (!options?.allowMissing && !fs_1.default.existsSync(absolutePath)) {
         throw new Error(`${kind} not found: ${candidate}`);
     }
-    return { absolutePath, relativePath };
+    return { absolutePath, relativePath, canonicalPath: resolvedCandidatePath };
 }
 function importResolutionCandidates(basePath) {
     return [

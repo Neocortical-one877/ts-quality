@@ -299,18 +299,44 @@ function lexicalRelativePathInsideRoot(rootDir, absolutePath) {
     }
     return (0, index_1.normalizePath)(relative);
 }
-function recordSubjectPath(rootDir, resolvedSubject, originalCandidate) {
+function remapCliRepoLocalError(error, kind, candidate) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.startsWith(`${kind} must stay inside repository root:`)) {
+        throw new Error(`${kind} must be inside --root: ${candidate}`);
+    }
+    if (message.startsWith(`${kind} not found:`)) {
+        throw new Error(`${kind} not found: ${candidate}`);
+    }
+    throw error instanceof Error ? error : new Error(message);
+}
+function resolveCliRepoLocalPath(rootDir, candidate, options) {
+    const pathOptions = options?.preferRoot !== undefined ? { preferRoot: options.preferRoot } : undefined;
+    const resolvedCandidate = resolveCliPath(rootDir, candidate, pathOptions);
+    const resolutionOptions = {};
+    if (options?.allowMissing !== undefined) {
+        resolutionOptions.allowMissing = options.allowMissing;
+    }
+    if (options?.kind !== undefined) {
+        resolutionOptions.kind = options.kind;
+    }
     try {
-        (0, index_1.resolveRepoLocalPath)(rootDir, resolvedSubject, { kind: 'attestation subject' });
+        return (0, index_1.resolveRepoLocalPath)(rootDir, resolvedCandidate, resolutionOptions);
     }
-    catch {
-        throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
+    catch (error) {
+        remapCliRepoLocalError(error, options?.kind ?? 'path', candidate);
     }
-    const relative = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
-    if (relative) {
-        return relative;
+}
+function resolveCliAttestationSubject(rootDir, candidate, options) {
+    const resolution = resolveCliRepoLocalPath(rootDir, candidate, options?.allowMissing !== undefined ? { allowMissing: options.allowMissing, kind: 'attestation subject' } : { kind: 'attestation subject' });
+    const recordedPath = lexicalRelativePathInsideRoot(rootDir, resolution.absolutePath);
+    if (!recordedPath) {
+        throw new Error(`attestation subject must be inside --root: ${candidate}`);
     }
-    throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
+    return {
+        absolutePath: resolution.absolutePath,
+        canonicalPath: resolution.canonicalPath,
+        recordedPath
+    };
 }
 function renderVerificationText(value) {
     return (0, index_1.renderSafeText)(value);
@@ -331,20 +357,15 @@ function verifyAttestationRecordAtRoot(rootDir, source, attestation, trustedKeys
     if (!contract.ok) {
         return { ...record, reason: contract.reason };
     }
-    const signature = (0, index_7.verifyAttestation)(attestation, trustedKeys);
-    if (!signature.ok) {
-        return { ...record, reason: signature.reason };
-    }
     const subjectFile = contextFields.subjectFile;
     if (!subjectFile) {
         return { ...record, reason: 'subject file missing from attestation payload' };
     }
-    let resolvedSubject;
+    let subjectResolution;
     let relativeSubject;
     try {
-        const subjectResolution = (0, index_1.resolveRepoLocalPath)(rootDir, subjectFile, { allowMissing: true, kind: 'attestation subject' });
-        resolvedSubject = subjectResolution.absolutePath;
-        relativeSubject = lexicalRelativePathInsideRoot(rootDir, resolvedSubject);
+        subjectResolution = (0, index_1.resolveRepoLocalPath)(rootDir, subjectFile, { allowMissing: true, kind: 'attestation subject' });
+        relativeSubject = lexicalRelativePathInsideRoot(rootDir, subjectResolution.absolutePath);
     }
     catch {
         return { ...record, reason: 'subject file escapes repository root' };
@@ -352,10 +373,14 @@ function verifyAttestationRecordAtRoot(rootDir, source, attestation, trustedKeys
     if (!relativeSubject || relativeSubject !== subjectFile) {
         return { ...record, reason: 'subject file escapes repository root' };
     }
-    if (!fs_1.default.existsSync(resolvedSubject)) {
+    if (!fs_1.default.existsSync(subjectResolution.canonicalPath)) {
         return { ...record, reason: `subject file missing: ${subjectFile}` };
     }
-    const digest = (0, index_1.digestObject)(fs_1.default.readFileSync(resolvedSubject, 'utf8'));
+    const signature = (0, index_7.verifyAttestation)(attestation, trustedKeys);
+    if (!signature.ok) {
+        return { ...record, reason: signature.reason };
+    }
+    const digest = (0, index_1.digestObject)(fs_1.default.readFileSync(subjectResolution.canonicalPath, 'utf8'));
     if (digest !== attestation.subjectDigest) {
         return { ...record, reason: 'subject digest mismatch' };
     }
@@ -808,20 +833,19 @@ function runAuthorize(rootDir, agentId, action, options) {
     return { decisionPath, output: `${(0, index_1.stableStringify)(decision)}\n` };
 }
 function attestSign(rootDir, issuer, keyId, privateKeyPath, subjectFile, claims, outputPath) {
-    const resolvedSubject = resolveCliPath(rootDir, subjectFile);
+    const resolvedSubject = resolveCliAttestationSubject(rootDir, subjectFile);
     const resolvedKey = resolveCliPath(rootDir, privateKeyPath);
-    const recordedSubjectPath = recordSubjectPath(rootDir, resolvedSubject, subjectFile);
-    const scopedSubject = (0, index_7.runScopedArtifactReference)(recordedSubjectPath);
-    const subjectText = fs_1.default.readFileSync(resolvedSubject, 'utf8');
+    const scopedSubject = (0, index_7.runScopedArtifactReference)(resolvedSubject.recordedPath);
+    const subjectText = fs_1.default.readFileSync(resolvedSubject.canonicalPath, 'utf8');
     const attestation = (0, index_7.signAttestation)({
         issuer,
         keyId,
         privateKeyPem: fs_1.default.readFileSync(resolvedKey, 'utf8'),
-        subjectType: path_1.default.extname(resolvedSubject) === '.json' ? 'json-artifact' : 'file',
+        subjectType: path_1.default.extname(resolvedSubject.canonicalPath) === '.json' ? 'json-artifact' : 'file',
         subjectDigest: (0, index_1.digestObject)(subjectText),
         claims,
         payload: {
-            subjectFile: recordedSubjectPath,
+            subjectFile: resolvedSubject.recordedPath,
             ...(scopedSubject ? { runId: scopedSubject.runId, artifactName: scopedSubject.artifactName } : {})
         }
     });
