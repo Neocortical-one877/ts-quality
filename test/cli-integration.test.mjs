@@ -105,6 +105,7 @@ test('check persists analysis context, mutation baseline receipts, and a run-bou
   assert.equal(run.analysis?.coverageLcovPath, 'coverage/lcov.info');
   assert.deepEqual(run.analysis?.runtimeMirrorRoots, ['dist']);
   assert.equal(run.mutationBaseline?.status, 'pass');
+  assert.equal(run.controlPlane?.schemaVersion, 1);
   assert.equal(run.controlPlane?.configPath, 'ts-quality.config.ts');
   assert.equal(run.controlPlane?.constitutionPath, '.ts-quality/constitution.ts');
   assert.equal(run.controlPlane?.agentsPath, '.ts-quality/agents.ts');
@@ -112,6 +113,72 @@ test('check persists analysis context, mutation baseline receipts, and a run-bou
   assert.equal(run.controlPlane?.policy.minMergeConfidence, 65);
   assert.equal(Array.isArray(run.controlPlane?.constitution), true);
   assert.equal(Array.isArray(run.controlPlane?.agents), true);
+});
+
+test('plan, govern, and authorize reject unsupported control-plane snapshot schemas', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'schema-mismatch-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'schema-mismatch-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  run.controlPlane.schemaVersion = 999;
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  const authorize = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'release-bot'], { encoding: 'utf8' });
+
+  assert.equal(plan.status, 1);
+  assert.equal(govern.status, 1);
+  assert.equal(authorize.status, 1);
+  assert.match(plan.stderr, /unsupported control-plane snapshot schema 999/);
+  assert.match(govern.stderr, /Re-run ts-quality check/);
+  assert.match(authorize.stderr, /Expected 1/);
+});
+
+test('plan, govern, and authorize reject malformed control-plane snapshots instead of falling back', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'schema-malformed-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'schema-malformed-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  delete run.controlPlane.constitution;
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  const authorize = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'release-bot'], { encoding: 'utf8' });
+
+  assert.equal(plan.status, 1);
+  assert.equal(govern.status, 1);
+  assert.equal(authorize.status, 1);
+  assert.match(plan.stderr, /malformed control-plane snapshot schema 1/);
+  assert.match(govern.stderr, /field constitution must be an array/);
+  assert.match(authorize.stderr, /Re-run ts-quality check/);
+});
+
+test('plan, govern, and authorize fall back to live context for legacy runs without controlPlane', () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'legacy-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+
+  const runPath = path.join(target, '.ts-quality', 'runs', 'legacy-run', 'run.json');
+  const run = JSON.parse(fs.readFileSync(runPath, 'utf8'));
+  delete run.controlPlane;
+  fs.writeFileSync(runPath, JSON.stringify(run, null, 2));
+
+  const plan = spawnSync('node', [cli, 'plan', '--root', target], { encoding: 'utf8' });
+  const govern = spawnSync('node', [cli, 'govern', '--root', target], { encoding: 'utf8' });
+  const authorize = spawnSync('node', [cli, 'authorize', '--root', target, '--agent', 'release-bot'], { encoding: 'utf8' });
+
+  assert.equal(plan.status, 0, plan.stderr);
+  assert.equal(govern.status, 0, govern.stderr);
+  assert.equal(authorize.status, 0, authorize.stderr);
+  assert.match(plan.stdout, /Invariant evidence at risk:/);
+  assert.match(govern.stdout, /Invariant evidence at risk:/);
+  assert.equal(typeof JSON.parse(authorize.stdout).outcome, 'string');
 });
 
 test('trend keeps deltas visible while surfacing the latest risky invariant provenance', () => {
