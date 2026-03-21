@@ -41,6 +41,13 @@ export interface GovernancePlan {
   }>;
 }
 
+interface ImportReference {
+  kind: 'static' | 'require' | 'dynamic-import';
+  specifier?: string;
+  expressionText: string;
+  resolvable: boolean;
+}
+
 function stringLikeModuleSpecifier(argument: any): string | undefined {
   if (!argument) {
     return undefined;
@@ -51,29 +58,40 @@ function stringLikeModuleSpecifier(argument: any): string | undefined {
   return undefined;
 }
 
-function importsForFile(filePath: string, sourceText: string): string[] {
+function importsForFile(filePath: string, sourceText: string): ImportReference[] {
   const sourceFile = ts.createSourceFile(filePath, sourceText, ts.ScriptTarget.Latest, true);
-  const imports: string[] = [];
+  const imports: ImportReference[] = [];
   function visit(node: any): void {
     if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) {
       const specifier = stringLikeModuleSpecifier(node.moduleSpecifier);
       if (typeof specifier === 'string') {
-        imports.push(specifier);
+        imports.push({
+          kind: 'static',
+          specifier,
+          expressionText: node.moduleSpecifier.getText(sourceFile),
+          resolvable: true
+        });
       }
     }
     if (ts.isCallExpression(node) && node.expression?.getText(sourceFile) === 'require' && node.arguments.length === 1) {
       const argument = node.arguments[0];
       const specifier = stringLikeModuleSpecifier(argument);
-      if (typeof specifier === 'string') {
-        imports.push(specifier);
-      }
+      imports.push({
+        kind: 'require',
+        ...(typeof specifier === 'string' ? { specifier } : {}),
+        expressionText: argument.getText(sourceFile),
+        resolvable: typeof specifier === 'string'
+      });
     }
     if (ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1) {
       const argument = node.arguments[0];
       const specifier = stringLikeModuleSpecifier(argument);
-      if (typeof specifier === 'string') {
-        imports.push(specifier);
-      }
+      imports.push({
+        kind: 'dynamic-import',
+        ...(typeof specifier === 'string' ? { specifier } : {}),
+        expressionText: argument.getText(sourceFile),
+        resolvable: typeof specifier === 'string'
+      });
     }
     ts.forEachChild(node, visit);
   }
@@ -99,15 +117,26 @@ function evaluateBoundaryRule(rootDir: string, rule: ConstitutionRule, changedFi
       continue;
     }
     const imports = importsForFile(filePath, fs.readFileSync(absolutePath, 'utf8'));
-    for (const specifier of imports) {
-      const resolved = resolveImport(filePath, specifier, rootDir);
+    for (const reference of imports) {
+      if (!reference.resolvable) {
+        findings.push({
+          id: `${rule.id}:${filePath}:opaque:${reference.kind}:${reference.expressionText}`,
+          ruleId: rule.id,
+          level: rule.severity ?? 'error',
+          message: rule.message,
+          evidence: [`${filePath} uses ${reference.kind} with non-literal specifier ${reference.expressionText}; governance cannot prove the target stays outside ${rule.to.join(', ')}.`],
+          scope: [filePath]
+        });
+        continue;
+      }
+      const resolved = resolveImport(filePath, reference.specifier!, rootDir);
       if (resolved && matchesAny(rule.to, resolved)) {
         findings.push({
           id: `${rule.id}:${filePath}:${resolved}`,
           ruleId: rule.id,
           level: rule.severity ?? 'error',
           message: rule.message,
-          evidence: [`${filePath} imports ${specifier} -> ${resolved}`],
+          evidence: [`${filePath} imports ${reference.specifier} -> ${resolved}`],
           scope: [filePath, resolved]
         });
       }

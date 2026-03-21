@@ -138,6 +138,30 @@ test('evaluateGovernance catches forbidden dynamic imports expressed as no-subst
   assert.match(findings[0].evidence[0], /\.\.\/identity\/store -> src\/identity\/store\.ts/);
 });
 
+test('evaluateGovernance fails closed on non-literal dynamic imports in boundary-scoped files', () => {
+  const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-governance-opaque-import-'));
+  fs.mkdirSync(path.join(rootDir, 'src', 'shared'), { recursive: true });
+  fs.writeFileSync(path.join(rootDir, 'src', 'shared', 'audit.ts'), "export async function readIdentity(segment) { return import(`../${segment}/store`); }\n", 'utf8');
+
+  const findings = governance.evaluateGovernance({
+    rootDir,
+    constitution: [{
+      kind: 'boundary',
+      id: 'shared-no-identity',
+      from: ['src/shared/**'],
+      to: ['src/identity/**'],
+      mode: 'forbid',
+      message: 'Shared code must not dynamically import identity state.'
+    }],
+    changedFiles: ['src/shared/audit.ts'],
+    changedRegions: []
+  });
+
+  assert.equal(findings.length, 1);
+  assert.match(findings[0].evidence[0], /non-literal specifier/);
+  assert.match(findings[0].evidence[0], /`\.\.\/\$\{segment\}\/store`/);
+});
+
 test('approval rules count only unique targeted approvals', () => {
   const rootDir = fixturePath('governed-app');
   const findings = governance.evaluateGovernance({
