@@ -27,6 +27,7 @@ type: "reference"
 - Expanded governance boundary detection to catch dynamic `import(...)` calls in addition to static imports and `require(...)`.
 - Extended runtime mirror mapping so built-output mutation runs also mirror root-level sources into configured runtime roots such as `dist/index.js`.
 - Added additive analysis-context and mutation-baseline receipts to run artifacts, exact diff-hunk narrowing inside changed files, deterministic mutation execution fingerprints, explicit blocking for invalid mutation baselines, exact run-id binding for approval rules, ownership-rule enforcement, deeper package attribution, override-scope revalidation, and safe run-id validation to prevent artifact-path traversal.
+- Hardened attestation signing and verification behind one shared render-safe contract: signer-side run metadata must now agree with the signed subject path, zero-width/BOM/invisible Unicode format characters are rejected alongside control and bidi spoofing characters, CLI option parsing treats missing values before another flag as missing input, and forged-attestation tests now reuse production canonical signing bytes.
 
 ## 5.0.0
 

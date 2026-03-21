@@ -31,7 +31,11 @@ test('attestation metadata helpers flag and render unsafe Unicode deterministica
   assert.equal(evidence.hasUnsafeAttestationMetadata('safe-value'), false);
   assert.equal(evidence.hasUnsafeAttestationMetadata('line\u0085break'), true);
   assert.equal(evidence.hasUnsafeAttestationMetadata('bidi\u202Eflip'), true);
-  assert.equal(evidence.renderSafeText('safe\nvalue\u202Eflip\u0085next'), 'safe\\u000avalue\\u202eflip\\u0085next');
+  assert.equal(evidence.hasUnsafeAttestationMetadata('zero\u200Bwidth'), true);
+  assert.equal(evidence.hasUnsafeAttestationMetadata('bom\uFEFFmark'), true);
+  assert.equal(evidence.renderSafeText('safe\nvalue\u202Eflip\u0085next\u200Btrim\uFEFFbom'), 'safe\\u000avalue\\u202eflip\\u0085next\\u200btrim\\ufeffbom');
+  assert.equal(evidence.renderSafeText('literal \\u202e marker'), 'literal \\\\u202e marker');
+  assert.equal(evidence.renderSafeText('actual \u202e'.replace('\\u202e', '\u202e')), 'actual \\u202e');
 });
 
 test('parseUnifiedDiff returns changed regions', () => {

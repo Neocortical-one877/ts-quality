@@ -21,6 +21,30 @@ export declare function generateKeyPair(): {
     publicKeyPem: string;
     privateKeyPem: string;
 };
+export declare function validateRenderableAttestationContract(attestation: {
+    issuer: string;
+    payload?: Record<string, unknown> | undefined;
+}, options?: {
+    requireSubjectFile?: boolean;
+}): {
+    ok: true;
+    context: {
+        issuer?: string;
+        subjectFile?: string;
+        runId?: string;
+        artifactName?: string;
+    };
+} | {
+    ok: false;
+    reason: string;
+    context: {
+        issuer?: string;
+        subjectFile?: string;
+        runId?: string;
+        artifactName?: string;
+    };
+};
+export declare function signCanonicalAttestation(unsigned: Attestation, privateKeyPem: string): Attestation;
 export declare function signAttestation(subject: {
     subjectType: string;
     subjectDigest: string;

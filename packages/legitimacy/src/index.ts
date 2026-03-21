@@ -74,36 +74,131 @@ export function generateKeyPair(): { publicKeyPem: string; privateKeyPem: string
   };
 }
 
-export function signAttestation(subject: { subjectType: string; subjectDigest: string; issuer: string; claims: string[]; payload?: Record<string, unknown>; keyId: string; privateKeyPem: string; issuedAt?: string; }): Attestation {
-  const issuerIssue = validateAttestationMetadata(subject.issuer, 'attestation issuer', { trimEmpty: true });
+function runScopedArtifactReference(subjectFile: string): { runId: string; artifactName: string } | undefined {
+  const match = /^\.ts-quality\/runs\/([^/]+)\/(.+)$/.exec(normalizePath(subjectFile));
+  if (!match || !match[2]) {
+    return undefined;
+  }
+  return {
+    runId: match[1] ?? '',
+    artifactName: match[2] ?? ''
+  };
+}
+
+export function validateRenderableAttestationContract(attestation: { issuer: string; payload?: Record<string, unknown> | undefined }, options?: { requireSubjectFile?: boolean }): { ok: true; context: { issuer?: string; subjectFile?: string; runId?: string; artifactName?: string } } | { ok: false; reason: string; context: { issuer?: string; subjectFile?: string; runId?: string; artifactName?: string } } {
+  const context: { issuer?: string; subjectFile?: string; runId?: string; artifactName?: string } = {};
+  const payload = attestation.payload ?? {};
+  const issuerIssue = validateAttestationMetadata(attestation.issuer, 'attestation issuer', { trimEmpty: true });
+  if (!issuerIssue) {
+    context.issuer = attestation.issuer;
+  }
+
+  const hasSubjectFile = Object.prototype.hasOwnProperty.call(payload, 'subjectFile');
+  const hasRunId = Object.prototype.hasOwnProperty.call(payload, 'runId');
+  const hasArtifactName = Object.prototype.hasOwnProperty.call(payload, 'artifactName');
+  const requireSubjectFile = options?.requireSubjectFile ?? false;
+
+  const rawSubjectFile = payload.subjectFile;
+  const rawRunId = payload.runId;
+  const rawArtifactName = payload.artifactName;
+
+  let subjectIssue: string | undefined;
+  let normalizedSubject: string | undefined;
+
+  if (hasSubjectFile && rawSubjectFile !== undefined && typeof rawSubjectFile !== 'string') {
+    subjectIssue = 'attestation payload subjectFile must be a string';
+  } else if (typeof rawSubjectFile === 'string') {
+    if (rawSubjectFile.trim().length === 0) {
+      subjectIssue = 'subject file missing from attestation payload';
+    } else if (path.isAbsolute(rawSubjectFile)) {
+      subjectIssue = 'subject file must be repo-relative';
+    } else {
+      const subjectFileIssue = validateAttestationMetadata(rawSubjectFile, 'attestation payload subjectFile', { trimEmpty: true });
+      if (subjectFileIssue) {
+        subjectIssue = subjectFileIssue;
+      } else {
+        normalizedSubject = normalizePath(rawSubjectFile);
+        context.subjectFile = normalizedSubject;
+      }
+    }
+  } else if (requireSubjectFile) {
+    subjectIssue = 'subject file missing from attestation payload';
+  }
+
+  const scopedSubject = normalizedSubject ? runScopedArtifactReference(normalizedSubject) : undefined;
+  if (scopedSubject) {
+    context.runId = scopedSubject.runId;
+    context.artifactName = scopedSubject.artifactName;
+  }
+
+  if (!subjectIssue) {
+    if (hasRunId && rawRunId !== undefined && typeof rawRunId !== 'string') {
+      subjectIssue = 'attestation payload runId must be a string';
+    } else if (typeof rawRunId === 'string') {
+      const runIdIssue = validateAttestationMetadata(rawRunId, 'attestation payload runId', { trimEmpty: true });
+      if (runIdIssue) {
+        subjectIssue = runIdIssue;
+      } else if (!scopedSubject) {
+        subjectIssue = 'attestation payload runId requires a run-scoped subject path';
+      } else if (rawRunId !== scopedSubject.runId) {
+        subjectIssue = 'attestation payload runId does not match subject path';
+      }
+    }
+  }
+
+  if (!subjectIssue) {
+    if (hasArtifactName && rawArtifactName !== undefined && typeof rawArtifactName !== 'string') {
+      subjectIssue = 'attestation payload artifactName must be a string';
+    } else if (typeof rawArtifactName === 'string') {
+      const artifactNameIssue = validateAttestationMetadata(rawArtifactName, 'attestation payload artifactName', { trimEmpty: true });
+      if (artifactNameIssue) {
+        subjectIssue = artifactNameIssue;
+      } else if (!scopedSubject) {
+        subjectIssue = 'attestation payload artifactName requires a run-scoped subject path';
+      } else if (rawArtifactName !== scopedSubject.artifactName) {
+        subjectIssue = 'attestation payload artifactName does not match subject path';
+      }
+    }
+  }
+
   if (issuerIssue) {
-    throw new Error(issuerIssue);
+    return { ok: false, reason: issuerIssue, context };
   }
+  if (subjectIssue) {
+    return { ok: false, reason: subjectIssue, context };
+  }
+  return { ok: true, context };
+}
+
+export function signCanonicalAttestation(unsigned: Attestation, privateKeyPem: string): Attestation {
+  const payload = {
+    ...unsigned,
+    signature: {
+      ...unsigned.signature,
+      value: ''
+    }
+  };
+  const signature = crypto.sign(null, canonicalBytes(payload), privateKeyPem);
+  return {
+    ...payload,
+    signature: {
+      ...payload.signature,
+      value: signature.toString('base64')
+    }
+  };
+}
+
+export function signAttestation(subject: { subjectType: string; subjectDigest: string; issuer: string; claims: string[]; payload?: Record<string, unknown>; keyId: string; privateKeyPem: string; issuedAt?: string; }): Attestation {
   const payload = subject.payload ?? {};
-  const subjectFile = typeof payload.subjectFile === 'string' ? payload.subjectFile : undefined;
-  if (subjectFile !== undefined) {
-    const subjectFileIssue = validateAttestationMetadata(subjectFile, 'attestation payload subjectFile', { trimEmpty: true });
-    if (subjectFileIssue) {
-      throw new Error(subjectFileIssue);
-    }
+  const renderableContract = validateRenderableAttestationContract({ issuer: subject.issuer, payload }, {
+    requireSubjectFile: Object.prototype.hasOwnProperty.call(payload, 'subjectFile') || Object.prototype.hasOwnProperty.call(payload, 'runId') || Object.prototype.hasOwnProperty.call(payload, 'artifactName')
+  });
+  if (!renderableContract.ok) {
+    throw new Error(renderableContract.reason);
   }
-  const runId = typeof payload.runId === 'string' ? payload.runId : undefined;
-  if (runId !== undefined) {
-    const runIdIssue = validateAttestationMetadata(runId, 'attestation payload runId', { trimEmpty: true });
-    if (runIdIssue) {
-      throw new Error(runIdIssue);
-    }
-  }
-  const artifactName = typeof payload.artifactName === 'string' ? payload.artifactName : undefined;
-  if (artifactName !== undefined) {
-    const artifactNameIssue = validateAttestationMetadata(artifactName, 'attestation payload artifactName', { trimEmpty: true });
-    if (artifactNameIssue) {
-      throw new Error(artifactNameIssue);
-    }
-  }
-  const unsigned = {
-    version: '1' as const,
-    kind: 'attestation' as const,
+  const unsigned: Attestation = {
+    version: '1',
+    kind: 'attestation',
     issuer: subject.issuer,
     subjectType: subject.subjectType,
     subjectDigest: subject.subjectDigest,
@@ -111,19 +206,12 @@ export function signAttestation(subject: { subjectType: string; subjectDigest: s
     issuedAt: subject.issuedAt ?? new Date().toISOString(),
     payload,
     signature: {
-      algorithm: 'ed25519' as const,
+      algorithm: 'ed25519',
       keyId: subject.keyId,
       value: ''
     }
   };
-  const signature = crypto.sign(null, canonicalBytes({ ...unsigned, signature: { ...unsigned.signature, value: '' } }), subject.privateKeyPem);
-  return {
-    ...unsigned,
-    signature: {
-      ...unsigned.signature,
-      value: signature.toString('base64')
-    }
-  };
+  return signCanonicalAttestation(unsigned, subject.privateKeyPem);
 }
 
 export function verifyAttestation(attestation: Attestation, trustedKeys: Record<string, string>): { ok: boolean; reason: string } {

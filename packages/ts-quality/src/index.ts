@@ -29,7 +29,6 @@ import {
   renderSafeText,
   resolveRepoLocalPath,
   stableStringify,
-  validateAttestationMetadata,
   writeJson,
   writeRunArtifact
 } from '../../evidence-model/src/index';
@@ -47,7 +46,7 @@ import {
   renderPrSummary
 } from '../../policy-engine/src/index';
 import { evaluateGovernance, generateGovernancePlan } from '../../governance/src/index';
-import { applyAmendment, authorizeChange, buildChangeBundle, evaluateAmendment, generateKeyPair, loadTrustedKeys, parseAttestationRecord, saveAttestation, signAttestation, verifyAttestation } from '../../legitimacy/src/index';
+import { applyAmendment, authorizeChange, buildChangeBundle, evaluateAmendment, generateKeyPair, loadTrustedKeys, parseAttestationRecord, saveAttestation, signAttestation, validateRenderableAttestationContract, verifyAttestation } from '../../legitimacy/src/index';
 import { loadAgents, loadApprovals, loadChangedRegions, loadConstitution, loadContext, loadInvariants, loadOverrides, loadWaivers } from './config';
 
 export interface CheckResult {
@@ -398,103 +397,41 @@ function recordSubjectPath(rootDir: string, resolvedSubject: string, originalCan
   throw new Error(`attestation subject must be inside --root: ${originalCandidate}`);
 }
 
-function attestationIssuerContext(attestation: Attestation): { ok: true; issuer: string } | { ok: false; reason: string } {
-  const issue = validateAttestationMetadata(attestation.issuer, 'attestation issuer', { trimEmpty: true });
-  if (issue) {
-    return { ok: false, reason: issue };
-  }
-  return { ok: true, issuer: attestation.issuer };
-}
-
 function renderVerificationText(value: string): string {
   return renderSafeText(value);
 }
 
-function attestationSubjectContext(attestation: Attestation): { ok: true; context: { subjectFile: string; runId?: string; artifactName?: string } } | { ok: false; reason: string; context?: { subjectFile: string; runId?: string; artifactName?: string } } {
-  const subjectFile = typeof attestation.payload?.subjectFile === 'string' ? attestation.payload.subjectFile : undefined;
-  if (subjectFile === undefined || subjectFile.trim().length === 0) {
-    return { ok: false, reason: 'subject file missing from attestation payload' };
-  }
-  if (path.isAbsolute(subjectFile)) {
-    return { ok: false, reason: 'subject file must be repo-relative' };
-  }
-  const subjectFileIssue = validateAttestationMetadata(subjectFile, 'attestation payload subjectFile', { trimEmpty: true });
-  if (subjectFileIssue) {
-    return { ok: false, reason: subjectFileIssue };
-  }
-  const normalizedSubject = normalizePath(subjectFile);
-  const scopedSubject = runScopedArtifactReference(normalizedSubject);
-  const payloadRunId = typeof attestation.payload?.runId === 'string' ? attestation.payload.runId : undefined;
-  const payloadArtifactName = typeof attestation.payload?.artifactName === 'string' ? attestation.payload.artifactName : undefined;
-  if (payloadRunId !== undefined) {
-    const payloadRunIdIssue = validateAttestationMetadata(payloadRunId, 'attestation payload runId', { trimEmpty: true });
-    if (payloadRunIdIssue) {
-      return { ok: false, reason: payloadRunIdIssue, context: { subjectFile: normalizedSubject } };
-    }
-  }
-  if (payloadArtifactName !== undefined) {
-    const payloadArtifactNameIssue = validateAttestationMetadata(payloadArtifactName, 'attestation payload artifactName', { trimEmpty: true });
-    if (payloadArtifactNameIssue) {
-      return { ok: false, reason: payloadArtifactNameIssue, context: { subjectFile: normalizedSubject } };
-    }
-  }
-  if (!scopedSubject) {
-    if (payloadRunId) {
-      return { ok: false, reason: 'attestation payload runId requires a run-scoped subject path', context: { subjectFile: normalizedSubject } };
-    }
-    if (payloadArtifactName) {
-      return { ok: false, reason: 'attestation payload artifactName requires a run-scoped subject path', context: { subjectFile: normalizedSubject } };
-    }
-    return { ok: true, context: { subjectFile: normalizedSubject } };
-  }
-  const scopedContext = {
-    subjectFile: normalizedSubject,
-    runId: scopedSubject.runId,
-    artifactName: scopedSubject.artifactName
-  };
-  if (payloadRunId && payloadRunId !== scopedSubject.runId) {
-    return { ok: false, reason: 'attestation payload runId does not match subject path', context: scopedContext };
-  }
-  if (payloadArtifactName && payloadArtifactName !== scopedSubject.artifactName) {
-    return { ok: false, reason: 'attestation payload artifactName does not match subject path', context: scopedContext };
-  }
-  return {
-    ok: true,
-    context: scopedContext
-  };
-}
-
 function verifyAttestationRecordAtRoot(rootDir: string, source: string, attestation: Attestation, trustedKeys: Record<string, string>): AttestationVerificationRecord {
-  const issuer = attestationIssuerContext(attestation);
-  const context = attestationSubjectContext(attestation);
-  const contextFields = context.context;
+  const contract = validateRenderableAttestationContract(attestation, { requireSubjectFile: true });
+  const contextFields = contract.context;
   const record: AttestationVerificationRecord = {
     version: '1',
     source,
-    ...(issuer.ok ? { issuer: issuer.issuer } : {}),
+    ...(contextFields.issuer ? { issuer: contextFields.issuer } : {}),
     ok: false,
     reason: 'verification did not run',
-    ...(contextFields?.subjectFile ? { subjectFile: contextFields.subjectFile } : {}),
-    ...(contextFields?.runId ? { runId: contextFields.runId } : {}),
-    ...(contextFields?.artifactName ? { artifactName: contextFields.artifactName } : {})
+    ...(contextFields.subjectFile ? { subjectFile: contextFields.subjectFile } : {}),
+    ...(contextFields.runId ? { runId: contextFields.runId } : {}),
+    ...(contextFields.artifactName ? { artifactName: contextFields.artifactName } : {})
   };
   const signature = verifyAttestation(attestation, trustedKeys);
   if (!signature.ok) {
     return { ...record, reason: signature.reason };
   }
-  if (!issuer.ok) {
-    return { ...record, reason: issuer.reason };
+  if (!contract.ok) {
+    return { ...record, reason: contract.reason };
   }
-  if (!context.ok) {
-    return { ...record, reason: context.reason };
+  const subjectFile = contextFields.subjectFile;
+  if (!subjectFile) {
+    return { ...record, reason: 'subject file missing from attestation payload' };
   }
-  const resolvedSubject = path.resolve(rootDir, context.context.subjectFile);
+  const resolvedSubject = path.resolve(rootDir, subjectFile);
   const relativeSubject = relativePathInsideRoot(rootDir, resolvedSubject);
-  if (!relativeSubject || relativeSubject !== context.context.subjectFile) {
+  if (!relativeSubject || relativeSubject !== subjectFile) {
     return { ...record, reason: 'subject file escapes repository root' };
   }
   if (!fs.existsSync(resolvedSubject)) {
-    return { ...record, reason: `subject file missing: ${context.context.subjectFile}` };
+    return { ...record, reason: `subject file missing: ${subjectFile}` };
   }
   const digest = digestObject(fs.readFileSync(resolvedSubject, 'utf8'));
   if (digest !== attestation.subjectDigest) {

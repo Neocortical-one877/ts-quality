@@ -429,6 +429,45 @@ test('attest sign routes an explicit empty issuer through metadata validation', 
   assert.equal(fs.existsSync(path.join(target, output)), false);
 });
 
+test('attest sign rejects zero-width issuer spoofing before signing', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const runId = latestRunId(target);
+  const subject = path.join('.ts-quality', 'runs', runId, 'verdict.json');
+  const output = path.join('.ts-quality', 'attestations', 'zero-width-issuer.json');
+  const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', 'ci.verify\u200Bshadow', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
+  assert.equal(sign.status, 1);
+  assert.match(sign.stderr, /^attestation issuer contains unsupported control characters\n$/);
+  assert.equal(fs.existsSync(path.join(target, output)), false);
+});
+
+test('attest sign treats a missing issuer value before another flag as missing input', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const runId = latestRunId(target);
+  const subject = path.join('.ts-quality', 'runs', runId, 'verdict.json');
+  const output = path.join('.ts-quality', 'attestations', 'missing-issuer.json');
+  const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
+  assert.equal(sign.status, 1);
+  assert.match(sign.stderr, /^attest sign requires --issuer --key-id --private-key --subject --out\n$/);
+  assert.equal(fs.existsSync(path.join(target, output)), false);
+});
+
+test('attest sign accepts issuer values that begin with dashes via --option=value syntax', () => {
+  const target = tempCopyOfFixture('governed-app');
+  const check = spawnSync('node', [cli, 'check', '--root', target], { encoding: 'utf8' });
+  assert.equal(check.status, 0, check.stderr);
+  const runId = latestRunId(target);
+  const subject = path.join('.ts-quality', 'runs', runId, 'verdict.json');
+  const output = path.join('.ts-quality', 'attestations', 'dash-issuer.json');
+  const sign = spawnSync('node', [cli, 'attest', 'sign', '--root', target, '--issuer=--bot', '--key-id', 'sample', '--private-key', '.ts-quality/keys/sample.pem', '--subject', subject, '--claims', 'ci.tests.passed', '--out', output], { encoding: 'utf8' });
+  assert.equal(sign.status, 0, sign.stderr);
+  const saved = JSON.parse(fs.readFileSync(path.join(target, output), 'utf8'));
+  assert.equal(saved.issuer, '--bot');
+});
+
 test('attest sign escapes unsafe subject paths in operator-facing errors', () => {
   const target = tempCopyOfFixture('governed-app');
   const foreignRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'ts-quality-foreign-subject-'));
@@ -481,19 +520,25 @@ test('attest verify rejects signed artifactName drift instead of masking it with
   const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
   const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
   const verdictText = fs.readFileSync(path.join(target, '.ts-quality', 'runs', 'artifact-name-mismatch-run', 'verdict.json'), 'utf8');
-  const attestation = legitimacy.signAttestation({
+  const attestation = forgeAttestation({
+    version: '1',
+    kind: 'attestation',
     issuer: 'ci.verify',
-    keyId: 'sample',
-    privateKeyPem,
     subjectType: 'json-artifact',
     subjectDigest: evidenceModel.digestObject(verdictText),
     claims: ['ci.tests.passed'],
+    issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
       subjectFile: '.ts-quality/runs/artifact-name-mismatch-run/verdict.json',
       runId: 'artifact-name-mismatch-run',
       artifactName: 'fake.json'
+    },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'sample',
+      value: ''
     }
-  });
+  }, privateKeyPem);
   legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'mismatch.json'), attestation);
   result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/mismatch.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
@@ -573,18 +618,24 @@ test('attest verify rejects run metadata on non-run-scoped subjects', async () =
   const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
   const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
   fs.writeFileSync(path.join(target, 'subject.txt'), 'hello\n', 'utf8');
-  const attestation = legitimacy.signAttestation({
+  const attestation = forgeAttestation({
+    version: '1',
+    kind: 'attestation',
     issuer: 'ci.verify',
-    keyId: 'sample',
-    privateKeyPem,
     subjectType: 'file',
     subjectDigest: evidenceModel.digestObject(fs.readFileSync(path.join(target, 'subject.txt'), 'utf8')),
     claims: ['ci.tests.passed'],
+    issuedAt: '2026-03-20T00:00:00.000Z',
     payload: {
       subjectFile: 'subject.txt',
       runId: 'fake-run'
+    },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'sample',
+      value: ''
     }
-  });
+  }, privateKeyPem);
   legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'non-run-metadata.json'), attestation);
   const result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/non-run-metadata.json', '--trusted-keys', '.ts-quality/keys', '--json'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
@@ -791,6 +842,38 @@ test('attest verify rejects bidi override characters in signed metadata instead 
   result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/unicode-bidi.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /^ci\.verify: failed \(attestation payload subjectFile contains unsupported control characters\)$/m);
+  assert.doesNotMatch(result.stdout, /^Subject:/m);
+});
+
+test('attest verify rejects zero-width spoofing characters in signed metadata', async () => {
+  const target = tempCopyOfFixture('governed-app');
+  let result = spawnSync('node', [cli, 'check', '--root', target, '--run-id', 'unicode-zero-width-run'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
+  const evidenceModel = await importDist('packages', 'evidence-model', 'src', 'index.js');
+  const privateKeyPem = fs.readFileSync(path.join(target, '.ts-quality', 'keys', 'sample.pem'), 'utf8');
+  const verdictPath = path.join(target, '.ts-quality', 'runs', 'unicode-zero-width-run', 'verdict.json');
+  const attestation = forgeAttestation({
+    version: '1',
+    kind: 'attestation',
+    issuer: 'ci.verify\u200Bshadow',
+    subjectType: 'json-artifact',
+    subjectDigest: evidenceModel.digestObject(fs.readFileSync(verdictPath, 'utf8')),
+    claims: ['ci.tests.passed'],
+    issuedAt: '2026-03-20T00:00:00.000Z',
+    payload: {
+      subjectFile: '.ts-quality/runs/unicode-zero-width-run/verdict.json\uFEFFshadow'
+    },
+    signature: {
+      algorithm: 'ed25519',
+      keyId: 'sample',
+      value: ''
+    }
+  }, privateKeyPem);
+  legitimacy.saveAttestation(path.join(target, '.ts-quality', 'attestations', 'unicode-zero-width.json'), attestation);
+  result = spawnSync('node', [cli, 'attest', 'verify', '--root', target, '--attestation', '.ts-quality/attestations/unicode-zero-width.json', '--trusted-keys', '.ts-quality/keys'], { encoding: 'utf8' });
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /^unicode-zero-width\.json: failed \(attestation issuer contains unsupported control characters\)$/m);
   assert.doesNotMatch(result.stdout, /^Subject:/m);
 });
 

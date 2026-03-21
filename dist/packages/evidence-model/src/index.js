@@ -243,7 +243,7 @@ function normalizePath(value) {
     const normalized = value.replace(/\\/g, '/').replace(/\/+/g, '/');
     return normalized.replace(/^\.\//, '').replace(/^\//, '').replace(/\/$/, '');
 }
-const UNSAFE_ATTESTATION_METADATA_PATTERN = /[\x00-\x1F\x7F-\x9F\u061C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069]/u;
+const UNSAFE_ATTESTATION_METADATA_PATTERN = /[\x00-\x1F\x7F-\x9F\u2028\u2029]|\p{Cf}/u;
 function renderUnsafeCodePoint(value) {
     const codePoint = value.codePointAt(0);
     if (codePoint === undefined) {
@@ -257,7 +257,12 @@ function hasUnsafeAttestationMetadata(value) {
     return UNSAFE_ATTESTATION_METADATA_PATTERN.test(value);
 }
 function renderSafeText(value) {
-    return Array.from(value).map((item) => (hasUnsafeAttestationMetadata(item) ? renderUnsafeCodePoint(item) : item)).join('');
+    return Array.from(value).map((item) => {
+        if (item === '\\') {
+            return '\\\\';
+        }
+        return hasUnsafeAttestationMetadata(item) ? renderUnsafeCodePoint(item) : item;
+    }).join('');
 }
 function validateAttestationMetadata(value, field, options) {
     const trimEmpty = options?.trimEmpty ?? false;

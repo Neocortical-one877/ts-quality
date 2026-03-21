@@ -18,7 +18,7 @@ test('signAttestation and verifyAttestation round-trip', () => {
   assert.equal(result.ok, true);
 });
 
-test('signAttestation rejects blank or unsafe rendered metadata', () => {
+test('signAttestation rejects blank, spoofed, or inconsistent rendered metadata', () => {
   const pair = legitimacy.generateKeyPair();
   assert.throws(() => legitimacy.signAttestation({
     issuer: '   ',
@@ -28,6 +28,14 @@ test('signAttestation rejects blank or unsafe rendered metadata', () => {
     subjectDigest: 'sha256:abc',
     claims: ['ci.tests.passed']
   }), /attestation issuer missing/);
+  assert.throws(() => legitimacy.signAttestation({
+    issuer: 'ci.verify\u200Bshadow',
+    keyId: 'ci.verify',
+    privateKeyPem: pair.privateKeyPem,
+    subjectType: 'change-bundle',
+    subjectDigest: 'sha256:abc',
+    claims: ['ci.tests.passed']
+  }), /attestation issuer contains unsupported control characters/);
   assert.throws(() => legitimacy.signAttestation({
     issuer: 'ci.verify',
     keyId: 'ci.verify',
@@ -51,6 +59,30 @@ test('signAttestation rejects blank or unsafe rendered metadata', () => {
       runId: 'run-1\u202Eevil'
     }
   }), /attestation payload runId contains unsupported control characters/);
+  assert.throws(() => legitimacy.signAttestation({
+    issuer: 'ci.verify',
+    keyId: 'ci.verify',
+    privateKeyPem: pair.privateKeyPem,
+    subjectType: 'json-artifact',
+    subjectDigest: 'sha256:abc',
+    claims: ['ci.tests.passed'],
+    payload: {
+      subjectFile: '.ts-quality/runs/run-a/verdict.json',
+      runId: 'run-b',
+      artifactName: 'verdict.json'
+    }
+  }), /attestation payload runId does not match subject path/);
+  assert.throws(() => legitimacy.signAttestation({
+    issuer: 'ci.verify',
+    keyId: 'ci.verify',
+    privateKeyPem: pair.privateKeyPem,
+    subjectType: 'file',
+    subjectDigest: 'sha256:abc',
+    claims: ['ci.tests.passed'],
+    payload: {
+      runId: 'run-a'
+    }
+  }), /subject file missing from attestation payload/);
 });
 
 

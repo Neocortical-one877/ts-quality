@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -29,34 +28,10 @@ export function pathToFileUrl(filePath) {
   return new URL(`file://${normalized.startsWith('/') ? '' : '/'}${normalized}`);
 }
 
-function stableSortKeys(value) {
-  if (Array.isArray(value)) {
-    return value.map((item) => stableSortKeys(item));
-  }
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(Object.entries(value)
-      .sort(([left], [right]) => left.localeCompare(right))
-      .map(([key, inner]) => [key, stableSortKeys(inner)]));
-  }
-  return value;
-}
+const legitimacy = await importDist('packages', 'legitimacy', 'src', 'index.js');
 
 export function forgeAttestation(unsigned, privateKeyPem) {
-  const payload = {
-    ...unsigned,
-    signature: {
-      ...unsigned.signature,
-      value: ''
-    }
-  };
-  const signature = crypto.sign(null, Buffer.from(JSON.stringify(stableSortKeys(payload), null, 2), 'utf8'), privateKeyPem);
-  return {
-    ...payload,
-    signature: {
-      ...payload.signature,
-      value: signature.toString('base64')
-    }
-  };
+  return legitimacy.signCanonicalAttestation(unsigned, privateKeyPem);
 }
 
 export function latestRunId(rootDir) {

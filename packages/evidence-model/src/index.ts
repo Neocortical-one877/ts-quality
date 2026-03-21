@@ -673,7 +673,7 @@ export function normalizePath(value: string): string {
   return normalized.replace(/^\.\//, '').replace(/^\//, '').replace(/\/$/, '');
 }
 
-const UNSAFE_ATTESTATION_METADATA_PATTERN = /[\x00-\x1F\x7F-\x9F\u061C\u200E\u200F\u2028\u2029\u202A-\u202E\u2066-\u2069]/u;
+const UNSAFE_ATTESTATION_METADATA_PATTERN = /[\x00-\x1F\x7F-\x9F\u2028\u2029]|\p{Cf}/u;
 
 function renderUnsafeCodePoint(value: string): string {
   const codePoint = value.codePointAt(0);
@@ -690,7 +690,12 @@ export function hasUnsafeAttestationMetadata(value: string): boolean {
 }
 
 export function renderSafeText(value: string): string {
-  return Array.from(value).map((item) => (hasUnsafeAttestationMetadata(item) ? renderUnsafeCodePoint(item) : item)).join('');
+  return Array.from(value).map((item) => {
+    if (item === '\\') {
+      return '\\\\';
+    }
+    return hasUnsafeAttestationMetadata(item) ? renderUnsafeCodePoint(item) : item;
+  }).join('');
 }
 
 export function validateAttestationMetadata(value: string, field: string, options?: { allowEmpty?: boolean; trimEmpty?: boolean }): string | undefined {

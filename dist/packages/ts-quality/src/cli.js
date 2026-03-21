@@ -10,9 +10,39 @@ const index_2 = require("./index");
 function args() {
     return process.argv.slice(2);
 }
+const OPTION_NAMES = new Set([
+    '--root',
+    '--changed',
+    '--run-id',
+    '--config',
+    '--out-dir',
+    '--agent',
+    '--action',
+    '--issuer',
+    '--key-id',
+    '--private-key',
+    '--subject',
+    '--out',
+    '--claims',
+    '--attestation',
+    '--trusted-keys',
+    '--proposal',
+    '--json',
+    '--help',
+    '--apply'
+]);
 function takeOption(name) {
-    const index = args().indexOf(name);
-    return index >= 0 ? args()[index + 1] : undefined;
+    const argv = args();
+    const inline = argv.find((item) => item.startsWith(`${name}=`));
+    if (inline) {
+        return inline.slice(name.length + 1);
+    }
+    const index = argv.indexOf(name);
+    if (index < 0) {
+        return undefined;
+    }
+    const value = argv[index + 1];
+    return value !== undefined && !OPTION_NAMES.has(value) ? value : undefined;
 }
 function hasFlag(name) {
     return args().includes(name);
