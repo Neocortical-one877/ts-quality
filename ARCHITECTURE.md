@@ -34,7 +34,7 @@ Judgment layer. It combines CRAP, mutation outcomes, invariant impact, waivers, 
 
 ### `packages/governance`
 
-Constitution layer. It enforces architectural boundaries, approval rules, rollback evidence, ownership reservations, and domain risk budgets. Boundary checks use repo-aware module resolution, walking from the importer toward the repo root for the nearest `tsconfig.json`, so TS path aliases, extensionless local imports, and dynamic `import(...)` calls cannot silently bypass the constitution in common nested package layouts. It also produces implementation plans with explicit tradeoffs.
+Constitution layer. It enforces architectural boundaries, approval rules, rollback evidence, ownership reservations, and domain risk budgets. Boundary checks use repo-aware module resolution, walking from the importer toward the repo root for the nearest `tsconfig.json`, so TS path aliases, extensionless local imports, and dynamic `import(...)` calls — including no-substitution template-literal specifiers such as ``import(`../identity/store`)`` — cannot silently bypass the constitution in common nested package layouts. It also produces implementation plans with explicit tradeoffs.
 
 ### `packages/legitimacy`
 
@@ -42,7 +42,7 @@ Legitimacy layer. It models agents and grants, builds proof-carrying change bund
 
 ### `packages/ts-quality`
 
-Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, binds signed subject digests to exact file bytes instead of UTF-8-decoded text views, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI. It also owns the run-bound decision-context projection used by downstream governance and legitimacy commands so approvals, attestations, drift checks, and evidence-missing cases are evaluated against the exact reviewed run instead of ambient repo state.
+Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, binds signed subject digests to exact file bytes instead of UTF-8-decoded text views, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI. It also owns the run-bound decision-context projection used by downstream governance and legitimacy commands so approvals, attestations, drift checks, and evidence-missing cases are evaluated against the exact reviewed run instead of ambient repo state. The same run now snapshots the decision control plane — config digest, policy defaults, constitution digest + rules, agent digest + grants, and support-path bindings for approvals / waivers / overrides / attestation trust inputs — so later plan/govern/authorize surfaces can fail closed on control-plane drift instead of silently trusting live repo edits.
 
 ## Data flow
 
@@ -54,7 +54,7 @@ Product surface. It loads configuration through a data-only module contract rath
 6. `policy-engine` emits an explainable merge-confidence verdict and explicitly blocks on invalid mutation baselines or mutation execution errors.
 7. `governance` evaluates constitutional constraints, including exact run-targeted approvals and ownership reservations, and produces a plan.
 8. `legitimacy` consumes the evidence bundle for authorization, attestation, override, and amendment flows.
-9. After `check`, downstream decision surfaces (`plan`, `govern`, `authorize`) project a run-bound context from the persisted artifact plus exact-run approvals/attestations and fail closed when the analyzed changed files drift on disk.
+9. After `check`, downstream decision surfaces (`plan`, `govern`, `authorize`) project a run-bound context from the persisted artifact plus exact-run approvals/attestations, keep using the snapped constitution / grants / policy from `run.json`, and fail closed when the analyzed changed files or snapped control-plane files drift on disk.
 10. Artifacts are persisted to `.ts-quality/runs/<run-id>/`.
 
 ## Design choices
@@ -63,5 +63,5 @@ Product surface. It loads configuration through a data-only module contract rath
 - **Deterministic semantics**: invariant reasoning is keyword- and selector-driven, not opaque.
 - **Stable artifacts**: JSON is key-sorted for hashing, signing, and diffability.
 - **Preconditions before confidence**: mutation scoring is only trustworthy when the baseline command is green, the execution context is explicitly fingerprinted, and the evaluated scope produces measurable mutation pressure instead of a synthetic success state.
-- **Run-bound downstream decisions**: governance and legitimacy projections must stay anchored to the exact evaluated run id, exact run-targeted approvals/attestations, and current digests of the analyzed changed files.
+- **Run-bound downstream decisions**: governance and legitimacy projections must stay anchored to the exact evaluated run id, the snapped config / policy / constitution / grants for that run, exact run-targeted approvals/attestations, and current digests of the analyzed changed files plus snapped control-plane files.
 - **Human overrideability**: automation can be blocked, narrowed, or overridden with recorded standing and rationale, but override grants must still match the exact changed scope.

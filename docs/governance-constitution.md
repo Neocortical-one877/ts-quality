@@ -33,7 +33,7 @@ export default [
 ];
 ```
 
-Approval-style rules may target either the rule id itself or an exact run binding of `runId` / `runId:ruleId`. `ts-quality check --run-id <id>` lets operators pre-bind that exact run identity when they need deterministic approval targeting. Caller-supplied run ids are validated as artifact ids and may contain only letters, numbers, dots, underscores, and hyphens. Constitutional amendments preserve the configured constitution file format, including `.json` configurations.
+Approval-style rules may target either the rule id itself or an exact run binding of `runId` / `runId:ruleId`. `ts-quality check --run-id <id>` lets operators pre-bind that exact run identity when they need deterministic approval targeting. Caller-supplied run ids are validated as artifact ids and may contain only letters, numbers, dots, underscores, and hyphens. `check` also snapshots the reviewed constitution and agent-grant surface into `run.json`, so later `plan` / `govern` / `authorize` projections stay bound to that reviewed policy layer and fail closed if the snapped config / constitution / agent files drift. Constitutional amendments preserve the configured constitution file format, including `.json` configurations, and now reject duplicate rule ids plus replace/remove operations that target no existing rule.
 
 Ownership rules are enforced through explicit approvals: the named `owner` (or an `allowedAgents` entry) must record a matching approval for the reserved path scope.
 
