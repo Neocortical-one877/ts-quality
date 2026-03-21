@@ -77,7 +77,8 @@ function evaluateRiskRule(rule, options) {
     }
     const changedComplexity = options.run.complexity.filter((item) => files.includes(item.filePath) && item.changed);
     const maxCrap = changedComplexity.reduce((max, item) => Math.max(max, item.crap), 0);
-    const mutationScore = (0, index_1.summarizeMutationScore)(options.run.mutations.filter((item) => files.includes(item.filePath))).score;
+    const mutationSummary = (0, index_1.summarizeMutationScore)(options.run.mutations.filter((item) => files.includes(item.filePath)));
+    const mutationScore = mutationSummary.score;
     if (typeof rule.maxCrap === 'number' && maxCrap > rule.maxCrap) {
         findings.push({
             id: `${rule.id}:crap`,
@@ -88,7 +89,17 @@ function evaluateRiskRule(rule, options) {
             scope: files
         });
     }
-    if (typeof rule.minMutationScore === 'number' && mutationScore < rule.minMutationScore) {
+    if (typeof rule.minMutationScore === 'number' && !mutationSummary.measured) {
+        findings.push({
+            id: `${rule.id}:mutation-missing`,
+            ruleId: rule.id,
+            level: rule.severity ?? 'error',
+            message: rule.message,
+            evidence: ['Mutation score unavailable because no killed or surviving mutants were measured for the scoped files.'],
+            scope: files
+        });
+    }
+    else if (typeof rule.minMutationScore === 'number' && mutationScore < rule.minMutationScore) {
         findings.push({
             id: `${rule.id}:mutation`,
             ruleId: rule.id,

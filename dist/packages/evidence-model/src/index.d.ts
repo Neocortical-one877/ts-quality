@@ -456,6 +456,8 @@ export declare function nowIso(): string;
 export declare function summarizeMutationScore(results: MutationResult[]): {
     killed: number;
     survived: number;
+    total: number;
+    measured: boolean;
     score: number;
 };
 export declare function changedFileSet(changedFiles: string[], changedRegions: ChangedRegion[]): Set<string>;

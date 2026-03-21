@@ -235,7 +235,7 @@ function buildChangeBundle(rootDir, run, agentId, action) {
     for (const filePath of run.changedFiles) {
         const absolute = path_1.default.join(rootDir, filePath);
         fileDigests[filePath] = fs_1.default.existsSync(absolute)
-            ? (0, index_1.digestObject)(fs_1.default.readFileSync(absolute, 'utf8'))
+            ? (0, index_1.fileDigest)(absolute)
             : 'sha256:missing';
     }
     return {

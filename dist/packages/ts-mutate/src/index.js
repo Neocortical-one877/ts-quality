@@ -11,9 +11,8 @@ const path_1 = __importDefault(require("path"));
 const child_process_1 = require("child_process");
 const typescript_1 = __importDefault(require("typescript"));
 const index_1 = require("../../evidence-model/src/index");
-const MUTATION_RUNTIME_VERSION = '3';
+const MUTATION_RUNTIME_VERSION = '4';
 const SANITIZED_MUTATION_ENV_KEYS = ['NODE_TEST_CONTEXT'];
-const FINGERPRINT_ENV_KEYS = ['CI', 'NODE_ENV', 'NODE_OPTIONS', 'NODE_PATH', 'TS_NODE_PROJECT', 'TS_NODE_TRANSPILE_ONLY', 'TSX_TSCONFIG_PATH', 'TZ'];
 function mutationCommandEnv(baseEnv = process.env) {
     const env = { ...baseEnv };
     for (const key of SANITIZED_MUTATION_ENV_KEYS) {
@@ -22,13 +21,9 @@ function mutationCommandEnv(baseEnv = process.env) {
     return env;
 }
 function mutationEnvFingerprint(env) {
-    return FINGERPRINT_ENV_KEYS.reduce((result, key) => {
-        const value = env[key];
-        if (typeof value === 'string' && value.length > 0) {
-            result[key] = value;
-        }
-        return result;
-    }, {});
+    return Object.fromEntries(Object.entries(env)
+        .filter(([, value]) => typeof value === 'string' && value.length > 0)
+        .sort(([left], [right]) => left.localeCompare(right)));
 }
 function lineOf(node, sourceFile) {
     return sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;

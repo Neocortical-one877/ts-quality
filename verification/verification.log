@@ -25,6 +25,7 @@ $ npm test --silent
 ✔ amend --apply preserves json constitution format when configured (<duration-ms>)
 ✔ amend --apply preserves commonjs constitution modules when configured (<duration-ms>)
 ✔ authorize projects run-bound governance and invariant evidence into the decision artifact (<duration-ms>)
+✔ authorize writes bundle digests that match the run artifact file digests (<duration-ms>)
 ✔ attest sign and verify produce a valid signed claim with exact subject context (<duration-ms>)
 ✔ attest sign rejects subjects outside the repository root (<duration-ms>)
 ✔ authorize ignores attestations that target an older run (<duration-ms>)
@@ -33,6 +34,7 @@ $ npm test --silent
 ✔ authorize denies empty authorization scope instead of matching grants vacuously (<duration-ms>)
 ✔ init creates starter files in an empty repo (<duration-ms>)
 ✔ check treats empty init changeSet.files as all discovered source files (<duration-ms>)
+✔ check fails closed when changed scope has no measurable mutation pressure (<duration-ms>)
 ✔ check, report, explain, plan, and govern produce aligned artifacts (<duration-ms>)
 ✔ check persists analysis context and mutation baseline receipts (<duration-ms>)
 ✔ trend keeps deltas visible while surfacing the latest risky invariant provenance (<duration-ms>)
@@ -50,11 +52,12 @@ $ npm test --silent
 ✔ check rejects unsafe run ids (<duration-ms>)
 ✔ check rejects changed file overrides that escape the repository root (<duration-ms>)
 ✔ check --help renders usage instead of executing analysis (<duration-ms>)
+✔ check rejects missing values for value options instead of silently continuing (<duration-ms>)
 ✔ attest sign accepts cwd-relative paths even when --root is also set (<duration-ms>)
 ✔ attest sign rejects blank issuer metadata before signing (<duration-ms>)
 ✔ attest sign routes an explicit empty issuer through metadata validation (<duration-ms>)
 ✔ attest sign rejects zero-width issuer spoofing before signing (<duration-ms>)
-✔ attest sign treats a missing issuer value before another flag as missing input (<duration-ms>)
+✔ attest sign rejects missing values for required options before another known flag (<duration-ms>)
 ✔ attest sign accepts issuer values that begin with dashes via --option=value syntax (<duration-ms>)
 ✔ attest sign rejects unknown flags instead of swallowing them as option values (<duration-ms>)
 ✔ attest sign rejects verify-only flags instead of silently ignoring them (<duration-ms>)
@@ -62,6 +65,7 @@ $ npm test --silent
 ✔ attest sign escapes unsafe subject paths in operator-facing errors (<duration-ms>)
 ✔ attest sign rejects symlinked subjects that resolve outside --root (<duration-ms>)
 ✔ attest sign reports missing repo-local subjects as missing input (<duration-ms>)
+✔ attest verify detects byte-level subject drift for non-utf8 files (<duration-ms>)
 ✔ attest verify keeps signed subject context visible when verification fails (<duration-ms>)
 ✔ attest verify rejects symlinked signed subjects that resolve outside --root (<duration-ms>)
 ✔ attest verify prioritizes subject escapes before missing trusted keys (<duration-ms>)
@@ -131,6 +135,7 @@ $ npm test --silent
 ✔ evaluateAmendment enforces maintainer approvals and evidence (<duration-ms>)
 ✔ evaluateAmendment counts only unique approvers targeting the proposal id (<duration-ms>)
 ✔ evaluatePolicy reduces confidence for survivors and low mutation score (<duration-ms>)
+✔ evaluatePolicy blocks when mutation pressure is missing instead of scoring it as perfect (<duration-ms>)
 ✔ evaluatePolicy applies active waivers (<duration-ms>)
 ✔ evaluatePolicy blocks when the mutation baseline is not green (<duration-ms>)
 ✔ renderPrSummary projects concise invariant evidence provenance for the risky claim (<duration-ms>)
@@ -155,9 +160,10 @@ $ npm test --silent
 ✔ runMutations supports custom runtime mirror roots for built output outside dist (<duration-ms>)
 ✔ runMutations mirrors root-level sources into configured built runtime roots (<duration-ms>)
 ✔ runMutations ignores inherited NODE_TEST_CONTEXT and keeps mutation outcomes deterministic (<duration-ms>)
-ℹ tests 135
+✔ runMutations invalidates cached results when arbitrary execution environment changes (<duration-ms>)
+ℹ tests 141
 ℹ suites 0
-ℹ pass 135
+ℹ pass 141
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0

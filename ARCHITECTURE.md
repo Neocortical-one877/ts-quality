@@ -42,7 +42,7 @@ Legitimacy layer. It models agents and grants, builds proof-carrying change bund
 
 ### `packages/ts-quality`
 
-Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI. It also owns the run-bound decision-context projection used by downstream governance and legitimacy commands so approvals, attestations, and drift checks are evaluated against the exact reviewed run instead of ambient repo state.
+Product surface. It loads configuration through a data-only module contract rather than executing repo code, canonicalizes path-bearing analysis inputs into a repo-local preflight manifest before execution, enforces repo-local trust/input paths for config-driven artifacts, binds signed subject digests to exact file bytes instead of UTF-8-decoded text views, can materialize author-authored config/support files into canonical runtime JSON artifacts with reserved input subtrees for copied user files, orchestrates the engines, writes artifacts, and exposes the unified CLI. It also owns the run-bound decision-context projection used by downstream governance and legitimacy commands so approvals, attestations, drift checks, and evidence-missing cases are evaluated against the exact reviewed run instead of ambient repo state.
 
 ## Data flow
 
@@ -62,6 +62,6 @@ Product surface. It loads configuration through a data-only module contract rath
 - **Offline-first**: every core flow works locally with no network dependency.
 - **Deterministic semantics**: invariant reasoning is keyword- and selector-driven, not opaque.
 - **Stable artifacts**: JSON is key-sorted for hashing, signing, and diffability.
-- **Preconditions before confidence**: mutation scoring is only trustworthy when the baseline command is green and the execution context is explicitly fingerprinted.
+- **Preconditions before confidence**: mutation scoring is only trustworthy when the baseline command is green, the execution context is explicitly fingerprinted, and the evaluated scope produces measurable mutation pressure instead of a synthetic success state.
 - **Run-bound downstream decisions**: governance and legitimacy projections must stay anchored to the exact evaluated run id, exact run-targeted approvals/attestations, and current digests of the analyzed changed files.
 - **Human overrideability**: automation can be blocked, narrowed, or overridden with recorded standing and rationale, but override grants must still match the exact changed scope.

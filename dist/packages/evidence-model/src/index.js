@@ -521,7 +521,9 @@ function summarizeMutationScore(results) {
     return {
         killed,
         survived,
-        score: total === 0 ? 1 : killed / total
+        total,
+        measured: total > 0,
+        score: total === 0 ? 0 : killed / total
     };
 }
 function changedFileSet(changedFiles, changedRegions) {
