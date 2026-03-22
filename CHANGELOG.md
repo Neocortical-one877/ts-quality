@@ -33,8 +33,9 @@ type: "reference"
 - Mutation evidence now fails closed when the evaluated scope produces no killed or surviving mutants: empty mutation pressure is reported as missing evidence instead of a perfect 1.0 score, governance reflects the same missing-evidence state, and mutation-cache fingerprints now hash the full sanitized execution environment instead of a small allowlist.
 - Stabilized `verification/verification.log` by normalizing volatile duration output so `npm run verify` no longer dirties the working tree with timing-only churn.
 
-## 5.0.0
+## 0.1.0
 
+- Reset the public SemVer line to `0.1.0` so the first public release matches the repo's explicit alpha status instead of implying prior stable major generations.
 - Added a root `ts-quality` CLI and unified config surface.
 - Added a canonical evidence model and stable artifact storage under `.ts-quality/`.
 - Added change-centric merge-confidence scoring with Markdown and JSON reporting.
@@ -42,3 +43,4 @@ type: "reference"
 - Added constitutional governance primitives, architectural boundary checks, and rollout planning.
 - Added legitimacy primitives: agents, grants, proof-carrying change bundles, Ed25519 attestations, overrides, and amendments.
 - Added tests, fixtures, examples, CI, verification scripts, and generated sample artifacts.
+- Hardened CI dependency installation with cached `npm ci`, retry-on-timeout behavior, and a `verify:ci` path that avoids redundant reinstalls inside GitHub Actions.

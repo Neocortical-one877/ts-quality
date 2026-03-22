@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { spawnSync } from 'child_process';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
+const skipInstall = process.argv.includes('--skip-install');
 const verificationDir = path.join(root, 'verification');
 fs.mkdirSync(verificationDir, { recursive: true });
 const logPath = path.join(verificationDir, 'verification.log');
@@ -64,7 +65,9 @@ function assertVerifiedSampleAttestation(sampleArtifactsDir) {
   }
 }
 
-run('npm', ['install', '--ignore-scripts']);
+if (!skipInstall) {
+  run('npm', ['ci', '--ignore-scripts', '--no-audit', '--no-fund']);
+}
 run('npm', ['run', 'build', '--silent']);
 run('npm', ['run', 'typecheck', '--silent']);
 run('npm', ['run', 'lint', '--silent']);
@@ -94,7 +97,7 @@ const verificationMd = [
   '',
   'The following commands were executed successfully:',
   '',
-  '- `npm install --ignore-scripts`',
+  ...(skipInstall ? [] : ['- `npm ci --ignore-scripts --no-audit --no-fund`']),
   '- `npm run build --silent`',
   '- `npm run typecheck --silent`',
   '- `npm run lint --silent`',

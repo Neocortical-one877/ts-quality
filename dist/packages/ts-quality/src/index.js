@@ -823,7 +823,7 @@ function runCheck(rootDir, options) {
     });
     const controlPlane = buildControlPlaneSnapshot(rootDir, loaded, constitution, agents);
     const run = {
-        version: '5.0.0',
+        version: '0.1.0',
         runId,
         createdAt,
         repo,

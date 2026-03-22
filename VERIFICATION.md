@@ -10,7 +10,6 @@ type: "reference"
 
 The following commands were executed successfully:
 
-- `npm install --ignore-scripts`
 - `npm run build --silent`
 - `npm run typecheck --silent`
 - `npm run lint --silent`

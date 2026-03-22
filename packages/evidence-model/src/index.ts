@@ -458,7 +458,7 @@ export interface Verdict {
 }
 
 export interface RunArtifact {
-  version: '5.0.0';
+  version: '0.1.0';
   runId: string;
   createdAt: string;
   repo: RepositoryEntity;

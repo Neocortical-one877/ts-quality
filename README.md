@@ -1,12 +1,12 @@
 ---
-summary: "Product overview for ts-quality v5: deterministic evidence, explainable trust, and CLI entrypoints."
+summary: "Product overview for ts-quality alpha: deterministic evidence, explainable trust, and CLI entrypoints."
 read_when:
   - "When onboarding to this repo"
   - "When validating the shipped CLI surface or artifact contract"
 type: "reference"
 ---
 
-# ts-quality v5.0.0
+# ts-quality v0.1.0
 
 [![Completely Vibe Engineered](https://img.shields.io/badge/completely-vibe%20engineered-ff4fd8?style=for-the-badge)](https://github.com/tryingET/ts-quality)
 [![Alpha](https://img.shields.io/badge/status-alpha-f59e0b?style=for-the-badge)](https://github.com/tryingET/ts-quality/blob/main/CHANGELOG.md)
@@ -214,7 +214,7 @@ npx ts-quality check --config .ts-quality/materialized/ts-quality.config.json
 
 ## Stability
 
-`ts-quality` is currently **alpha**.
+`ts-quality` is currently **alpha** (`0.x.y`).
 Before 1.0, breaking changes are allowed when they improve deterministic evidence, safety, trust-boundary correctness, or contract clarity.
 That is not permission for silent drift: intentional breaking changes must still be called out in `CHANGELOG.md`, reflected in affected docs, and backed by tests or validation where appropriate.
 

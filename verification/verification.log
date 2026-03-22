@@ -1,11 +1,3 @@
-$ npm install --ignore-scripts
-
-up to date, audited 2 packages in <duration-ms>
-
-found 0 vulnerabilities
-
-
-exit=0
 $ npm run build --silent
 
 

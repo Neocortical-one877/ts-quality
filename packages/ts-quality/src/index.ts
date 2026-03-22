@@ -982,7 +982,7 @@ export function runCheck(rootDir: string, options?: { changedFiles?: string[]; c
   });
   const controlPlane = buildControlPlaneSnapshot(rootDir, loaded, constitution, agents);
   const run: RunArtifact = {
-    version: '5.0.0',
+    version: '0.1.0',
     runId,
     createdAt,
     repo,

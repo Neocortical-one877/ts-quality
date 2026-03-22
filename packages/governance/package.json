@@ -1,6 +1,6 @@
 {
   "name": "@ts-quality/governance",
-  "version": "5.0.0",
+  "version": "0.1.0",
   "license": "MIT",
   "main": "dist/packages/governance/src/index.js",
   "types": "dist/packages/governance/src/index.d.ts"
