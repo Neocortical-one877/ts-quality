@@ -609,7 +609,7 @@
   "overrides": [],
   "repo": {
     "digest": "sha256:b591e261c25f12d08c4ab7d681a674d069dcd0fba2f6e02d1c0684357e43696b",
-    "name": "tsq-samples-governed-app",
+    "name": "governed-app",
     "packages": [
       {
         "dir": "",

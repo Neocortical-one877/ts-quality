@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { spawnSync } from 'child_process';
 import { pathToFileURL } from 'url';
 
@@ -18,11 +17,8 @@ const SAMPLE_ATTESTED_AT = '2026-01-01T00:05:00.000Z';
 const SAMPLE_OVERRIDE_AT = '2026-01-01T00:10:00.000Z';
 const SAMPLE_APPROVAL_AT = '2026-01-01T00:15:00.000Z';
 const SAMPLE_EXECUTION_FINGERPRINT = 'sha256:sample-governed-app';
-const SAMPLE_REPO_DIR = path.join(os.tmpdir(), 'tsq-samples-governed-app');
-
-function sampleRootRelative(rootDir) {
-  return path.relative(path.parse(rootDir).root, rootDir).replace(/\\/g, '/');
-}
+const SAMPLE_REPO_ROOT = 'tmp/tsq-samples-governed-app';
+const SAMPLE_REPO_DIR = path.join(root, '.ts-quality', 'tmp-samples', SAMPLE_FIXTURE);
 
 function prepareSampleRoot(name) {
   const source = path.join(root, 'fixtures', name);
@@ -54,7 +50,6 @@ function normalizeTimingText(text) {
 }
 
 function normalizeRunArtifact(run, target) {
-  const repoRoot = sampleRootRelative(target);
   return {
     ...run,
     runId: SAMPLE_RUN_ID,
@@ -70,7 +65,7 @@ function normalizeRunArtifact(run, target) {
     repo: {
       ...run.repo,
       name: path.basename(target),
-      rootDir: repoRoot
+      rootDir: SAMPLE_REPO_ROOT
     },
     mutationBaseline: run.mutationBaseline
       ? {
