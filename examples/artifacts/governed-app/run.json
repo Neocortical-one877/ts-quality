@@ -684,12 +684,6 @@
       "symbol": "function:isRefreshExpired"
     }
   ],
-  "trend": {
-    "hotspotDelta": -3,
-    "mergeConfidenceDelta": 0,
-    "previousRunId": "2026-03-17T13-46-46-094Z",
-    "survivingMutantDelta": 0
-  },
   "verdict": {
     "bestNextAction": "Add or tighten an assertion covering src/auth/token.js around the surviving mutant.",
     "blockedBy": [

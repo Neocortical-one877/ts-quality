@@ -20,15 +20,49 @@ const SAMPLE_EXECUTION_FINGERPRINT = 'sha256:sample-governed-app';
 const SAMPLE_REPO_ROOT = 'tmp/tsq-samples-governed-app';
 const SAMPLE_REPO_DIR = path.join(root, '.ts-quality', 'tmp-samples', SAMPLE_FIXTURE);
 
+function resetSampleRuntimeState(target) {
+  const runtimeRoots = [
+    path.join(target, '.ts-quality', 'attestations'),
+    path.join(target, '.ts-quality', 'materialized'),
+    path.join(target, '.ts-quality', 'runs'),
+    path.join(target, '.ts-quality', 'tmp-mutants')
+  ];
+  for (const runtimeRoot of runtimeRoots) {
+    fs.rmSync(runtimeRoot, { recursive: true, force: true });
+  }
+  for (const runtimeFile of [
+    path.join(target, '.ts-quality', 'latest.json'),
+    path.join(target, '.ts-quality', 'mutation-manifest.json')
+  ]) {
+    fs.rmSync(runtimeFile, { force: true });
+  }
+}
+
 function prepareSampleRoot(name) {
   const source = path.join(root, 'fixtures', name);
   fs.rmSync(SAMPLE_REPO_DIR, { recursive: true, force: true });
   fs.cpSync(source, SAMPLE_REPO_DIR, { recursive: true });
+  resetSampleRuntimeState(SAMPLE_REPO_DIR);
   return SAMPLE_REPO_DIR;
 }
 
+function sampleCommandEnv(baseEnv = process.env) {
+  const env = {};
+  for (const key of ['PATH', 'HOME', 'TMPDIR', 'TMP', 'TEMP', 'SHELL', 'SystemRoot', 'ComSpec', 'WINDIR', 'USERPROFILE']) {
+    const value = baseEnv[key];
+    if (typeof value === 'string' && value.length > 0) {
+      env[key] = value;
+    }
+  }
+  env.TZ = 'UTC';
+  return env;
+}
+
 function run(args, cwd) {
-  const result = spawnSync('node', [cli, ...args, '--root', cwd], { encoding: 'utf8' });
+  const result = spawnSync('node', [cli, ...args, '--root', cwd], {
+    encoding: 'utf8',
+    env: sampleCommandEnv()
+  });
   if (result.status !== 0) {
     throw new Error(`Command failed: ${args.join(' ')}\n${result.stdout}\n${result.stderr}`);
   }

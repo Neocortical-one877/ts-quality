@@ -5,7 +5,6 @@ import { spawnSync } from 'child_process';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const skipInstall = process.argv.includes('--skip-install');
-const skipSampleIdempotence = process.env.TSQ_SKIP_SAMPLE_IDEMPOTENCE === '1';
 const verificationDir = path.join(root, 'verification');
 fs.mkdirSync(verificationDir, { recursive: true });
 const logPath = path.join(verificationDir, 'verification.log');
@@ -94,15 +93,13 @@ run('npm', ['test', '--silent']);
 run('npm', ['run', 'sample-artifacts', '--silent']);
 const sampleArtifactsDir = path.join(root, 'examples', 'artifacts', 'governed-app');
 assertVerifiedSampleAttestation(sampleArtifactsDir);
-if (!skipSampleIdempotence) {
-  const firstSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
-  run('npm', ['run', 'sample-artifacts', '--silent']);
-  assertVerifiedSampleAttestation(sampleArtifactsDir);
-  const secondSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
-  if (formatSnapshot(firstSampleSnapshot) !== formatSnapshot(secondSampleSnapshot)) {
-    const changes = diffSnapshots(firstSampleSnapshot, secondSampleSnapshot);
-    throw new Error(`Verification step failed: sample artifacts drifted across consecutive generation passes\n${changes.join('\n')}`);
-  }
+const firstSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
+run('npm', ['run', 'sample-artifacts', '--silent']);
+assertVerifiedSampleAttestation(sampleArtifactsDir);
+const secondSampleSnapshot = snapshotDirectory(sampleArtifactsDir);
+if (formatSnapshot(firstSampleSnapshot) !== formatSnapshot(secondSampleSnapshot)) {
+  const changes = diffSnapshots(firstSampleSnapshot, secondSampleSnapshot);
+  throw new Error(`Verification step failed: sample artifacts drifted across consecutive generation passes\n${changes.join('\n')}`);
 }
 run('npm', ['run', 'smoke', '--silent']);
 
@@ -125,7 +122,7 @@ const verificationMd = [
   '- `npm run lint --silent`',
   '- `npm test --silent`',
   '- `npm run sample-artifacts --silent`',
-  ...(skipSampleIdempotence ? [] : ['- second `npm run sample-artifacts --silent` idempotence check over `examples/artifacts/governed-app`']),
+  '- second `npm run sample-artifacts --silent` idempotence check over `examples/artifacts/governed-app`',
   '- `npm run smoke --silent`',
   '',
   `Log: \`${path.relative(root, logPath).replace(/\\/g, '/')}\``
